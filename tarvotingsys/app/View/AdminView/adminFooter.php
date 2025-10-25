@@ -1,8 +1,17 @@
 </main>
+</div>
+    <script>
+    // ensure Bootstrap flex layout on body so footer stays at the bottom
+    document.addEventListener('DOMContentLoaded', function(){
+        document.body.classList.add('d-flex', 'flex-column', 'min-vh-100');
+    });
+    </script>
 
-    <footer>
-        Developed by <b>Tunku Abdul Rahman University of Management and Technology</b> &middot;
-        Copyrighted &copy; <?= date('Y') ?>
+    <footer class="mt-auto bg-light py-3">
+      <div class="container text-center">
+        Developed by <strong>Tunku Abdul Rahman University of Management and Technology</strong> &middot;
+        Copyright &copy; <?= date('Y') ?>
+      </div>
     </footer>
 
 </body>
