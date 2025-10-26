@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 24, 2025 at 01:28 PM
+-- Generation Time: Oct 26, 2025 at 07:58 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -179,7 +179,7 @@ CREATE TABLE `campaignmaterialsapplication` (
 CREATE TABLE `campaignmaterialsdocument` (
   `materialsID` int(10) NOT NULL,
   `materialsFilename` longtext NOT NULL,
-  `materialApplicationID` int(10) NOT NULL
+  `materialsApplicationID` int(10) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -496,7 +496,7 @@ ALTER TABLE `campaignmaterialsapplication`
 --
 ALTER TABLE `campaignmaterialsdocument`
   ADD PRIMARY KEY (`materialsID`),
-  ADD KEY `campaignmaterialsdocument_ibfk_1` (`materialApplicationID`);
+  ADD KEY `campaignmaterialsdocument_ibfk_1` (`materialsApplicationID`);
 
 --
 -- Indexes for table `electionevent`
@@ -787,161 +787,161 @@ ALTER TABLE `votesession`
 -- Constraints for table `academicdocument`
 --
 ALTER TABLE `academicdocument`
-  ADD CONSTRAINT `academicdocument_ibfk_1` FOREIGN KEY (`NomineeApplicationID`) REFERENCES `nomineeapplication` (`NomineeApplicationID`);
+  ADD CONSTRAINT `academicdocument_ibfk_1` FOREIGN KEY (`nomineeApplicationID`) REFERENCES `nomineeapplication` (`nomineeApplicationID`);
 
 --
 -- Constraints for table `account`
 --
 ALTER TABLE `account`
-  ADD CONSTRAINT `account_ibfk_1` FOREIGN KEY (`FacultyID`) REFERENCES `faculty` (`FacultyID`);
+  ADD CONSTRAINT `account_ibfk_1` FOREIGN KEY (`facultyID`) REFERENCES `faculty` (`facultyID`);
 
 --
 -- Constraints for table `administrator`
 --
 ALTER TABLE `administrator`
-  ADD CONSTRAINT `administrator_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `administrator_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `announcement`
 --
 ALTER TABLE `announcement`
-  ADD CONSTRAINT `announcement_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `announcement_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `attachment`
 --
 ALTER TABLE `attachment`
-  ADD CONSTRAINT `attachment_ibfk_1` FOREIGN KEY (`AnnouncementID`) REFERENCES `announcement` (`AnnouncementID`);
+  ADD CONSTRAINT `attachment_ibfk_1` FOREIGN KEY (`announcementID`) REFERENCES `announcement` (`announcementID`);
 
 --
 -- Constraints for table `auditlog`
 --
 ALTER TABLE `auditlog`
-  ADD CONSTRAINT `auditlog_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `auditlog_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `ballot`
 --
 ALTER TABLE `ballot`
-  ADD CONSTRAINT `ballot_ibfk_1` FOREIGN KEY (`VoteSessionID`) REFERENCES `votesession` (`VoteSessionID`);
+  ADD CONSTRAINT `ballot_ibfk_1` FOREIGN KEY (`voteSessionID`) REFERENCES `votesession` (`voteSessionID`);
 
 --
 -- Constraints for table `ballotenvelope`
 --
 ALTER TABLE `ballotenvelope`
-  ADD CONSTRAINT `ballotenvelope_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`),
-  ADD CONSTRAINT `ballotenvelope_ibfk_2` FOREIGN KEY (`VoteSessionID`) REFERENCES `votesession` (`VoteSessionID`);
+  ADD CONSTRAINT `ballotenvelope_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`),
+  ADD CONSTRAINT `ballotenvelope_ibfk_2` FOREIGN KEY (`voteSessionID`) REFERENCES `votesession` (`voteSessionID`);
 
 --
 -- Constraints for table `ballotselection`
 --
 ALTER TABLE `ballotselection`
-  ADD CONSTRAINT `ballotselection_ibfk_1` FOREIGN KEY (`RaceID`) REFERENCES `race` (`RaceID`),
-  ADD CONSTRAINT `ballotselection_ibfk_2` FOREIGN KEY (`NomineeID`) REFERENCES `nominee` (`NomineeID`),
-  ADD CONSTRAINT `ballotselection_ibfk_3` FOREIGN KEY (`BallotID`) REFERENCES `ballot` (`BallotID`);
+  ADD CONSTRAINT `ballotselection_ibfk_1` FOREIGN KEY (`raceID`) REFERENCES `race` (`raceID`),
+  ADD CONSTRAINT `ballotselection_ibfk_2` FOREIGN KEY (`nomineeID`) REFERENCES `nominee` (`nomineeID`),
+  ADD CONSTRAINT `ballotselection_ibfk_3` FOREIGN KEY (`ballotID`) REFERENCES `ballot` (`ballotID`);
 
 --
 -- Constraints for table `campaignmaterialsapplication`
 --
 ALTER TABLE `campaignmaterialsapplication`
-  ADD CONSTRAINT `campaignmaterialsapplication_ibfk_1` FOREIGN KEY (`AdminID`) REFERENCES `administrator` (`AdminID`),
-  ADD CONSTRAINT `campaignmaterialsapplication_ibfk_2` FOREIGN KEY (`NomineeID`) REFERENCES `nominee` (`NomineeID`);
+  ADD CONSTRAINT `campaignmaterialsapplication_ibfk_1` FOREIGN KEY (`adminID`) REFERENCES `administrator` (`adminID`),
+  ADD CONSTRAINT `campaignmaterialsapplication_ibfk_2` FOREIGN KEY (`nomineeID`) REFERENCES `nominee` (`nomineeID`);
 
 --
 -- Constraints for table `campaignmaterialsdocument`
 --
 ALTER TABLE `campaignmaterialsdocument`
-  ADD CONSTRAINT `campaignmaterialsdocument_ibfk_1` FOREIGN KEY (`MaterialApplicationID`) REFERENCES `campaignmaterialsapplication` (`MaterialsApplicationID`);
+  ADD CONSTRAINT `campaignmaterialsdocument_ibfk_1` FOREIGN KEY (`materialsApplicationID`) REFERENCES `campaignmaterialsapplication` (`materialsApplicationID`);
 
 --
 -- Constraints for table `electionevent`
 --
 ALTER TABLE `electionevent`
-  ADD CONSTRAINT `electionevent_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `electionevent_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `event`
 --
 ALTER TABLE `event`
-  ADD CONSTRAINT `event_ibfk_1` FOREIGN KEY (`EventApplicationID`) REFERENCES `eventapplication` (`EventApplicationID`),
-  ADD CONSTRAINT `event_ibfk_2` FOREIGN KEY (`EventLocationID`) REFERENCES `eventlocation` (`EventLocationID`);
+  ADD CONSTRAINT `event_ibfk_1` FOREIGN KEY (`eventApplicationID`) REFERENCES `eventapplication` (`eventApplicationID`),
+  ADD CONSTRAINT `event_ibfk_2` FOREIGN KEY (`eventLocationID`) REFERENCES `eventlocation` (`eventLocationID`);
 
 --
 -- Constraints for table `eventapplication`
 --
 ALTER TABLE `eventapplication`
-  ADD CONSTRAINT `eventapplication_ibfk_1` FOREIGN KEY (`AdminID`) REFERENCES `administrator` (`AdminID`),
-  ADD CONSTRAINT `eventapplication_ibfk_2` FOREIGN KEY (`NomineeID`) REFERENCES `nominee` (`NomineeID`);
+  ADD CONSTRAINT `eventapplication_ibfk_1` FOREIGN KEY (`adminID`) REFERENCES `administrator` (`adminID`),
+  ADD CONSTRAINT `eventapplication_ibfk_2` FOREIGN KEY (`nomineeID`) REFERENCES `nominee` (`nomineeID`);
 
 --
 -- Constraints for table `nominee`
 --
 ALTER TABLE `nominee`
-  ADD CONSTRAINT `nominee_ibfk_1` FOREIGN KEY (`RaceID`) REFERENCES `race` (`RaceID`),
-  ADD CONSTRAINT `nominee_ibfk_2` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `nominee_ibfk_1` FOREIGN KEY (`raceID`) REFERENCES `race` (`raceID`),
+  ADD CONSTRAINT `nominee_ibfk_2` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `nomineeapplication`
 --
 ALTER TABLE `nomineeapplication`
-  ADD CONSTRAINT `nomineeapplication_ibfk_1` FOREIGN KEY (`RegistrationFormID`) REFERENCES `registrationform` (`RegistrationFormID`),
-  ADD CONSTRAINT `nomineeapplication_ibfk_2` FOREIGN KEY (`AdminID`) REFERENCES `administrator` (`AdminID`),
-  ADD CONSTRAINT `nomineeapplication_ibfk_3` FOREIGN KEY (`StudentID`) REFERENCES `student` (`StudentID`),
-  ADD CONSTRAINT `nomineeapplication_ibfk_4` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`);
+  ADD CONSTRAINT `nomineeapplication_ibfk_1` FOREIGN KEY (`registrationFormID`) REFERENCES `registrationform` (`registrationFormID`),
+  ADD CONSTRAINT `nomineeapplication_ibfk_2` FOREIGN KEY (`adminID`) REFERENCES `administrator` (`adminID`),
+  ADD CONSTRAINT `nomineeapplication_ibfk_3` FOREIGN KEY (`studentID`) REFERENCES `student` (`studentID`),
+  ADD CONSTRAINT `nomineeapplication_ibfk_4` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`);
 
 --
 -- Constraints for table `race`
 --
 ALTER TABLE `race`
-  ADD CONSTRAINT `race_ibfk_1` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`),
-  ADD CONSTRAINT `race_ibfk_2` FOREIGN KEY (`FacultyID`) REFERENCES `faculty` (`FacultyID`);
+  ADD CONSTRAINT `race_ibfk_1` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`),
+  ADD CONSTRAINT `race_ibfk_2` FOREIGN KEY (`facultyID`) REFERENCES `faculty` (`facultyID`);
 
 --
 -- Constraints for table `registrationform`
 --
 ALTER TABLE `registrationform`
-  ADD CONSTRAINT `registrationform_ibfk_1` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`),
-  ADD CONSTRAINT `registrationform_ibfk_2` FOREIGN KEY (`AdminID`) REFERENCES `administrator` (`AdminID`);
+  ADD CONSTRAINT `registrationform_ibfk_1` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`),
+  ADD CONSTRAINT `registrationform_ibfk_2` FOREIGN KEY (`adminID`) REFERENCES `administrator` (`adminID`);
 
 --
 -- Constraints for table `registrationformattribute`
 --
 ALTER TABLE `registrationformattribute`
-  ADD CONSTRAINT `registrationformattribute_ibfk_1` FOREIGN KEY (`RegistrationFormID`) REFERENCES `registrationform` (`RegistrationFormID`),
-  ADD CONSTRAINT `registrationformattribute_ibfk_2` FOREIGN KEY (`RegistrationCatalogueID`) REFERENCES `registrationattributecatalogue` (`RegistrationCatalogueID`);
+  ADD CONSTRAINT `registrationformattribute_ibfk_1` FOREIGN KEY (`registrationFormID`) REFERENCES `registrationform` (`registrationFormID`),
+  ADD CONSTRAINT `registrationformattribute_ibfk_2` FOREIGN KEY (`registrationCatalogueID`) REFERENCES `registrationattributecatalogue` (`registrationCatalogueID`);
 
 --
 -- Constraints for table `report`
 --
 ALTER TABLE `report`
-  ADD CONSTRAINT `report_ibfk_1` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`);
+  ADD CONSTRAINT `report_ibfk_1` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`);
 
 --
 -- Constraints for table `result`
 --
 ALTER TABLE `result`
-  ADD CONSTRAINT `result_ibfk_1` FOREIGN KEY (`VoteSessionID`) REFERENCES `votesession` (`VoteSessionID`),
-  ADD CONSTRAINT `result_ibfk_2` FOREIGN KEY (`RaceID`) REFERENCES `race` (`RaceID`),
-  ADD CONSTRAINT `result_ibfk_3` FOREIGN KEY (`NomineeID`) REFERENCES `nominee` (`NomineeID`),
-  ADD CONSTRAINT `result_ibfk_4` FOREIGN KEY (`AnnouncementID`) REFERENCES `announcement` (`AnnouncementID`);
+  ADD CONSTRAINT `result_ibfk_1` FOREIGN KEY (`voteSessionID`) REFERENCES `votesession` (`voteSessionID`),
+  ADD CONSTRAINT `result_ibfk_2` FOREIGN KEY (`raceID`) REFERENCES `race` (`raceID`),
+  ADD CONSTRAINT `result_ibfk_3` FOREIGN KEY (`nomineeID`) REFERENCES `nominee` (`nomineeID`),
+  ADD CONSTRAINT `result_ibfk_4` FOREIGN KEY (`announcementID`) REFERENCES `announcement` (`announcementID`);
 
 --
 -- Constraints for table `rule`
 --
 ALTER TABLE `rule`
-  ADD CONSTRAINT `rule_ibfk_1` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`);
+  ADD CONSTRAINT `rule_ibfk_1` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`);
 
 --
 -- Constraints for table `student`
 --
 ALTER TABLE `student`
-  ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`AccountID`) REFERENCES `account` (`AccountID`);
+  ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`accountID`) REFERENCES `account` (`accountID`);
 
 --
 -- Constraints for table `votesession`
 --
 ALTER TABLE `votesession`
-  ADD CONSTRAINT `votesession_ibfk_1` FOREIGN KEY (`ElectionID`) REFERENCES `electionevent` (`ElectionID`);
+  ADD CONSTRAINT `votesession_ibfk_1` FOREIGN KEY (`electionID`) REFERENCES `electionevent` (`electionID`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
