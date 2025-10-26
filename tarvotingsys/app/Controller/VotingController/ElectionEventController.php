@@ -2,6 +2,7 @@
 
 namespace Controller\VotingController;
 
+
 use Model\VotingModel\ElectionEventModel;
 use FileHelper;
 
@@ -16,7 +17,7 @@ class ElectionEventController
         $this->fileHelper = new FileHelper("election_event");
     }
 
-    public function listElectionEvents(): void
+    public function listElectionEvents()
     {
         $electionEvents = $this->electionEventModel->getAllElectionEvents(); // ensure method name matches your model
         $filePath = $this->fileHelper->getFilePath('ElectionEventList');
