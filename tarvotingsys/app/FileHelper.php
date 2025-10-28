@@ -34,8 +34,13 @@ class FileHelper
     {
         // IMPORTANT: make this relative to /app (where FileHelper.php sits)
         // So View/VotingView/election-event.php resolves to .../app/View/VotingView/election-event.php
+        
         $electionEventPaths = $this->prefixWithBase([
             'ElectionEventList' => 'View/VotingView/electionEvent.php',
+            'CreateElectionEvent' => 'View/VotingView/createElectionEvent.php',
+            'EditElectionEvent' => 'View/VotingView/editElectionEvent.php',
+            'ViewElectionEvent' => 'View/VotingView/viewElectionEvent.php',
+            'DeleteElectionEvent' => 'View/VotingView/deleteElectionEvent.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,

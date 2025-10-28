@@ -30,6 +30,44 @@
                 </ul>
             </div>
         </div>
+        <?php if (!empty($_SESSION['flash'])): ?>
+            <?php foreach ($_SESSION['flash'] as $type => $message): ?>
+                <?php
+                    // Map flash types to Bootstrap alert classes
+                    $alertClass = match($type) {
+                        'success' => 'alert-success',
+                        'error', 'fail' => 'alert-danger',
+                        'warning' => 'alert-warning',
+                        'info' => 'alert-info',
+                        default => 'alert-secondary'
+                    };
+                ?>
+                <!-- Flash message at top-center -->
+                <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100" style="max-width: 600px; z-index: 2000;">
+                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center" 
+                        id="flash-message-<?= $type ?>" 
+                        role="alert">
+                        <?= htmlspecialchars($message) ?>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+
+            <script>
+                // Auto-dismiss all flash messages after 5 seconds
+                setTimeout(() => {
+                    document.querySelectorAll('[id^="flash-message-"]').forEach(flash => {
+                        flash.classList.remove('show'); // start fade-out
+                        flash.classList.add('fade');
+                        setTimeout(() => flash.remove(), 500); // remove from DOM after fade
+                    });
+                }, 3000);
+            </script>
+
+            <?php unset($_SESSION['flash']); // clear all after showing ?>
+        <?php endif; ?>
+
+
+
     </nav>
 
     <!-- Sidebar and Content wrapper -->
