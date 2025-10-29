@@ -77,9 +77,9 @@
             <aside id="sidebar" class="bg-light position-relative start-0 overflow-auto border-end border-white border-1" style="height:calc(100vh - 56px); z-index:1020;">
                 <div class="position-sticky pb-5">
                     <div class="list-group list-group-flush">
-                        <a href="#" class="list-group-item list-group-item-action">Election Event</a>
+                        <a href="/election-event" class="list-group-item list-group-item-action">Election Event</a>
                         <a href="#" class="list-group-item list-group-item-action">Election Registration Form</a>
-                        <a href="#" class="list-group-item list-group-item-action">Rules & Regulations</a>
+                        <a href="/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
                         <a href="#" class="list-group-item list-group-item-action">Nominees' Registration</a>
                         <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
                         <a href="#" class="list-group-item list-group-item-action">Announcement</a>

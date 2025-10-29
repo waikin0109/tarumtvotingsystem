@@ -43,6 +43,14 @@ class FileHelper
             'DeleteElectionEvent' => 'View/VotingView/deleteElectionEvent.php',
         ]);
 
+        $rulePaths = $this->prefixWithBase([
+            'RuleList' => 'View/VotingView/rule.php',
+            'CreateRule' => 'View/VotingView/createRule.php',
+            'EditRule' => 'View/VotingView/editRule.php',
+            'ViewRule' => 'View/VotingView/viewRule.php',
+            'DeleteRule' => 'View/VotingView/deleteRule.php',
+        ]);
+
         // If your CSS is under /public/css, and FileHelper sits in /app,
         // then go one level up to project root and into public:
         $assetPaths = $this->prefixWithBase([
@@ -52,6 +60,9 @@ class FileHelper
         switch ($this->permission) {
             case 'election_event':
                 $this->allowedPaths = array_merge($electionEventPaths, $assetPaths);
+                break;
+            case 'rule':
+                $this->allowedPaths = array_merge($rulePaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

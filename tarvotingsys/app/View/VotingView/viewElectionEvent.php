@@ -30,3 +30,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
         </div>
     </div>
 </div>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>
