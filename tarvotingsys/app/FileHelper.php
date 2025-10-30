@@ -40,7 +40,7 @@ class FileHelper
             'CreateElectionEvent' => 'View/VotingView/createElectionEvent.php',
             'EditElectionEvent' => 'View/VotingView/editElectionEvent.php',
             'ViewElectionEvent' => 'View/VotingView/viewElectionEvent.php',
-            'DeleteElectionEvent' => 'View/VotingView/deleteElectionEvent.php',
+            'DeleteElectionEvent' => 'View/VotingView/deleteElectionEvent.php'
         ]);
 
         $rulePaths = $this->prefixWithBase([
@@ -48,7 +48,15 @@ class FileHelper
             'CreateRule' => 'View/VotingView/createRule.php',
             'EditRule' => 'View/VotingView/editRule.php',
             'ViewRule' => 'View/VotingView/viewRule.php',
-            'DeleteRule' => 'View/VotingView/deleteRule.php',
+            'DeleteRule' => 'View/VotingView/deleteRule.php'
+        ]);
+
+        $electionRegistrationFormPaths = $this->prefixWithBase([
+            'ElectionRegistrationFormList' => 'View/NomineeHandlingView/registrationForm.php',
+            'CreateElectionRegistrationForm' => 'View/NomineeHandlingView/createRegistrationForm.php',
+            'EditElectionRegistrationForm' => 'View/NomineeHandlingView/editRegistrationForm.php',
+            'ViewElectionRegistrationForm' => 'View/NomineeHandlingView/viewRegistrationForm.php',
+            'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php'
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,
@@ -63,6 +71,9 @@ class FileHelper
                 break;
             case 'rule':
                 $this->allowedPaths = array_merge($rulePaths, $assetPaths);
+                break;
+            case 'election_registration_form':
+                $this->allowedPaths = array_merge($electionRegistrationFormPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

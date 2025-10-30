@@ -3,6 +3,8 @@
 use Controller\VotingController\ElectionEventController;
 use Controller\VotingController\RuleController;
 
+use Controller\NomineeHandlingController\RegistrationFormController;
+
 
 
 // Election Event Routes
@@ -22,3 +24,12 @@ Route::get('/rule/edit/{id}', [RuleController::class, 'editRule']);
 Route::post('/rule/edit/{id}', [RuleController::class, 'editStoreRule']);
 Route::get('/rule/view/{id}', [RuleController::class, 'viewRule']);
 Route::post('/rule/delete/{id}', [RuleController::class, 'deleteRule']);
+
+// Election Registration Form Routes
+Route::get('/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
+Route::get('/election-registration-form/create', [RegistrationFormController::class, 'createRegistrationForm']);
+Route::post('/election-registration-form/create', [RegistrationFormController::class, 'storeRegistrationForm']);
+Route::get('/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editRegistrationForm']);
+Route::post('/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editStoreRegistrationForm']);
+Route::get('/election-registration-form/view/{id}', [RegistrationFormController::class, 'viewRegistrationForm']);
+Route::post('/election-registration-form/delete/{id}', [RegistrationFormController::class, 'deleteRegistrationForm']);

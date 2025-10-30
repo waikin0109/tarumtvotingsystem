@@ -110,7 +110,7 @@ class ElectionEventController
                 $fieldErrors['electionEventEndDate'][] = "End Date & Time must be after Start Date & Time.";
                 $fieldErrors['electionEventEndTime'][] = "End Date & Time must be after Start Date & Time.";
             }
-            // nd must be at least 7 days after Start
+            // End must be at least 7 days after Start
             else if ($endTs < strtotime('+7 days', $startTs)) {
                 $errors[] = "Election Event must last at least 7 days from the start.";
                 $fieldErrors['electionEventEndDate'][] = "Choose an end date/time ≥ 7 days after the start.";
