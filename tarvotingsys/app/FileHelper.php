@@ -38,6 +38,30 @@ class FileHelper
             'ElectionEventList' => 'View/VotingView/electionEvent.php',
         ]);
 
+        $loginpaths = $this->prefixWithBase([
+            'Login' => 'View/LoginView/login.php',
+        ]);
+
+        $studentPaths = $this->prefixWithBase([
+            'StudentHome' => 'View/StudentView/studentHome.php',
+        ]);
+
+        $adminPaths = $this->prefixWithBase([
+            'AdminHome' => 'View/AdminView/adminHome.php',
+        ]);
+
+        $nomineePaths = $this->prefixWithBase([
+            'NomineeHome' => 'View/NomineeView/nomineeHome.php',
+        ]);
+
+        $announcementPaths = $this->prefixWithBase([
+            'AnnouncementList' => 'View/VotingView/announcement.php',
+            'CreateAnnouncement' => 'View/VotingView/createAnnouncement.php',
+            'EditAnnouncement' => 'View/VotingView/editAnnouncement.php',
+            'ViewAnnouncement' => 'View/VotingView/viewAnnouncement.php',
+            // 'DeleteAnnouncement'=> 'View/VotingView/deleteAnnouncement.php',
+        ]);
+
         // If your CSS is under /public/css, and FileHelper sits in /app,
         // then go one level up to project root and into public:
         $assetPaths = $this->prefixWithBase([
@@ -47,6 +71,21 @@ class FileHelper
         switch ($this->permission) {
             case 'election_event':
                 $this->allowedPaths = array_merge($electionEventPaths, $assetPaths);
+                break;
+            case 'login':
+                $this->allowedPaths = array_merge($loginpaths, $assetPaths);
+                break;
+            case 'student':
+                $this->allowedPaths = array_merge($studentPaths, $assetPaths);
+                break;
+            case 'admin':
+                $this->allowedPaths = array_merge($adminPaths, $assetPaths);
+                break;
+            case 'nominee':
+                $this->allowedPaths = array_merge($nomineePaths, $assetPaths);
+                break;
+            case 'announcement':
+                $this->allowedPaths = array_merge($announcementPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;
