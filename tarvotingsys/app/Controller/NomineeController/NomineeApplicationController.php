@@ -6,6 +6,7 @@ use Model\NomineeModel\NomineeApplicationModel;
 use Model\NomineeHandlingModel\RegistrationFormModel;
 use Model\NomineeHandlingModel\AcademicDocumentModel;
 use Model\StudentModel\StudentModel;
+use Model\VotingModel\ElectionEventModel;
 use FileHelper;
 
 class NomineeApplicationController
@@ -14,6 +15,7 @@ class NomineeApplicationController
     private RegistrationFormModel $registrationFormModel;
     private AcademicDocumentModel $academicDocumentModel;
     private StudentModel $studentModel;
+    private ElectionEventModel $electionEventModel;
     private FileHelper $fileHelper;
 
     public function __construct()
@@ -22,6 +24,7 @@ class NomineeApplicationController
         $this->registrationFormModel   = new RegistrationFormModel();
         $this->academicDocumentModel   = new AcademicDocumentModel();
         $this->studentModel            = new StudentModel();
+        $this->electionEventModel      = new ElectionEventModel();
         $this->fileHelper              = new FileHelper('nominee_application'); // keep NomineeView location
     }
 
@@ -49,11 +52,13 @@ class NomineeApplicationController
     // -------------------- Show create page (NomineeView) --------------------
     public function createNomineeApplication()
     {
-        $forms = $this->registrationFormModel->listForms();
+        $forms = $this->registrationFormModel->listOpenForms();
 
         $errors = [];
         $fieldErrors = [];
         $old = [];
+
+        // This is the only variable you should use in this method
         $selectedForm = (int)($_GET['registrationFormID'] ?? 0);
 
         $renderAttrs = [];
@@ -73,16 +78,20 @@ class NomineeApplicationController
             }
         }
 
+        // (Optional banner data for the view; safe to keep or remove)
+        $registrationOpen = $selectedForm > 0 ? $this->registrationFormModel->isRegistrationOpen($selectedForm) : true;
+        $regWindow        = $selectedForm > 0 ? $this->registrationFormModel->getRegWindowByFormId($selectedForm) : null;
+
         $students = $this->studentModel->getAllStudents();
 
         $filePath = $this->fileHelper->getFilePath('CreateNomineeApplication');
         if ($filePath && file_exists($filePath)) {
-            // make $students available to the view
-            include $filePath;
+            include $filePath; // exposes $forms, $selectedForm, $renderAttrs, $students, $registrationOpen, $regWindow
         } else {
             echo "View file not found.";
         }
     }
+
 
     // -------------------- Handle submit (NomineeView) --------------------
     public function storeNomineeApplication()
@@ -226,7 +235,7 @@ class NomineeApplicationController
 
         // If validation fails -> re-render with old input
         if (!empty($errors) || !empty($fieldErrors)) {
-            $forms = $this->registrationFormModel->listForms();
+            $forms = $this->registrationFormModel->listOpenForms();
             $selectedForm = $registrationFormID;
 
             $renderAttrs = [];
@@ -268,7 +277,7 @@ class NomineeApplicationController
         if ($appId <= 0 || $submissionId <= 0) {
             $errors[] = 'Failed to create application. Please try again.';
 
-            $forms = $this->registrationFormModel->listForms();
+            $forms = $this->registrationFormModel->listOpenForms();
             $selectedForm = $registrationFormID;
 
             $renderAttrs = [];
@@ -399,6 +408,14 @@ class NomineeApplicationController
 
         // Attributes for this form
         $registrationFormID = (int)$header['registrationFormID'];
+
+        if (!$this->registrationFormModel->isRegistrationOpen($registrationFormID)) {
+            \set_flash('warning', 'Registration is closed. Editing is not allowed.');
+            header("Location: /nominee-application");
+            return;
+        }
+
+
         $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID);
         $subCols   = $this->registrationFormModel->getSubmissionColumns();
 
@@ -476,6 +493,14 @@ class NomineeApplicationController
         }
 
         $registrationFormID = (int)$header['registrationFormID'];
+
+        if (!$this->registrationFormModel->isRegistrationOpen($registrationFormID)) {
+            \set_flash('warning', 'Registration is closed. Editing is not allowed.');
+            header("Location: /nominee-application");
+            return;
+        }
+
+
         $electionID         = (int)$header['electionID'];
         $studentID          = (int)$header['studentID'];
         $applicationSubmissionID = (int)($header['applicationSubmissionID'] ?? 0);
@@ -968,5 +993,107 @@ class NomineeApplicationController
         \set_flash('success', 'Nominee Application rejected successfully.');
         header("Location: /nominee-application");
     }
+
+    // -------------------------------- Publish Nominee Applications --------------------------------
+    public function publishNomineeApplications()
+    {
+        $errors = [];
+        $fieldErrors = [];
+        $old = [];
+
+        // Use your ElectionEventModel to populate the select
+        $electionEvents = $this->electionEventModel->getAllElectionEvents() ?: [];
+
+        // Optional preview (?electionEventID=...)
+        $selectedEventId = (int)($_GET['electionEventID'] ?? 0);
+        $acceptedCandidates = [];
+        if ($selectedEventId > 0) {
+            $acceptedCandidates = $this->nomineeApplicationModel
+                ->getAcceptedApplicationsByElection($selectedEventId);
+        }
+
+        $filePath = $this->fileHelper->getFilePath('PublishNomineeApplications');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath; // expects: $electionEvents, $selectedEventId, $acceptedCandidates, $errors, $fieldErrors, $old
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function publishStoreNomineeApplications()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->publishNomineeApplications();
+            return;
+        }
+
+        $errors = [];
+        $fieldErrors = [];
+
+        $electionEventID = (int)($_POST['electionEventID'] ?? 0);
+        if ($electionEventID <= 0) {
+            $fieldErrors['electionEventID'] = 'Please select a valid election event.';
+        } else {
+            // Pre-publish checks
+            // PENDING applications check
+            $pending = $this->nomineeApplicationModel->countPendingByElection($electionEventID);
+            if ($pending > 0) {
+                $errors[] = "You still have students in PENDING! ($pending)";
+            }
+
+            // ACCEPTED applications check
+            $check = $this->nomineeApplicationModel->getAcceptedApplicationsByElection($electionEventID);
+            if (empty($check)) {
+                $errors[] = 'No ACCEPTED applications found for the selected event.';
+            }
+        }
+
+        if (!empty($errors) || !empty($fieldErrors)) {
+            $electionEvents = $this->electionEventModel->getAllElectionEvents() ?: [];
+            $selectedEventId = $electionEventID;
+            $acceptedCandidates = $check ?? [];
+
+            $filePath = $this->fileHelper->getFilePath('PublishNomineeApplications');
+            if ($filePath && file_exists($filePath)) {
+                include $filePath;
+            } else {
+                echo "View file not found.";
+            }
+            return;
+        }
+
+        // Transactional publish
+        $ok = $this->nomineeApplicationModel->publishNomineeApplications($electionEventID);
+        if (!$ok) {
+            \set_flash('danger', 'Publish failed. Please try again.');
+            $this->publishNomineeApplications();
+            return;
+        }
+
+        \set_flash('success', 'Nominee Applications published successfully.');
+        header("Location: /nominee-application");
+    }
+
+    // -------------------------------- View Published Nominee Applications --------------------------------
+    public function finalizePublishNomineeApplications($id)
+    {
+        $electionEventID = (int)$id;
+
+        // If you want PUBLISHED (after publish), use this:
+        $acceptedCandidates = $electionEventID > 0
+            ? ($this->nomineeApplicationModel->getPublishedApplicationsByElection($electionEventID) ?: [])
+            : [];
+
+        $filePath = $this->fileHelper->getFilePath('ViewPublishNomineeApplications');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+
+
+
 
 }

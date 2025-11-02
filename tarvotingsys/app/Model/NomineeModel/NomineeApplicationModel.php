@@ -24,21 +24,36 @@ class NomineeApplicationModel
      * @return array|false
      */
     public function getAllNomineeApplications() {
-        try { 
-            $stmt = $this->db->prepare(" 
-                SELECT na.*, ac.fullName, e.title AS event_name 
-                FROM nomineeapplication na 
-                LEFT JOIN electionevent e ON na.electionID = e.electionID 
-                LEFT JOIN student s ON na.studentID = s.studentID 
-                LEFT JOIN account ac ON s.accountID = ac.accountID 
-                ORDER BY na.nomineeApplicationID ASC 
-            "); 
-            $stmt->execute(); 
-            return $stmt->fetchAll(PDO::FETCH_ASSOC); 
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    na.*,
+                    ac.fullName,
+                    e.title AS event_name,
+                    -- Edit Button Disable Consitions
+                    (rf.registerEndDate IS NULL OR rf.registerEndDate > NOW()) AS reg_is_open,
+                    -- Check if event has any PUBLISHED applications
+                    EXISTS (
+                        SELECT 1 FROM nomineeapplication na2
+                        WHERE na2.electionID = na.electionID
+                        AND na2.applicationStatus = 'PUBLISHED'
+                        LIMIT 1
+                    ) AS event_has_published
+                FROM nomineeapplication na
+                LEFT JOIN electionevent e  ON na.electionID = e.electionID
+                LEFT JOIN registrationform rf ON na.registrationFormID = rf.registrationFormID
+                LEFT JOIN student s        ON na.studentID = s.studentID 
+                LEFT JOIN account ac       ON s.accountID = ac.accountID 
+                ORDER BY na.nomineeApplicationID ASC
+            ");
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) { 
-            error_log("Error in getAllNomineeApplications: " . $e->getMessage()); return false; 
+            error_log("Error in getAllNomineeApplications: " . $e->getMessage());
+            return false; 
         } 
-}
+    }
+
 
     /**
      * Create a nominee application (header) and its submission row (dynamic fields).
@@ -225,5 +240,170 @@ class NomineeApplicationModel
             return false;
         }
     }
+
+    // -------------------------------------- Publish Nominee Applications -------------------------------------- //
+    /** Dropdown list of election events */
+    public function listElectionEvents(): array
+    {
+        try {
+            $st = $this->db->query("
+                SELECT electionID, title
+                FROM electionevent
+                ORDER BY electionID DESC
+            ");
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('listElectionEvents error: '.$e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get all ACCEPTED applications for an election (for preview/publish).
+     * Returns: fullName, studentID, loginID, program, intakeYear, accountID
+     */
+    public function getAcceptedApplicationsByElection(int $electionID): array
+    {
+        try {
+            $sql = "
+                SELECT 
+                    ac.fullName,
+                    s.studentID,
+                    ac.loginID,
+                    s.program,
+                    s.intakeYear,
+                    ac.accountID
+                FROM nomineeapplication na
+                JOIN student s   ON na.studentID = s.studentID
+                JOIN account ac  ON s.accountID = ac.accountID
+                WHERE na.electionID = ?
+                AND na.applicationStatus = 'ACCEPTED'
+                ORDER BY s.studentID ASC
+            ";
+            $st = $this->db->prepare($sql);
+            $st->execute([$electionID]);
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('getAcceptedApplicationsByElection error: '.$e->getMessage());
+            return [];
+        }
+    }
+
+    // Count PENDING applications for an election
+    public function countPendingByElection(int $electionID): int
+    {
+        try {
+            $st = $this->db->prepare("
+                SELECT COUNT(*) 
+                FROM nomineeapplication 
+                WHERE electionID = ? AND applicationStatus = 'PENDING'
+            ");
+            $st->execute([$electionID]);
+            return (int)$st->fetchColumn();
+        } catch (PDOException $e) {
+            error_log('countPendingByElection error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+
+    /**
+     * Transactional publish for an election:
+     * 1) Close registration: registrationform.registerEndDate = NOW() (for forms under this election)
+     * 2) Flip ACCEPTED -> PUBLISHED in nomineeapplication for this election
+     * 3) Update account.role to 'NOMINEE' for those students
+     * 4) Insert into nominee(accountID) for those accounts (skip duplicates)
+     */
+    public function publishNomineeApplications(int $electionID): bool
+    {
+        // Prevent Publishing if there is PENDING applications
+        if ($this->countPendingByElection($electionID) > 0) {
+            return false;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1) Close registration
+            $sqlClose = " UPDATE registrationform SET registerEndDate = NOW() WHERE electionID = ? AND (registerEndDate IS NULL OR registerEndDate > NOW())";
+            $stClose = $this->db->prepare($sqlClose);
+            $stClose->execute([$electionID]);
+
+            // 2) Promote ACCEPTED -> PUBLISHED
+            $sqlPub = "
+                UPDATE nomineeapplication
+                SET applicationStatus = 'PUBLISHED'
+                WHERE electionID = ?
+                AND applicationStatus = 'ACCEPTED'
+            ";
+            $stPub = $this->db->prepare($sqlPub);
+            $stPub->execute([$electionID]);
+
+            // 3) Update account role for those now PUBLISHED
+            $sqlRole = "
+                UPDATE account a
+                JOIN student s ON s.accountID = a.accountID
+                JOIN nomineeapplication na ON na.studentID = s.studentID
+                SET a.role = 'NOMINEE'
+                WHERE na.electionID = ?
+                AND na.applicationStatus = 'PUBLISHED'
+            ";
+            $stRole = $this->db->prepare($sqlRole);
+            $stRole->execute([$electionID]);
+
+            // 4) Insert nominee rows (avoid duplicates)
+            $sqlNominee = "
+                INSERT INTO nominee (accountID)
+                SELECT DISTINCT a.accountID
+                FROM account a
+                JOIN student s ON s.accountID = a.accountID
+                JOIN nomineeapplication na ON na.studentID = s.studentID
+                WHERE na.electionID = ?
+                AND na.applicationStatus = 'PUBLISHED'
+                AND NOT EXISTS (
+                    SELECT 1 FROM nominee n WHERE n.accountID = a.accountID
+                )
+            ";
+            $stNominee = $this->db->prepare($sqlNominee);
+            $stNominee->execute([$electionID]);
+
+            $this->db->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log('publishNomineeApplications error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Get all PUBLISHED applications for an election (for viewing after publish).
+    public function getPublishedApplicationsByElection(int $electionID): array
+    {
+        try {
+            $sql = "
+                SELECT 
+                    ac.fullName,
+                    s.studentID,
+                    ac.loginID,
+                    s.program,
+                    s.intakeYear,
+                    ac.accountID
+                FROM nomineeapplication na
+                JOIN student s   ON na.studentID = s.studentID
+                JOIN account ac  ON s.accountID = ac.accountID
+                WHERE na.electionID = ?
+                AND na.applicationStatus = 'PUBLISHED'
+                ORDER BY s.studentID ASC
+            ";
+            $st = $this->db->prepare($sql);
+            $st->execute([$electionID]);
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\PDOException $e) {
+            error_log('getPublishedApplicationsByElection error: '.$e->getMessage());
+            return [];
+        }
+    }
+
+
 
 }

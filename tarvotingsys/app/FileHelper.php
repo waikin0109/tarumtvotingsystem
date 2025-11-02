@@ -65,7 +65,9 @@ class FileHelper
             'EditNomineeApplication' => 'View/NomineeView/editNomineeApplication.php',
             'ViewNomineeApplication' => 'View/NomineeView/viewNomineeApplication.php',
             'AcceptNomineeApplication' => 'View/NomineeView/acceptNomineeApplication.php',
-            'RejectNomineeApplication' => 'View/NomineeView/rejectNomineeApplication.php'
+            'RejectNomineeApplication' => 'View/NomineeView/rejectNomineeApplication.php',
+            'PublishNomineeApplications' => 'View/NomineeView/publishNomineeApplication.php',
+            'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php'
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,

@@ -10,8 +10,13 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                 <h2>Nominee Registration Application List</h2>
             </div>
         </div>
-        <div class="col-sm-5">
-            <a href="/nominee-application/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button></a>
+        <div class="col-sm-5 d-flex justify-content-end">
+            <a href="/nominee-application/publish">
+                <button class="btn btn-primary mx-2">Publish</button>
+            </a>
+            <a href="/nominee-application/create">
+                <button class="btn btn-primary mx-2">Create (+)</button>
+            </a>
         </div>
     </div>
     
@@ -41,13 +46,35 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                                     <td><?= htmlspecialchars($application['applicationStatus'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($application['event_name'] ?? '—') ?></td>
                                     <td onclick="event.stopPropagation()">
-                                        <a href="/nominee-application/edit/<?= urlencode($application['nomineeApplicationID'] ?? '') ?>" class="btn btn-sm btn-warning">Edit</a>
-                                        <form method="POST" action="/nominee-application/accept/<?= urlencode($application['nomineeApplicationID'] ?? '') ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to accept this nominee application?');">
+                                        <?php
+                                            $naId    = urlencode($application['nomineeApplicationID'] ?? '');
+                                            $status  = strtoupper($application['applicationStatus'] ?? '');
+                                            $eventId = (int)($application['electionID'] ?? 0);
+                                            $isPubApp = ($status === 'PUBLISHED');
+                                            $eventPublished = !empty($application['event_has_published']); // 1/0 from SQL
+                                        ?>
+
+                                        <!-- Edit (optional: disable when event already published) -->
+                                        <?php if (!$eventPublished): ?>
+                                            <a href="/nominee-application/edit/<?= $naId ?>" class="btn btn-sm btn-warning">Edit</a>
+                                        <?php else: ?>
+                                            <button type="button" class="btn btn-sm btn-warning" disabled title="Event published—editing disabled">Edit</button>
+                                        <?php endif; ?>
+
+                                        <?php if ($isPubApp || $eventPublished): ?>
+                                            <!-- After election is published (regardless of this row's status), only show View -->
+                                            <a href="/nominee-application/publish/<?= $eventId ?>" class="btn btn-sm btn-info">View</a>
+                                        <?php else: ?>
+                                            <!-- Before publish: Accept / Reject available -->
+                                            <form method="POST" action="/nominee-application/accept/<?= $naId ?>" class="d-inline"
+                                                onsubmit="return confirm('Accept this nominee application?');">
                                             <button type="submit" class="btn btn-sm btn-success">Accept</button>
-                                        </form>
-                                        <form method="POST" action="/nominee-application/reject/<?= urlencode($application['nomineeApplicationID'] ?? '') ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to reject this nominee application?');">
+                                            </form>
+                                            <form method="POST" action="/nominee-application/reject/<?= $naId ?>" class="d-inline"
+                                                onsubmit="return confirm('Reject this nominee application?');">
                                             <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                                        </form>
+                                            </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

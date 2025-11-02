@@ -45,3 +45,6 @@ Route::post('/nominee-application/edit/{id}', [NomineeApplicationController::cla
 Route::get('/nominee-application/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplication']);
 Route::post('/nominee-application/accept/{id}', [NomineeApplicationController::class, 'acceptNomineeApplication']);
 Route::post('/nominee-application/reject/{id}', [NomineeApplicationController::class, 'rejectNomineeApplication']);
+Route::get('/nominee-application/publish', [NomineeApplicationController::class, 'publishNomineeApplications']);
+Route::post('/nominee-application/publish', [NomineeApplicationController::class, 'publishStoreNomineeApplications']);
+Route::get('/nominee-application/publish/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplications']);

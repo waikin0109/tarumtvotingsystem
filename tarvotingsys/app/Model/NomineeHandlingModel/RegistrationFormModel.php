@@ -223,6 +223,38 @@ class RegistrationFormModel
         return $cols;
     }
 
+    /** Return only forms whose register window is currently open */
+    public function listOpenForms(): array {
+        $sql = "SELECT registrationFormID, registrationFormTitle, electionID, registerStartDate, registerEndDate
+                FROM registrationform
+                WHERE (registerStartDate IS NULL OR registerStartDate <= NOW())
+                AND (registerEndDate   IS NULL OR registerEndDate   >= NOW())
+                ORDER BY registrationFormID DESC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /** Small struct with start/end for a form (used for banner text) */
+    public function getRegWindowByFormId(int $formId): ?array {
+        $st = $this->db->prepare("SELECT registerStartDate, registerEndDate FROM registrationform WHERE registrationFormID = ? LIMIT 1");
+        $st->execute([$formId]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    /** True if the form’s register window is open right now */
+    public function isRegistrationOpen(int $formId): bool {
+        $st = $this->db->prepare("
+            SELECT 1
+            FROM registrationform
+            WHERE registrationFormID = ?
+            AND (registerStartDate IS NULL OR registerStartDate <= NOW())
+            AND (registerEndDate   IS NULL OR registerEndDate   >= NOW())
+            LIMIT 1");
+        $st->execute([$formId]);
+        return (bool)$st->fetchColumn();
+    }
+
+
 
 }
 
