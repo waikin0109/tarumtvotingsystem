@@ -203,6 +203,27 @@ class RegistrationFormModel
         }
     }
 
+    //-----------------------------------------------------------------------------------------------//
+    // Nominee Application Related Methods
+
+    public function listForms(): array {
+        $sql = "SELECT registrationFormID, registrationFormTitle, electionID
+                FROM registrationform
+                ORDER BY registrationFormID DESC";
+        return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** lowercased column => sql type for nomineeapplicationsubmission */
+    public function getSubmissionColumns(): array {
+        $cols = [];
+        $st = $this->db->query("DESCRIBE nomineeapplicationsubmission");
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $c) {
+            $cols[strtolower($c['Field'])] = strtolower($c['Type']);
+        }
+        return $cols;
+    }
+
+
 }
 
 

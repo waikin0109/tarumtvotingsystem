@@ -5,6 +5,8 @@ use Controller\VotingController\RuleController;
 
 use Controller\NomineeHandlingController\RegistrationFormController;
 
+use Controller\NomineeController\NomineeApplicationController;
+
 
 
 // Election Event Routes
@@ -33,3 +35,13 @@ Route::get('/election-registration-form/edit/{id}', [RegistrationFormController:
 Route::post('/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editStoreRegistrationForm']);
 Route::get('/election-registration-form/view/{id}', [RegistrationFormController::class, 'viewRegistrationForm']);
 Route::post('/election-registration-form/delete/{id}', [RegistrationFormController::class, 'deleteRegistrationForm']);
+
+// Nominee Application Routes
+Route::get('/nominee-application', [NomineeApplicationController::class, 'listNomineeApplications']);
+Route::get('/nominee-application/create', [NomineeApplicationController::class, 'createNomineeApplication']);
+Route::post('/nominee-application/create', [NomineeApplicationController::class, 'storeNomineeApplication']);
+Route::get('/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editNomineeApplication']);
+Route::post('/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editStoreNomineeApplication']);
+Route::get('/nominee-application/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplication']);
+Route::post('/nominee-application/accept/{id}', [NomineeApplicationController::class, 'acceptNomineeApplication']);
+Route::post('/nominee-application/reject/{id}', [NomineeApplicationController::class, 'rejectNomineeApplication']);

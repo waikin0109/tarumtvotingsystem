@@ -80,7 +80,7 @@
                         <a href="/election-event" class="list-group-item list-group-item-action">Election Event</a>
                         <a href="/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
                         <a href="/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
-                        <a href="#" class="list-group-item list-group-item-action">Nominees' Registration</a>
+                        <a href="/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
                         <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
                         <a href="#" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>

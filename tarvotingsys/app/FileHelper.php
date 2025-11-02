@@ -59,6 +59,15 @@ class FileHelper
             'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php'
         ]);
 
+        $nomineeApplicationPaths = $this->prefixWithBase([
+            'NomineeApplicationList' => 'View/NomineeView/nomineeApplication.php',
+            'CreateNomineeApplication' => 'View/NomineeView/createNomineeApplication.php',
+            'EditNomineeApplication' => 'View/NomineeView/editNomineeApplication.php',
+            'ViewNomineeApplication' => 'View/NomineeView/viewNomineeApplication.php',
+            'AcceptNomineeApplication' => 'View/NomineeView/acceptNomineeApplication.php',
+            'RejectNomineeApplication' => 'View/NomineeView/rejectNomineeApplication.php'
+        ]);
+
         // If your CSS is under /public/css, and FileHelper sits in /app,
         // then go one level up to project root and into public:
         $assetPaths = $this->prefixWithBase([
@@ -74,6 +83,9 @@ class FileHelper
                 break;
             case 'election_registration_form':
                 $this->allowedPaths = array_merge($electionRegistrationFormPaths, $assetPaths);
+                break;
+            case 'nominee_application':
+                $this->allowedPaths = array_merge($nomineeApplicationPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;
