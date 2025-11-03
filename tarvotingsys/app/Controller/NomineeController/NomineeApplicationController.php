@@ -509,6 +509,14 @@ class NomineeApplicationController
         $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID);
         $subCols   = $this->registrationFormModel->getSubmissionColumns();
 
+        // Normalize to lowercase codes once and reuse
+        $activeAttrCodes = array_map(static function($n){ return strtolower($n); }, $attrNames);
+
+        // Helper: is this attribute present in current form?
+        $hasAttr = static function(string $code) use ($activeAttrCodes): bool {
+            return in_array(strtolower($code), $activeAttrCodes, true);
+        };
+
         // Collect posted field values (normalize)
         $clean = [];
         foreach ($attrNames as $name) {
@@ -617,9 +625,13 @@ class NomineeApplicationController
 
         $uploads  = $_FILES['uploads'] ?? [];
 
-        // ✳️ JPEG-only validation (preflight) during EDIT, same as create:
-        $singleKeys = ['cgpa' => 'cgpa_file', 'behaviorreport' => 'behaviorreport_file'];
+        // ✳️ JPEG-only validation (preflight) — only for attributes present in this form
+        $singleKeys = [
+            'cgpa'           => 'cgpa_file',
+            'behaviorreport' => 'behaviorreport_file',
+        ];
         foreach ($singleKeys as $key => $errKey) {
+            if (!$hasAttr($key)) continue; // <-- NEW: skip if attr not in this form
             if (isset($uploads['name'][$key]) && ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                 $file = [
                     'name'     => $uploads['name'][$key],
@@ -633,7 +645,8 @@ class NomineeApplicationController
                 }
             }
         }
-        if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
+        // Multi-file 'achievements'
+        if ($hasAttr('achievements') && isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
             foreach ($uploads['name']['achievements'] as $i => $n) {
                 if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
                 $file = [
@@ -650,29 +663,34 @@ class NomineeApplicationController
             }
         }
 
-        $adding   = [
-            'cgpa'           => $this->hasSingleUpload($uploads, 'cgpa') ? 1 : 0,
-            'achievements'   => $this->countMultiUploads($uploads, 'achievements'),
-            'behaviorreport' => $this->hasSingleUpload($uploads, 'behaviorreport') ? 1 : 0,
+
+        // What the user is adding now (limited to active attributes)
+        $adding = [
+            'cgpa'           => $hasAttr('cgpa')           && $this->hasSingleUpload($uploads, 'cgpa') ? 1 : 0,
+            'achievements'   => $hasAttr('achievements')   ? $this->countMultiUploads($uploads, 'achievements') : 0,
+            'behaviorreport' => $hasAttr('behaviorreport') && $this->hasSingleUpload($uploads, 'behaviorreport') ? 1 : 0,
         ];
 
-        // After this edit, each category must remain >= 1
-        $mustHaveAtLeastOne = ['cgpa','achievements','behaviorreport'];
-        foreach ($mustHaveAtLeastOne as $cat) {
+        // Enforce "at least one doc" only for categories present in this form
+        $requiredCats = array_values(array_filter(
+            ['cgpa','achievements','behaviorreport'],
+            fn($c) => $hasAttr($c)
+        ));
+
+        // Recompute $documents/$existing/$toDelete if needed (already computed above)
+        foreach ($requiredCats as $cat) {
             $after = ($existing[$cat] ?? 0) - ($toDelete[$cat] ?? 0) + ($adding[$cat] ?? 0);
             if ($after < 1) {
-                // Attach specific error near the category’s file inputs
                 if ($cat === 'cgpa') {
                     $fieldErrors['cgpa_file'][] = 'You must keep at least one CGPA document. Upload a replacement before deleting the last one.';
                 } elseif ($cat === 'achievements') {
                     $fieldErrors['achievements_files'][] = 'You must keep at least one Achievement document. Upload a replacement before deleting the last one.';
                 } elseif ($cat === 'behaviorreport') {
                     $fieldErrors['behaviorreport_file'][] = 'You must keep at least one Behavior Report. Upload a replacement before deleting the last one.';
-                } else {
-                    $errors[] = 'You must keep at least one document per category.';
                 }
             }
         }
+
 
         if (!empty($errors) || !empty($fieldErrors)) {
             // Rebuild view state and re-render Edit page

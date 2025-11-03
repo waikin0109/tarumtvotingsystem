@@ -82,6 +82,7 @@
                         <a href="/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
                         <a href="/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
                         <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
+                        <a href="#" class="list-group-item list-group-item-action">Campaign Materials</a>
                         <a href="#" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>
