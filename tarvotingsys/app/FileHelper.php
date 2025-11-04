@@ -70,6 +70,12 @@ class FileHelper
             'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php'
         ]);
 
+        $campaignMaterialPaths = $this->prefixWithBase([
+            'CampaignMaterialList' => 'View/CampaignHandlingView/campaignMaterial.php',
+            'CreateCampaignMaterial' => 'View/CampaignHandlingView/createCampaignMaterial.php',
+            'EditCampaignMaterial' => 'View/CampaignHandlingView/editCampaignMaterial.php'
+        ]);
+
         // If your CSS is under /public/css, and FileHelper sits in /app,
         // then go one level up to project root and into public:
         $assetPaths = $this->prefixWithBase([
@@ -88,6 +94,9 @@ class FileHelper
                 break;
             case 'nominee_application':
                 $this->allowedPaths = array_merge($nomineeApplicationPaths, $assetPaths);
+                break;
+            case 'campaign_material':
+                $this->allowedPaths = array_merge($campaignMaterialPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

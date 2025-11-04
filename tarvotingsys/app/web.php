@@ -2,10 +2,9 @@
 
 use Controller\VotingController\ElectionEventController;
 use Controller\VotingController\RuleController;
-
 use Controller\NomineeHandlingController\RegistrationFormController;
-
 use Controller\NomineeController\NomineeApplicationController;
+use Controller\CampaignHandlingController\CampaignMaterialController;
 
 
 
@@ -48,3 +47,10 @@ Route::post('/nominee-application/reject/{id}', [NomineeApplicationController::c
 Route::get('/nominee-application/publish', [NomineeApplicationController::class, 'publishNomineeApplications']);
 Route::post('/nominee-application/publish', [NomineeApplicationController::class, 'publishStoreNomineeApplications']);
 Route::get('/nominee-application/publish/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplications']);
+
+// Campaign Material Routes
+Route::get('/campaign-material', [CampaignMaterialController::class, 'listCampaignMaterials']);
+Route::get('/campaign-material/create', [CampaignMaterialController::class, 'createCampaignMaterial']);
+Route::post('/campaign-material/create', [CampaignMaterialController::class, 'storeCreateCampaignMaterial']);
+Route::get('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'editCampaignMaterial']);
+Route::post('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'storeEditCampaignMaterial']);
