@@ -54,3 +54,6 @@ Route::get('/campaign-material/create', [CampaignMaterialController::class, 'cre
 Route::post('/campaign-material/create', [CampaignMaterialController::class, 'storeCreateCampaignMaterial']);
 Route::get('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'editCampaignMaterial']);
 Route::post('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'storeEditCampaignMaterial']);
+Route::get('/campaign-material/view/{id}', [CampaignMaterialController::class, 'viewCampaignMaterial']);
+Route::post('/campaign-material/accept/{id}', [CampaignMaterialController::class, 'acceptCampaignMaterial']);
+Route::post('/campaign-material/reject/{id}', [CampaignMaterialController::class, 'rejectCampaignMaterial']);

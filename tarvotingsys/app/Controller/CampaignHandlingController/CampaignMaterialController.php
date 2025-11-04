@@ -410,6 +410,105 @@ class CampaignMaterialController {
         }
     }
 
+    // --------------------- View --------------------- //
+    public function viewCampaignMaterial($materialsApplicationID)
+    {
+        $id = (int)$materialsApplicationID;
 
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header('Location: /campaign-material');
+            return;
+        }
+
+        // Load docs
+        $documents = $this->campaignMaterialModel->getDocumentsByApplication($id);
+
+        // Build view-model
+        $vm = [
+            'id'             => $id,
+            'eventTitle'     => (string)($cm['electionEventTitle'] ?? ''),
+            'nomineeName'    => (string)($cm['nomineeFullName'] ?? ''),
+            'title'          => (string)($cm['materialsTitle'] ?? ''),
+            'type'           => (string)($cm['materialsType'] ?? ''),
+            'desc'           => (string)($cm['materialsDesc'] ?? ''),
+            'qty'            => (int)($cm['materialsQuantity'] ?? 0),
+            'status'         => (string)($cm['materialsApplicationStatus'] ?? 'PENDING'),
+            'adminID'        => $cm['adminID'] ?? null,
+            'badgeClass'     => $this->badgeClass((string)($cm['materialsApplicationStatus'] ?? 'PENDING')),
+            'docBaseUrl'     => "/uploads/campaign_material/{$id}/",
+        ];
+
+        // Normalize document rows for the table (url + preview flag already computed)
+        $docRows = [];
+        $i = 1;
+        foreach ($documents as $d) {
+            $fname = (string)($d['materialsFilename'] ?? '');
+            $url   = $vm['docBaseUrl'] . rawurlencode($fname);
+            $docRows[] = [
+                'idx'      => $i++,
+                'filename' => $fname,
+                'url'      => $url,
+                'isImage'  => $this->isImageFile($fname),
+            ];
+        }
+
+        // Render
+        $filePath = $this->fileHelper->getFilePath('ViewCampaignMaterial');
+        if ($filePath && file_exists($filePath)) {
+            // Expose only the data the view needs:
+            $campaign = $vm;
+            $docs     = $docRows;
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    /** Map status to badge class */
+    private function badgeClass(string $status): string
+    {
+        $s = strtoupper($status);
+        return match ($s) {
+            'APPROVED' => 'bg-success',
+            'REJECTED' => 'bg-danger',
+            'PENDING'  => 'bg-warning text-dark',
+            default    => 'bg-secondary',
+        };
+    }
+
+    /** Detect image by extension */
+    private function isImageFile(string $fname): bool
+    {
+        $ext = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
+        return in_array($ext, ['jpg','jpeg','png','gif','webp'], true);
+    }
+
+
+    // --------------------- Accept / Reject --------------------- //
+    public function acceptCampaignMaterial($materialsApplicationID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $this->campaignMaterialModel->acceptCampaignMaterial($materialsApplicationID,1);
+        \set_flash('success', 'Campaign Material accepted successfully.');
+        header("Location: /campaign-material");
+    }
+
+    public function rejectCampaignMaterial($materialsApplicationID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /campaign-material'");
+            return;
+        }
+
+        $this->campaignMaterialModel->rejectCampaignMaterial($materialsApplicationID,1);
+        \set_flash('success', 'Campaign Material rejected successfully.');
+        header("Location: /campaign-material");
+    }
 
 }

@@ -86,7 +86,7 @@ function invalid(array $fe, string $key){ return !empty($fe[$key]) ? ' is-invali
             <?php
             // Build the public URL to the file
             $fileUrl = '/uploads/campaign_material/' . (int)$campaignMaterial['materialsApplicationID'] . '/' . rawurlencode($d['materialsFilename']);
-            $docId   = (int)$d['materialsID']; // <— uses alias from the Model
+            $docId   = (int)$d['materialsID']; 
             ?>
             <label class="list-group-item d-flex align-items-center justify-content-between">
             <span class="me-3"><?= htmlspecialchars($d['materialsFilename']) ?></span>

@@ -23,13 +23,15 @@ class CampaignMaterialModel
                     cma.materialsTitle,
                     cma.materialsApplicationStatus,
                     a.fullName,
-                    ee.title AS electionEventTitle
+                    ee.title AS electionEventTitle,
+                    ee.electionEndDate          -- << add this
                 FROM campaignmaterialsapplication AS cma
                 INNER JOIN nominee n ON n.nomineeID = cma.nomineeID
                 INNER JOIN account a ON a.accountID = n.accountID
                 INNER JOIN electionevent ee ON ee.electionID = cma.electionID
                 ORDER BY cma.materialsApplicationID DESC
             ";
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -150,6 +152,7 @@ class CampaignMaterialModel
                     cma.materialsApplicationID,
                     cma.electionID,
                     ee.title AS electionEventTitle,
+                    ee.electionEndDate,          -- << add this
                     cma.nomineeID,
                     a.fullName AS nomineeFullName,
                     cma.materialsTitle,
@@ -165,6 +168,7 @@ class CampaignMaterialModel
                 WHERE cma.materialsApplicationID = :id
                 LIMIT 1
             ";
+
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':id' => $id]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -251,41 +255,104 @@ class CampaignMaterialModel
     }
 
     // Return just the filenames already recorded for this application
-public function getDocumentNamesByApplication(int $materialsApplicationID): array
-{
-    try {
-        $stmt = $this->db->prepare("
-            SELECT materialsFilename
-            FROM campaignmaterialsdocument
-            WHERE materialsApplicationID = :mid
-        ");
-        $stmt->execute([':mid' => $materialsApplicationID]);
-        return array_column($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'materialsFilename');
-    } catch (PDOException $e) {
-        error_log("getDocumentNamesByApplication error: " . $e->getMessage());
-        return [];
-    }
-}
-
-/** Insert many filenames (skip if empty array) */
-public function insertDocumentsBulk(int $materialsApplicationID, array $filenames): void
-{
-    if (empty($filenames)) return;
-    try {
-        $this->db->beginTransaction();
-        $stmt = $this->db->prepare("
-            INSERT INTO campaignmaterialsdocument (materialsFilename, materialsApplicationID)
-            VALUES (:fname, :mid)
-        ");
-        foreach ($filenames as $fn) {
-            $stmt->execute([':fname' => $fn, ':mid' => $materialsApplicationID]);
+    public function getDocumentNamesByApplication(int $materialsApplicationID): array
+    {
+        try {
+            $stmt = $this->db->prepare("
+                SELECT materialsFilename
+                FROM campaignmaterialsdocument
+                WHERE materialsApplicationID = :mid
+            ");
+            $stmt->execute([':mid' => $materialsApplicationID]);
+            return array_column($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [], 'materialsFilename');
+        } catch (PDOException $e) {
+            error_log("getDocumentNamesByApplication error: " . $e->getMessage());
+            return [];
         }
-        $this->db->commit();
-    } catch (PDOException $e) {
-        $this->db->rollBack();
-        error_log("insertDocumentsBulk error: " . $e->getMessage());
     }
-}
+
+    /** Insert many filenames (skip if empty array) */
+    public function insertDocumentsBulk(int $materialsApplicationID, array $filenames): void
+    {
+        if (empty($filenames)) return;
+        try {
+            $this->db->beginTransaction();
+            $stmt = $this->db->prepare("
+                INSERT INTO campaignmaterialsdocument (materialsFilename, materialsApplicationID)
+                VALUES (:fname, :mid)
+            ");
+            foreach ($filenames as $fn) {
+                $stmt->execute([':fname' => $fn, ':mid' => $materialsApplicationID]);
+            }
+            $this->db->commit();
+        } catch (PDOException $e) {
+            $this->db->rollBack();
+            error_log("insertDocumentsBulk error: " . $e->getMessage());
+        }
+    }
+
+    // Accept / Reject
+    public function acceptCampaignMaterial($materialsApplicationID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $id = (int)$materialsApplicationID;
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header("Location: /campaign-material");
+            return;
+        }
+
+        // block if now > electionEndDate
+        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
+        $now  = new \DateTime('now', $tz);
+        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
+        if ($endAt && $now > $endAt) {
+            \set_flash('danger', 'Action not allowed after election end.');
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $adminId = $_SESSION['adminID'] ?? null; // make sure you set this at login
+        $this->campaignMaterialModel->acceptCampaignMaterial($id, $adminId);
+        \set_flash('success', 'Campaign Material accepted successfully.');
+        header("Location: /campaign-material");
+    }
+
+    public function rejectCampaignMaterial($materialsApplicationID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $id = (int)$materialsApplicationID;
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
+        $now  = new \DateTime('now', $tz);
+        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
+        if ($endAt && $now > $endAt) {
+            \set_flash('danger', 'Action not allowed after election end.');
+            header("Location: /campaign-material");
+            return;
+        }
+
+        $adminId = $_SESSION['adminID'] ?? null;
+        $this->campaignMaterialModel->rejectCampaignMaterial($id, $adminId);
+        \set_flash('success', 'Campaign Material rejected successfully.');
+        header("Location: /campaign-material");
+    }
+
 
 
 }

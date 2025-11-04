@@ -73,7 +73,10 @@ class FileHelper
         $campaignMaterialPaths = $this->prefixWithBase([
             'CampaignMaterialList' => 'View/CampaignHandlingView/campaignMaterial.php',
             'CreateCampaignMaterial' => 'View/CampaignHandlingView/createCampaignMaterial.php',
-            'EditCampaignMaterial' => 'View/CampaignHandlingView/editCampaignMaterial.php'
+            'EditCampaignMaterial' => 'View/CampaignHandlingView/editCampaignMaterial.php',
+            'ViewCampaignMaterial' => 'View/CampaignHandlingView/viewCampaignMaterial.php',
+            'AcceptCampaignMaterial' => 'View/CampaignHandlingView/acceptCampaignMaterial.php',
+            'RejectCampaignMaterial' => 'View/CampaignHandlingView/rejectCampaignMaterial.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,

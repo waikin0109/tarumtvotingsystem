@@ -1,8 +1,13 @@
 <?php
 $_title = "Campaign Materials Application";
 require_once __DIR__ . '/../AdminView/adminHeader.php';
-?>
 
+/** @var array $campaignMaterials */
+
+// KL timezone + current time for comparisons
+$tz  = new DateTimeZone('Asia/Kuala_Lumpur');
+$now = new DateTime('now', $tz);
+?>
 <div>
   <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
     <div class="row w-100">
@@ -37,24 +42,57 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
               <td colspan="6" class="text-center text-muted">No campaign materials found.</td>
             </tr>
           <?php else: ?>
-            <?php foreach ($campaignMaterials as $index => $material): 
-              $id = (string)($material['materialsApplicationID'] ?? '');
+            <?php foreach ($campaignMaterials as $index => $material):
+              $id     = (string)($material['materialsApplicationID'] ?? '');
+              $title  = (string)($material['materialsTitle'] ?? '');
+              $nom    = (string)($material['fullName'] ?? '');
+              $event  = (string)($material['electionEventTitle'] ?? '');
+              $status = (string)($material['materialsApplicationStatus'] ?? '');
+              $endStr = $material['electionEndDate'] ?? null; // must be selected in model
+              $endAt  = $endStr ? new DateTime($endStr, $tz) : null;
+              $closed = $endAt && ($now > $endAt); // disable buttons if ended
             ?>
               <tr class="clickable-row" data-href="/campaign-material/view/<?= urlencode($id) ?>">
                 <td><?= $index + 1 ?></td>
-                <td><?= htmlspecialchars($material['materialsTitle'] ?? '') ?></td>
-                <td><?= htmlspecialchars($material['fullName'] ?? '') ?></td>
-                <td><?= htmlspecialchars($material['electionEventTitle'] ?? '') ?></td>
-                <td><?= htmlspecialchars($material['materialsApplicationStatus'] ?? '') ?></td>
+                <td><?= htmlspecialchars($title) ?></td>
+                <td><?= htmlspecialchars($nom) ?></td>
+                <td>
+                  <?= htmlspecialchars($event) ?>
+                  <?php if ($endAt): ?>
+                    <div class="small text-muted">Ends: <?= htmlspecialchars($endAt->format('Y-m-d H:i')) ?></div>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <?php
+                    $badge = 'bg-secondary';
+                    $s = strtoupper($status);
+                    if ($s === 'APPROVED' || $s === 'ACCEPTED') $badge = 'bg-success';
+                    elseif ($s === 'REJECTED' || $s === 'DENIED') $badge = 'bg-danger';
+                    elseif ($s === 'PENDING') $badge = 'bg-warning text-dark';
+                  ?>
+                  <span class="badge <?= $badge ?>"><?= htmlspecialchars($status) ?></span>
+                </td>
                 <td onclick="event.stopPropagation()">
-                  <a href="/campaign-material/edit/<?= urlencode($id) ?>" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="/campaign-material/edit/<?= urlencode($id) ?>"
+                     class="btn btn-sm btn-warning <?= $closed ? 'disabled' : '' ?>"
+                     <?= $closed ? 'aria-disabled="true" tabindex="-1" title="Disabled after election end"' : '' ?>>
+                    Edit
+                  </a>
+
                   <form method="POST" action="/campaign-material/accept/<?= urlencode($id) ?>" class="d-inline"
-                        onsubmit="return confirm('Accept this campaign material?');">
-                    <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                        onsubmit="return <?= $closed ? 'false' : 'confirm(\'Accept this campaign material?\')' ?>;">
+                    <button type="submit" class="btn btn-sm btn-success"
+                            <?= $closed ? 'disabled title="Disabled after election end"' : '' ?>>
+                      Accept
+                    </button>
                   </form>
+
                   <form method="POST" action="/campaign-material/reject/<?= urlencode($id) ?>" class="d-inline"
-                        onsubmit="return confirm('Reject this campaign material?');">
-                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                        onsubmit="return <?= $closed ? 'false' : 'confirm(\'Reject this campaign material?\')' ?>;">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            <?= $closed ? 'disabled title="Disabled after election end"' : '' ?>>
+                      Reject
+                    </button>
                   </form>
                 </td>
               </tr>
@@ -67,6 +105,21 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
   </div>
 </div>
 
+<!-- Clickable Row -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', e => {
+      // Ignore clicks on interactive elements so forms/links work
+      if (e.target.closest('a, button, input, select, textarea, label, form')) return;
+      window.location.href = row.dataset.href;
+    });
+  });
 
+  // Extra safety: stop row-click bubbling from action controls
+  document.querySelectorAll('.clickable-row .btn, .clickable-row form')
+    .forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+});
+</script>
 
 <?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
