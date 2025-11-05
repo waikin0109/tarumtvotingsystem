@@ -58,8 +58,10 @@ class FileHelper
             'AnnouncementList' => 'View/VotingView/announcement.php',
             'CreateAnnouncement' => 'View/VotingView/createAnnouncement.php',
             'EditAnnouncement' => 'View/VotingView/editAnnouncement.php',
-            'ViewAnnouncement' => 'View/VotingView/viewAnnouncement.php',
-            // 'DeleteAnnouncement'=> 'View/VotingView/deleteAnnouncement.php',
+            'ViewAnnouncementDetails' => 'View/VotingView/viewAnnouncementDetails.php',
+            'StudentNomineeAnnouncementList'=> 'View/VotingView/studentNomineeAnnouncementList.php',
+            'StudentNomineeAnnouncementDetails'=> 'View/VotingView/studentNomineeAnnouncementDetails.php',
+            
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,

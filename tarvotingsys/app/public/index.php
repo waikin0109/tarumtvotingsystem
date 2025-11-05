@@ -9,6 +9,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Retrieve session data (set from LoginController)
+$fullName = $_SESSION['fullName'] ?? 'Guest';
+$role = $_SESSION['role'] ?? 'User';
+
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 if (!isset($_SESSION['last_page'])) {

@@ -8,6 +8,7 @@ if (!isset($announcements) || !is_array($announcements)) {
 }
 
 $currentAdminId = $_SESSION['accountID'] ?? 0;
+$isAdmin = strtoupper($_SESSION['role'] ?? '') === 'ADMIN';
 ?>
 
 <div>
@@ -44,48 +45,64 @@ $currentAdminId = $_SESSION['accountID'] ?? 0;
                             <?php $no = 1;
                             foreach ($announcements as $a): ?>
                                 <?php
-                                $isOwner = ((int) $a['accountID'] === (int) $currentAdminId);
+                                $id = (int) ($a['announcementID'] ?? 0);
+                                $isOwner = $isAdmin && ((int) ($a['accountID'] ?? 0) === $currentAdminId);
                                 $status = strtoupper($a['announcementStatus'] ?? '');
-                                $date = $a['publishedAt'] ?: $a['createdAt'];
+                                $publishedAt = $a['publishedAt'] ?? null;
+                                $isFuture = $publishedAt ? (strtotime($publishedAt) > time()) : false;
+                                $date = $a['publishedAt'] ?: ($a['createdAt'] ?? '');
                                 ?>
                                 <tr>
                                     <td><?= $no++ ?></td>
                                     <td>
-                                        <a href="/announcements/<?= (int) $a['announcementID'] ?>">
-                                            <?= htmlspecialchars($a['title']) ?>
+                                        <a href="/announcements/<?= $id ?>">
+                                            <?= htmlspecialchars($a['title'] ?? '') ?>
                                         </a>
                                         <?php if ($status === 'DRAFT'): ?>
                                             <span class="badge bg-secondary ms-2">Draft</span>
+                                        <?php elseif ($status === 'SCHEDULED'): ?>
+                                            <span class="badge bg-warning text-dark ms-2">Scheduled</span>
                                         <?php elseif ($status === 'PUBLISHED'): ?>
                                             <span class="badge bg-success ms-2">Published</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($a['senderName'] ?? 'Unknown') ?></td>
                                     <td><?= htmlspecialchars($date) ?></td>
-                                    <td>
-                                        <?php if ($status === 'DRAFT' && $isOwner): ?>
-                                            <a class="btn btn-sm btn-outline-primary"
-                                                href="/announcement/edit/<?= (int) $a['announcementID'] ?>">
-                                                Update
-                                            </a>
-                                            <form class="d-inline" method="post"
-                                                action="/announcement/publish/<?= (int) $a['announcementID'] ?>"
-                                                onsubmit="return confirm('Publish now? This cannot be edited later.');">
-                                                <button class="btn btn-sm btn-success">Publish</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <button class="btn btn-sm btn-outline-secondary" disabled>Update</button>
-                                        <?php endif; ?>
 
-                                        <?php if ($isOwner): ?>
-                                            <form class="d-inline" method="post"
-                                                action="/announcement/delete/<?= (int) $a['announcementID'] ?>"
-                                                onsubmit="return confirm('Are you sure you want to delete this announcement?');">
-                                                <button class="btn btn-sm btn-outline-danger">Delete</button>
-                                            </form>
-                                        <?php else: ?>
-                                            <button class="btn btn-sm btn-outline-secondary" disabled>Delete</button>
-                                        <?php endif; ?>
+                                    <td class="text-nowrap">
+                                        <div class="d-flex flex-wrap gap-2 justify-content-start">
+                                            <?php if ($status === 'DRAFT' && $isOwner): ?>
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                    href="/announcement/edit/<?= $id ?>">Update</a>
+                                                <form class="d-inline" method="post" action="/announcement/publish/<?= $id ?>"
+                                                    onsubmit="return confirm('Publish now? This cannot be edited later.');">
+                                                    <button class="btn btn-sm btn-success">Publish</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>Update</button>
+                                            <?php endif; ?>
+
+                                            <?php if ($status === 'SCHEDULED'): ?>
+                                                <?php if ($isOwner && $isFuture): ?>
+                                                    <form class="d-inline" method="post" action="/announcement/revert/<?= $id ?>"
+                                                        onsubmit="return confirm('Unschedule this announcement? The scheduled time will be removed.');">
+                                                        <button class="btn btn-sm btn-warning">Unschedule</button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <button class="btn btn-sm btn-outline-secondary" disabled>Unschedule</button>
+                                                <?php endif; ?>
+                                            <?php endif; ?>
+
+                                            <?php if ($isOwner): ?>
+                                                <form class="d-inline" method="post" action="/announcement/delete"
+                                                    onsubmit="return confirm('Delete this announcement and all its attachments?');">
+                                                    <input type="hidden" name="announcement_id" value="<?= $id ?>">
+                                                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                                </form>
+                                            <?php else: ?>
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>Delete</button>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -96,23 +113,6 @@ $currentAdminId = $_SESSION['accountID'] ?? 0;
         </div>
     </div>
 </div>
-
-<!-- Optional: Clickable Row Script -->
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.clickable-row').forEach(row => {
-            row.addEventListener('click', e => {
-                // Ignore clicks on interactive elements so forms/links work
-                if (e.target.closest('a, button, input, select, textarea, label, form')) return;
-                window.location.href = row.dataset.href;
-            });
-        });
-
-        // Stop row-click propagation on action elements
-        document.querySelectorAll('.clickable-row .btn, .clickable-row form')
-            .forEach(el => el.addEventListener('click', e => e.stopPropagation()));
-    });
-</script>
 
 <?php
 require_once __DIR__ . '/../AdminView/adminFooter.php';

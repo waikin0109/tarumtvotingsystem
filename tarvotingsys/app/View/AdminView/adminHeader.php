@@ -1,11 +1,9 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 // Retrieve session data (set from LoginController)
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
+$annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
 ?>
 
 <!DOCTYPE html>
@@ -101,7 +99,7 @@ $role = $_SESSION['role'] ?? 'User';
                         <a href="#" class="list-group-item list-group-item-action">Nominees' Registration</a>
                         <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
                         <!-- <a href="#" class="list-group-item list-group-item-action">Announcement</a> -->
-                        <a href="/announcements" class="list-group-item list-group-item-action">Announcement</a>
+                        <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
 
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>
