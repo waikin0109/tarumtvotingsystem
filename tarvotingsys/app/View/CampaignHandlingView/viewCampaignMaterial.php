@@ -1,10 +1,6 @@
 <?php
 $_title = "View Campaign Material";
 require_once __DIR__ . '/../AdminView/adminHeader.php';
-
-/** @var array $campaign  // from controller: id,eventTitle,nomineeName,title,type,desc,qty,status,adminID,badgeClass,docBaseUrl
- *  @var array $docs      // list: idx, filename, url, isImage
- */
 ?>
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">

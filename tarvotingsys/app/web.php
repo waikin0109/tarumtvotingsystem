@@ -5,6 +5,7 @@ use Controller\VotingController\RuleController;
 use Controller\NomineeHandlingController\RegistrationFormController;
 use Controller\NomineeController\NomineeApplicationController;
 use Controller\CampaignHandlingController\CampaignMaterialController;
+use Controller\CampaignHandlingController\ScheduleLocationController;
 
 
 
@@ -57,3 +58,11 @@ Route::post('/campaign-material/edit/{id}', [CampaignMaterialController::class, 
 Route::get('/campaign-material/view/{id}', [CampaignMaterialController::class, 'viewCampaignMaterial']);
 Route::post('/campaign-material/accept/{id}', [CampaignMaterialController::class, 'acceptCampaignMaterial']);
 Route::post('/campaign-material/reject/{id}', [CampaignMaterialController::class, 'rejectCampaignMaterial']);
+
+// Schedule Location Routes
+Route::get('/schedule-location', [ScheduleLocationController::class, 'listScheduleLocations']);
+Route::get('/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocation']);
+Route::post('/schedule-location/create', [ScheduleLocationController::class, 'storeCreateScheduleLocation']);
+Route::get('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'editScheduleLocation']);
+Route::post('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'storeEditScheduleLocation']);
+Route::get('/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocation']);

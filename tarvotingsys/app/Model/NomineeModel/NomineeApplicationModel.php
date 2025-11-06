@@ -6,9 +6,7 @@ use PDO;
 use PDOException;
 use Database;
 
-/**
- * Handles nominee application header + submission creation and queries.
- */
+
 class NomineeApplicationModel
 {
     /** @var PDO */
@@ -30,7 +28,7 @@ class NomineeApplicationModel
                     na.*,
                     ac.fullName,
                     e.title AS event_name,
-                    -- Edit Button Disable Consitions
+                    -- use for Edit Button 
                     (rf.registerEndDate IS NULL OR rf.registerEndDate > NOW()) AS reg_is_open,
                     -- Check if event has any PUBLISHED applications
                     EXISTS (
