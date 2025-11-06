@@ -123,17 +123,30 @@ if (!function_exists('invalid')) {
       <?php endif; ?>
     </div>
 
-    <!-- Desired Date & Time -->
+    <!-- Desired Start Date & Time -->
     <div class="mb-3">
-      <label class="form-label" for="desiredDateTime">Desired Date & Time <span class="text-danger">*</span></label>
-      <input type="datetime-local" name="desiredDateTime" id="desiredDateTime"
-             class="form-control<?= invalid($fieldErrors,'desiredDateTime') ?>"
-             value="<?= htmlspecialchars($old['desiredDateTime'] ?? '') ?>" required>
-      <?php if (!empty($fieldErrors['desiredDateTime'])): ?>
-        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['desiredDateTime'])) ?></div>
+      <label class="form-label" for="desiredStartDateTime">Desired Start Date & Time <span class="text-danger">*</span></label>
+      <input type="datetime-local" name="desiredStartDateTime" id="desiredStartDateTime"
+            class="form-control<?= invalid($fieldErrors,'desiredStartDateTime') ?>"
+            value="<?= htmlspecialchars($old['desiredStartDateTime'] ?? '') ?>" required>
+      <?php if (!empty($fieldErrors['desiredStartDateTime'])): ?>
+        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['desiredStartDateTime'])) ?></div>
       <?php endif; ?>
-      <div class="form-text">Must be after registration closes and also in the future.</div>
+      <div class="form-text">Must be after registration closing and in the future.</div>
     </div>
+
+    <!-- Desired End Date & Time -->
+    <div class="mb-3">
+      <label class="form-label" for="desiredEndDateTime">Desired End Date & Time <span class="text-danger">*</span></label>
+      <input type="datetime-local" name="desiredEndDateTime" id="desiredEndDateTime"
+            class="form-control<?= invalid($fieldErrors,'desiredEndDateTime') ?>"
+            value="<?= htmlspecialchars($old['desiredEndDateTime'] ?? '') ?>" required>
+      <?php if (!empty($fieldErrors['desiredEndDateTime'])): ?>
+        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['desiredEndDateTime'])) ?></div>
+      <?php endif; ?>
+      <div class="form-text">Must be at least 1 hour after start and not after the election end.</div>
+    </div>
+
 
     <div class="d-flex justify-content-center gap-3">
       <a href="/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
@@ -203,10 +216,12 @@ if (!function_exists('invalid')) {
       url.searchParams.set('electionID', btn.dataset.id);
       const en = $('eventName')?.value || '';
       const et = $('eventType')?.value || '';
-      const dt = $('desiredDateTime')?.value || '';
+      const ds = $('desiredStartDateTime')?.value || '';
+      const de = $('desiredEndDateTime')?.value   || '';
       if (en) url.searchParams.set('eventName', en);
       if (et) url.searchParams.set('eventType', et);
-      if (dt) url.searchParams.set('desiredDateTime', dt);
+      if (ds) url.searchParams.set('desiredStartDateTime', ds);
+      if (de) url.searchParams.set('desiredEndDateTime', de);
       window.location.href = url.toString();
     });
   }
@@ -245,9 +260,41 @@ if (!function_exists('invalid')) {
         ok = false;
       }
 
+      // Light client validation for start/end
+      const startEl = $('desiredStartDateTime');
+      const endEl   = $('desiredEndDateTime');
+      const clearInlineError = (el) => { el.classList.remove('is-invalid'); };
+      const setInlineError   = (el, msg) => {
+        el.classList.add('is-invalid');
+        // show a simple next-sibling feedback if present
+        let fb = el.parentElement.querySelector('.invalid-feedback');
+        if (!fb) {
+          fb = document.createElement('div');
+          fb.className = 'invalid-feedback d-block';
+          el.parentElement.appendChild(fb);
+        }
+        fb.textContent = msg;
+      };
+
+      if (startEl && endEl) {
+        clearInlineError(startEl); clearInlineError(endEl);
+        const sVal = startEl.value, eVal = endEl.value;
+        if (!sVal) { setInlineError(startEl, 'Start is required.'); ok = false; }
+        if (!eVal) { setInlineError(endEl, 'End is required.'); ok = false; }
+        if (sVal && eVal) {
+          const s = new Date(sVal), d = new Date(eVal);
+          const oneHourMs = 60 * 60 * 1000;
+          if (d - s < oneHourMs) {
+            setInlineError(endEl, 'End time must be at least 1 hour after start.');
+            ok = false;
+          }
+        }
+      }
+
       if (!ok) e.preventDefault();
     });
   }
+
 
   // Sync once on page load (so help doesn’t stick)
   window.addEventListener('DOMContentLoaded', () => {

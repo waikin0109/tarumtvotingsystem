@@ -66,3 +66,13 @@ Route::post('/schedule-location/create', [ScheduleLocationController::class, 'st
 Route::get('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'editScheduleLocation']);
 Route::post('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'storeEditScheduleLocation']);
 Route::get('/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocation']);
+
+Route::get('/schedule-location/schedule', [ScheduleLocationController::class, 'scheduleBoard']);
+Route::get('/schedule-location/locations-at', [ScheduleLocationController::class, 'locationsAt']); // optional ajax
+Route::post('/schedule-location/accept/{id}', [ScheduleLocationController::class, 'scheduleAccept']);
+Route::post('/schedule-location/reject/{id}', [ScheduleLocationController::class, 'scheduleReject']);
+Route::get('/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
+Route::post('/schedule-location/reject-accepted/{id}', [ScheduleLocationController::class, 'scheduleRejectAccepted']);
+Route::post('/schedule-location/accept-back/{id}', [ScheduleLocationController::class, 'scheduleAcceptBack']);
+Route::post('/schedule-location/unschedule/{id}', [ScheduleLocationController::class, 'scheduleUnschedule']);
+Route::get('/schedule-location/view-schedule', [ScheduleLocationController::class, 'viewCampaignSchedule']);

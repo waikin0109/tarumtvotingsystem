@@ -84,6 +84,8 @@ class FileHelper
             'CreateScheduleLocation' => 'View/CampaignHandlingView/createScheduleLocation.php',
             'EditScheduleLocation' => 'View/CampaignHandlingView/editScheduleLocation.php',
             'ViewScheduleLocation' => 'View/CampaignHandlingView/viewScheduleLocation.php',
+            'ScheduleBoard' => 'View/CampaignHandlingView/scheduleLocationBoard.php',
+            'ViewCampaignSchedule' => 'View/CampaignHandlingView/viewCampaignSchedule.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,

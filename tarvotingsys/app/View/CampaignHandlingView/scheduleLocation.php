@@ -13,8 +13,8 @@ $scheduleLocations = $scheduleLocations ?? [];
       </div>
     </div>
     <div class="col-sm-4 d-flex justify-content-end">
-      <a href="/schedule-location/upload" class="mx-2">
-        <button class="btn btn-primary">Upload</button>
+      <a href="/schedule-location/schedule" class="mx-2">
+        <button class="btn btn-primary">Schedule</button>
       </a>
       <a href="/schedule-location/create" class="mx-2">
         <button class="btn btn-primary">Create (+)</button>
@@ -31,9 +31,10 @@ $scheduleLocations = $scheduleLocations ?? [];
               <th class="col-sm-1">No.</th>
               <th class="col-sm-2">Event Name</th>
               <th class="col-sm-2">Related Election Event</th>
-              <th class="col-sm-1">Status</th>
+              
               <th class="col-sm-2">Nominee Name</th>
               <th class="col-sm-2">Admin Name</th>
+              <th class="col-sm-1">Status</th>
               <th class="col-sm-2">Actions</th>
             </tr>
           </thead>
@@ -50,22 +51,29 @@ $scheduleLocations = $scheduleLocations ?? [];
                   <td><?= (int)$index + 1 ?></td>
                   <td><?= htmlspecialchars($sl['eventName'] ?? '') ?></td>
                   <td><?= htmlspecialchars($sl['election_event'] ?? '') ?></td>
-                  <td><?= htmlspecialchars($sl['eventApplicationStatus'] ?? '') ?></td>
                   <td><?= htmlspecialchars($sl['nominee_fullName'] ?? '') ?></td>
                   <td><?= htmlspecialchars($sl['admin_fullName'] ?? '-') ?></td>
-                  <td onclick="event.stopPropagation()">
-                    <a class="btn btn-sm btn-outline-primary me-1" href="/schedule-location/edit/<?= $id ?>">Edit</a>
-
-                    <form method="POST" action="/schedule-location/accept/<?= $id ?>" class="d-inline"
-                          onsubmit="return confirm('Accept this event application?');">
-                      <button type="submit" class="btn btn-sm btn-success">Accept</button>
-                    </form>
-
-                    <form method="POST" action="/schedule-location/reject/<?= $id ?>" class="d-inline"
-                          onsubmit="return confirm('Reject this event application?');">
-                      <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                    </form>
+                  <td>
+                    <?php
+                      $status = strtoupper($sl['eventApplicationStatus'] ?? '');
+                      $badge = match ($status) {
+                        'ACCEPTED' => 'bg-success',
+                        'REJECTED' => 'bg-danger',
+                        'PENDING'  => 'bg-warning text-dark',
+                        default    => 'bg-secondary',
+                      };
+                    ?>
+                    <span class="badge <?= $badge ?>"><?= htmlspecialchars($status) ?></span>
                   </td>
+
+                  <td onclick="event.stopPropagation()">
+                    <?php if ($status === 'PENDING'): ?>
+                      <a class="btn btn-sm btn-outline-primary me-1" href="/schedule-location/edit/<?= $id ?>">Edit</a>
+                    <?php else: ?>
+                      <a class="btn btn-sm btn-outline-info me-1" href="/schedule-location/view-schedule">View schedule</a>
+                    <?php endif; ?>
+                  </td>
+
                 </tr>
               <?php endforeach; ?>
             <?php endif; ?>

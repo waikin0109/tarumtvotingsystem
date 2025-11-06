@@ -1,11 +1,6 @@
 <?php
 $_title = "View Schedule Location Application Details";
 require_once __DIR__ . '/../AdminView/adminHeader.php';
-
-/** expects: $schedule = [
- *  id, eventName, electionTitle, eventType, desiredAt, status, badgeClass, adminName, nomineeName
- * ]
- */
 ?>
 
 <div class="container mt-4">
@@ -25,8 +20,14 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
         <dt class="col-sm-4">Event Type</dt>
         <dd class="col-sm-8"><?= htmlspecialchars($schedule['eventType']) ?></dd>
 
-        <dt class="col-sm-4">Desired Date & Time</dt>
-        <dd class="col-sm-8"><?= htmlspecialchars($schedule['desiredAt'] ?: '—') ?></dd>
+        <dt class="col-sm-4">Desired Start</dt>
+        <dd class="col-sm-8"><?= htmlspecialchars($schedule['desiredStart'] ?: '—') ?></dd>
+
+        <dt class="col-sm-4">Desired End</dt>
+        <dd class="col-sm-8"><?= htmlspecialchars($schedule['desiredEnd'] ?: '—') ?></dd>
+
+        <dt class="col-sm-4">Submitted At</dt>
+        <dd class="col-sm-8"><?= htmlspecialchars($schedule['submittedAt'] ?: '—') ?></dd>
 
         <dt class="col-sm-4">Event Application Status</dt>
         <dd class="col-sm-8">
