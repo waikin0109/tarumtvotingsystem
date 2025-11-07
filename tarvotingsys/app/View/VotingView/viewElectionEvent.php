@@ -25,8 +25,8 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
             <p class="card-text"><strong>Account ID:</strong> <?= htmlspecialchars($electionEventData['accountID'] ?? '') ?></p>
         </div>
             
-            <a href="/election-event/edit/<?= urlencode($electionEventData['electionID'] ?? '') ?>" class="btn btn-primary">Edit Event</a>
-            <a href="/election-event" class="btn btn-secondary">Back to Events List</a>
+            <a href="/admin/election-event/edit/<?= urlencode($electionEventData['electionID'] ?? '') ?>" class="btn btn-primary">Edit Event</a>
+            <a href="/admin/election-event" class="btn btn-secondary">Back to Events List</a>
         </div>
     </div>
 </div>

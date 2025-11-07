@@ -45,12 +45,12 @@ Route::get ('/announcements/{id}',            [AnnouncementController::class, 'v
 
 // Election Event Routes
 Route::get('/admin/election-event', [ElectionEventController::class, 'listElectionEvents']);
-Route::get('/election-event/create', [ElectionEventController::class, 'CreateElectionEvent']);
-Route::post('/election-event/create', [ElectionEventController::class, 'storeElectionEvent']);
-Route::get('/election-event/edit/{id}', [ElectionEventController::class, 'editElectionEvent']);
-Route::post('/election-event/edit/{id}', [ElectionEventController::class, 'editStoreElectionEvent']);
-Route::get('/election-event/view/{id}', [ElectionEventController::class, 'viewElectionEvent']);
-Route::post('/election-event/delete/{id}', [ElectionEventController::class, 'deleteElectionEvent']);
+Route::get('/admin/election-event/create', [ElectionEventController::class, 'CreateElectionEvent']);
+Route::post('/admin/election-event/create', [ElectionEventController::class, 'storeElectionEvent']);
+Route::get('/admin/election-event/edit/{id}', [ElectionEventController::class, 'editElectionEvent']);
+Route::post('/admin/election-event/edit/{id}', [ElectionEventController::class, 'editStoreElectionEvent']);
+Route::get('/admin/election-event/view/{id}', [ElectionEventController::class, 'viewElectionEvent']);
+Route::post('/admin/election-event/delete/{id}', [ElectionEventController::class, 'deleteElectionEvent']);
 
 // Rules and Regulations Routes
 Route::get('/rule', [RuleController::class, 'listRules']);

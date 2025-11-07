@@ -6,17 +6,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 <div class="container mt-4">
     <h2>Create Election Event</h2>
 
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <form action="/election-event/create" method="POST">
+    <form action="/admin/election-event/create" method="POST">
         <div class="mb-3">
             <label for="electionEventName" class="form-label">Election Event Name</label>
             <input type="text" 

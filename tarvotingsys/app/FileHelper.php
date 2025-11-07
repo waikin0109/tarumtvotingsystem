@@ -138,6 +138,7 @@ class FileHelper
                 break;
             case 'announcement':
                 $this->allowedPaths = array_merge($announcementPaths, $assetPaths);
+                break;
             case 'rule':
                 $this->allowedPaths = array_merge($rulePaths, $assetPaths);
                 break;

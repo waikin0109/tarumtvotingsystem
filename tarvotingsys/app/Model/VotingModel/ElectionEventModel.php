@@ -68,7 +68,7 @@ class ElectionEventModel
                 $data['electionEventStartDate'] . ' ' . $data['electionEventStartTime'],
                 $data['electionEventEndDate'] . ' ' . $data['electionEventEndTime'],
                 $data['electionEventStatus'],
-                1// $data['accountID'] session accountID here
+                $data['accountID']  
             ]);
         } catch (PDOException $e) {
             // Handle exception (log it, rethrow it, etc.)

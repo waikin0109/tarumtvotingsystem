@@ -15,7 +15,7 @@ if (!isset($electionEvents) || !is_array($electionEvents)) {
                 <h2>Election Event</h2>
             </div>
             <div class="col-sm-6">
-                <a href="/election-event/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button></a>
+                <a href="/admin/election-event/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button></a>
             </div>
         </div>
     </div>
@@ -42,14 +42,14 @@ if (!isset($electionEvents) || !is_array($electionEvents)) {
                         <?php else: ?>
                             <?php foreach ($electionEvents as $index => $event): ?>
                                 <?php $eventId = urlencode($event['electionID'] ?? ''); ?>
-                                <tr class="clickable-row" data-href="/election-event/view/<?= $eventId ?>">
+                                <tr class="clickable-row" data-href="/admin/election-event/view/<?= $eventId ?>">
                                     <td><?= $index + 1 ?></td>
                                     <td><?= htmlspecialchars($event['title'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($event['dateCreated'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($event['status'] ?? '') ?></td>
                                     <td onclick="event.stopPropagation()">
-                                        <a href="/election-event/edit/<?= $eventId ?>" class="btn btn-sm btn-warning">Edit</a>
-                                        <form method="POST" action="/election-event/delete/<?= $eventId ?>" class="d-inline"
+                                        <a href="/admin/election-event/edit/<?= $eventId ?>" class="btn btn-sm btn-warning">Edit</a>
+                                        <form method="POST" action="/admin/election-event/delete/<?= $eventId ?>" class="d-inline"
                                                 onsubmit="return confirm('Are you sure you want to delete this election event?');">
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>

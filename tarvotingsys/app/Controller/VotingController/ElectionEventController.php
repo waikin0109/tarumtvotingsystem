@@ -19,6 +19,12 @@ class ElectionEventController
 
     public function listElectionEvents()
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $electionEvents = $this->electionEventModel->getAllElectionEvents(); // ensure method name matches your model
         $filePath = $this->fileHelper->getFilePath('ElectionEventList');
 
@@ -33,6 +39,12 @@ class ElectionEventController
     // Display Create Election Event Form
     public function CreateElectionEvent()
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $filePath = $this->fileHelper->getFilePath('CreateElectionEvent');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
@@ -42,7 +54,14 @@ class ElectionEventController
     }
 
     // Create Election Event  + Validation
-    public function storeElectionEvent() {
+    public function storeElectionEvent()
+    {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->CreateElectionEvent();
             return;
@@ -56,7 +75,8 @@ class ElectionEventController
             'electionEventStartTime'   => $_POST['electionEventStartTime'] ?? '',
             'electionEventEndDate'     => $_POST['electionEventEndDate'] ?? '',
             'electionEventEndTime'     => $_POST['electionEventEndTime'] ?? '',
-            'electionEventStatus'      => ''
+            'electionEventStatus'      => '',
+            'accountID'                => $_SESSION['accountID'] ?? ''
         ];
 
         // --------- Validate Election Event input --------- //
@@ -119,7 +139,7 @@ class ElectionEventController
         }
 
 
-        // check status
+        // Check status
         if (
             $electionEventCreationData['electionEventStartDate'] > date('Y-m-d') ||
             (
@@ -165,13 +185,19 @@ class ElectionEventController
         $this->electionEventModel->createElectionEvent($electionEventCreationData);
         // Redirect to election event list with success message
         \set_flash('success', 'Election Event created successfully.');
-        header('Location: /election-event');
+        header('Location: /admin/election-event');
     }
 
     // ----------------------------------------- Edit Election Event ----------------------------------------- //
     // Display Edit Election Event Form
     public function editElectionEvent($electionID)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+        
         $electionEventData = $this->electionEventModel->getElectionEventById($electionID);
         $filePath = $this->fileHelper->getFilePath('EditElectionEvent');
         if ($filePath && file_exists($filePath)) {
@@ -184,6 +210,12 @@ class ElectionEventController
     // Edit Election Event + Validation
     public function editStoreElectionEvent($electionID)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->editElectionEvent($electionID);
             return;
@@ -258,7 +290,7 @@ class ElectionEventController
             }
         }
 
-        // check status
+        // Check status
         if (
             $electionEventData['electionEventStartDate'] > date('Y-m-d') ||
             (
@@ -316,12 +348,18 @@ class ElectionEventController
         $this->electionEventModel->updateElectionEvent($electionID, $electionEventData);
         // Redirect to election event list with success message
         \set_flash('success', 'Election Event updated successfully.');
-        header('Location: /election-event');
+        header('Location: /admin/election-event');
     }
 
     // ----------------------------------------- Read Election Event Details ----------------------------------------- //
     public function viewElectionEvent($electionID)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $electionEventData = $this->electionEventModel->getElectionEventById($electionID);
         $filePath = $this->fileHelper->getFilePath('ViewElectionEvent');
         if ($filePath && file_exists($filePath)) {
@@ -335,14 +373,20 @@ class ElectionEventController
     // ----------------------------------------- Delete Election Event ----------------------------------------- //
     public function deleteElectionEvent($electionID)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /election-event');
+            header('Location: /admin/election-event');
             return;
         }
 
         $this->electionEventModel->deleteElectionEvent($electionID);
         \set_flash('success', 'Election Event deleted successfully.');
-        header('Location: /election-event');
+        header('Location: /admin/election-event');
     }
 
 }

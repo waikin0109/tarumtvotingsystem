@@ -31,4 +31,22 @@ class StudentModel
             return false;
         }
     }
+
+    public function getStudentIdByAccId($accountID) {
+        try {
+            $stmt = $this->db-> prepare("
+                SELECT s.studentID
+                FROM student s
+                INNER JOIN account acc ON acc.accountID = s.accountID
+                WHERE s.accountID = ?
+                AND acc.role = 'STUDENT'
+                LIMIT 1
+            ");
+            $stmt->execute([$accountID]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log('getStudentIdByAccId error: ' . $e->getMessage());
+            return false;
+        }
+    }
 }

@@ -1,12 +1,12 @@
 <?php
 
-namespace Model\AdminModel;
+namespace Model\NomineeModel;
 
 use PDO;
 use PDOException;
 use Database;
 
-class AdminModel
+class NomineeModel
 {
     private $db;
 
@@ -15,20 +15,20 @@ class AdminModel
         $this->db = Database::getConnection();
     }
 
-    public function getAdminIdByAccId($accountID) {
+    public function getNomineeIdByAccId($accountID) {
         try {
             $stmt = $this->db-> prepare("
-                SELECT a.adminID
-                FROM administrator a
-                INNER JOIN account acc ON acc.accountID = a.accountID
-                WHERE a.accountID = ?
-                AND acc.role = 'ADMIN'
+                SELECT n.nomineeID
+                FROM nominee n
+                INNER JOIN account acc ON acc.accountID = n.accountID
+                WHERE n.accountID = ?
+                AND acc.role = 'NOMINEE'
                 LIMIT 1
             ");
             $stmt->execute([$accountID]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log('getAdminIdByAccId error: ' . $e->getMessage());
+            error_log('getNomineeIdByAccId error: ' . $e->getMessage());
             return false;
         }
     }
