@@ -4,7 +4,7 @@
 $accountLoggedInId = $_SESSION['accountID'] ?? '';
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
-$annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
+$annLink = ($role === 'STUDENT') ? '/announcements' : '/announcements/public';
 ?>
 
 <!DOCTYPE html>
@@ -32,7 +32,7 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
     <!-- Header -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <a class="navbar-brand ms-1" href="#">TARUMTVS Admin</a>
+            <a class="navbar-brand ms-1" href="#">TARUMTVS Student</a>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
@@ -93,16 +93,13 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                 style="height:calc(100vh - 56px); z-index:1020;">
                 <div class="position-sticky pb-5">
                     <div class="list-group list-group-flush">
-                        <a href="/election-event" class="list-group-item list-group-item-action">Election Event</a>
-                        <a href="/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
-                        <a href="/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
-                        <a href="/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
+                        <a href="/election-event" class="list-group-item list-group-item-action">Election Registration</a>
+                        <a href="/rules" class="list-group-item list-group-item-action">Rules and Regulations</a>
+                        <a href="#" class="list-group-item list-group-item-action">Nominees' Registration History</a>
                         <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
-                        <a href="/campaign-material" class="list-group-item list-group-item-action">Campaign Materials</a>
-                        <a href="/announcements" class="list-group-item list-group-item-action">Announcement</a>
+                        <a href="#" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>
-                        <a href="#" class="list-group-item list-group-item-action">Report</a>
                     </div>
                 </div>
 

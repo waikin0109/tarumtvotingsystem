@@ -44,7 +44,7 @@ Route::get ('/announcements/{id}',            [AnnouncementController::class, 'v
 
 
 // Election Event Routes
-Route::get('/election-event', [ElectionEventController::class, 'listElectionEvents']);
+Route::get('/admin/election-event', [ElectionEventController::class, 'listElectionEvents']);
 Route::get('/election-event/create', [ElectionEventController::class, 'CreateElectionEvent']);
 Route::post('/election-event/create', [ElectionEventController::class, 'storeElectionEvent']);
 Route::get('/election-event/edit/{id}', [ElectionEventController::class, 'editElectionEvent']);
