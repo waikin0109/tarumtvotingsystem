@@ -1,0 +1,103 @@
+<?php
+$_title = 'Election Event Editing';
+require_once __DIR__ . '/../AdminView/adminHeader.php';
+?>
+
+<div class="container mt-4">
+    <h2>Edit Election Event</h2>
+
+    <?php if (!empty($errors)): ?>
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                <?php foreach ($errors as $error): ?>
+                    <li><?= htmlspecialchars($error) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
+    <form action="/election-event/edit/<?= urlencode($electionEventData['electionID'] ?? '') ?>" method="POST">
+        <div class="mb-3">
+            <label for="electionEventName" class="form-label">Election Event Name</label>
+            <input type="text" 
+                   class="form-control <?= !empty($fieldErrors['electionEventName']) ? 'is-invalid' : '' ?>" 
+                   id="electionEventName" 
+                   name="electionEventName"
+                   value="<?= htmlspecialchars($electionEventData['title'] ?? '') ?>">
+            <?php if (!empty($fieldErrors['electionEventName'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventName'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="mb-3">
+            <label for="electionEventDescription" class="form-label">Event Description</label>
+            <textarea class="form-control <?= !empty($fieldErrors['electionEventDescription']) ? 'is-invalid' : '' ?>" 
+                      id="electionEventDescription" 
+                      name="electionEventDescription" 
+                      rows="3"><?= htmlspecialchars($electionEventData['description'] ?? '') ?></textarea>
+            <?php if (!empty($fieldErrors['electionEventDescription'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventDescription'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="mb-3">
+            <label for="electionEventStartDate" class="form-label">Event Start Date</label>
+            <input type="date" 
+                   class="form-control <?= !empty($fieldErrors['electionEventStartDate']) ? 'is-invalid' : '' ?>" 
+                   id="electionEventStartDate" 
+                   name="electionEventStartDate"
+                   value="<?= htmlspecialchars($electionEventData['startDate'] ?? '') ?>">
+            <?php if (!empty($fieldErrors['electionEventStartDate'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventStartDate'])) ?>
+                </div>
+            <?php endif; ?>
+
+            <label for="electionEventStartTime" class="form-label mt-2">Event Start Time</label>
+            <input type="time" 
+                   class="form-control <?= !empty($fieldErrors['electionEventStartTime']) ? 'is-invalid' : '' ?>" 
+                   id="electionEventStartTime" 
+                   name="electionEventStartTime"
+                   value="<?= htmlspecialchars($electionEventData['startTime'] ?? '') ?>">
+            <?php if (!empty($fieldErrors['electionEventStartTime'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventStartTime'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="mb-3">
+            <label for="electionEventEndDate" class="form-label">Event End Date</label>
+            <input type="date" 
+                   class="form-control <?= !empty($fieldErrors['electionEventEndDate']) ? 'is-invalid' : '' ?>" 
+                   id="electionEventEndDate" 
+                   name="electionEventEndDate"
+                   value="<?= htmlspecialchars($electionEventData['endDate'] ?? '') ?>">
+            <?php if (!empty($fieldErrors['electionEventEndDate'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventEndDate'])) ?>
+                </div>
+            <?php endif; ?>
+
+            <label for="electionEventEndTime" class="form-label mt-2">Event End Time</label>
+            <input type="time" 
+                   class="form-control <?= !empty($fieldErrors['electionEventEndTime']) ? 'is-invalid' : '' ?>" 
+                   id="electionEventEndTime" 
+                   name="electionEventEndTime"
+                   value="<?= htmlspecialchars($electionEventData['endTime'] ?? '') ?>">
+            <?php if (!empty($fieldErrors['electionEventEndTime'])): ?>
+                <div class="invalid-feedback">
+                    <?= htmlspecialchars(implode(' ', $fieldErrors['electionEventEndTime'])) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+        <button type="submit" class="btn btn-primary">Update Election Event</button>
+    </form>
+
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

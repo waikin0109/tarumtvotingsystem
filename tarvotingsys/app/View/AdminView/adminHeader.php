@@ -46,20 +46,20 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
         <?php if (!empty($_SESSION['flash'])): ?>
             <?php foreach ($_SESSION['flash'] as $type => $message): ?>
                 <?php
-                // Map flash types to Bootstrap alert classes
-                $alertClass = match ($type) {
-                    'success' => 'alert-success',
-                    'error', 'fail' => 'alert-danger',
-                    'warning' => 'alert-warning',
-                    'info' => 'alert-info',
-                    default => 'alert-secondary'
-                };
+                    // Map flash types to Bootstrap alert classes
+                    $alertClass = match($type) {
+                        'success' => 'alert-success',
+                        'error', 'fail' => 'alert-danger',
+                        'warning' => 'alert-warning',
+                        'info' => 'alert-info',
+                        default => 'alert-secondary'
+                    };
                 ?>
                 <!-- Flash message at top-center -->
-                <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100"
-                    style="max-width: 600px; z-index: 2000;">
-                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center"
-                        id="flash-message-<?= $type ?>" role="alert">
+                <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100" style="max-width: 600px; z-index: 2000;">
+                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center" 
+                        id="flash-message-<?= $type ?>" 
+                        role="alert">
                         <?= htmlspecialchars($message) ?>
                     </div>
                 </div>
@@ -93,14 +93,12 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                 <div class="position-sticky pb-5">
                     <div class="list-group list-group-flush">
                         <a href="/election-event" class="list-group-item list-group-item-action">Election Event</a>
-                        <a href="/election-registration-form" class="list-group-item list-group-item-action">Election
-                            Registration Form</a>
+                        <a href="/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
                         <a href="/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
-                        <a href="#" class="list-group-item list-group-item-action">Nominees' Registration</a>
-                        <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
-                        <!-- <a href="#" class="list-group-item list-group-item-action">Announcement</a> -->
-                        <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
-
+                        <a href="/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
+                        <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
+                        <a href="/campaign-material" class="list-group-item list-group-item-action">Campaign Materials</a>
+                        <a href="#" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>
                         <a href="#" class="list-group-item list-group-item-action">Report</a>

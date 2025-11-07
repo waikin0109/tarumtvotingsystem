@@ -34,8 +34,58 @@ class FileHelper
     {
         // IMPORTANT: make this relative to /app (where FileHelper.php sits)
         // So View/VotingView/election-event.php resolves to .../app/View/VotingView/election-event.php
+        
         $electionEventPaths = $this->prefixWithBase([
             'ElectionEventList' => 'View/VotingView/electionEvent.php',
+            'CreateElectionEvent' => 'View/VotingView/createElectionEvent.php',
+            'EditElectionEvent' => 'View/VotingView/editElectionEvent.php',
+            'ViewElectionEvent' => 'View/VotingView/viewElectionEvent.php',
+            'DeleteElectionEvent' => 'View/VotingView/deleteElectionEvent.php'
+        ]);
+
+        $rulePaths = $this->prefixWithBase([
+            'RuleList' => 'View/VotingView/rule.php',
+            'CreateRule' => 'View/VotingView/createRule.php',
+            'EditRule' => 'View/VotingView/editRule.php',
+            'ViewRule' => 'View/VotingView/viewRule.php',
+            'DeleteRule' => 'View/VotingView/deleteRule.php'
+        ]);
+
+        $electionRegistrationFormPaths = $this->prefixWithBase([
+            'ElectionRegistrationFormList' => 'View/NomineeHandlingView/registrationForm.php',
+            'CreateElectionRegistrationForm' => 'View/NomineeHandlingView/createRegistrationForm.php',
+            'EditElectionRegistrationForm' => 'View/NomineeHandlingView/editRegistrationForm.php',
+            'ViewElectionRegistrationForm' => 'View/NomineeHandlingView/viewRegistrationForm.php',
+            'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php'
+        ]);
+
+        $nomineeApplicationPaths = $this->prefixWithBase([
+            'NomineeApplicationList' => 'View/NomineeView/nomineeApplication.php',
+            'CreateNomineeApplication' => 'View/NomineeView/createNomineeApplication.php',
+            'EditNomineeApplication' => 'View/NomineeView/editNomineeApplication.php',
+            'ViewNomineeApplication' => 'View/NomineeView/viewNomineeApplication.php',
+            'AcceptNomineeApplication' => 'View/NomineeView/acceptNomineeApplication.php',
+            'RejectNomineeApplication' => 'View/NomineeView/rejectNomineeApplication.php',
+            'PublishNomineeApplications' => 'View/NomineeView/publishNomineeApplication.php',
+            'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php'
+        ]);
+
+        $campaignMaterialPaths = $this->prefixWithBase([
+            'CampaignMaterialList' => 'View/CampaignHandlingView/campaignMaterial.php',
+            'CreateCampaignMaterial' => 'View/CampaignHandlingView/createCampaignMaterial.php',
+            'EditCampaignMaterial' => 'View/CampaignHandlingView/editCampaignMaterial.php',
+            'ViewCampaignMaterial' => 'View/CampaignHandlingView/viewCampaignMaterial.php',
+            'AcceptCampaignMaterial' => 'View/CampaignHandlingView/acceptCampaignMaterial.php',
+            'RejectCampaignMaterial' => 'View/CampaignHandlingView/rejectCampaignMaterial.php',
+        ]);
+
+        $scheduleLocationPaths = $this->prefixWithBase([
+            'ScheduleLocationList' => 'View/CampaignHandlingView/scheduleLocation.php',
+            'CreateScheduleLocation' => 'View/CampaignHandlingView/createScheduleLocation.php',
+            'EditScheduleLocation' => 'View/CampaignHandlingView/editScheduleLocation.php',
+            'ViewScheduleLocation' => 'View/CampaignHandlingView/viewScheduleLocation.php',
+            'ScheduleBoard' => 'View/CampaignHandlingView/scheduleLocationBoard.php',
+            'ViewCampaignSchedule' => 'View/CampaignHandlingView/viewCampaignSchedule.php',
         ]);
 
         $loginpaths = $this->prefixWithBase([
@@ -88,6 +138,20 @@ class FileHelper
                 break;
             case 'announcement':
                 $this->allowedPaths = array_merge($announcementPaths, $assetPaths);
+            case 'rule':
+                $this->allowedPaths = array_merge($rulePaths, $assetPaths);
+                break;
+            case 'election_registration_form':
+                $this->allowedPaths = array_merge($electionRegistrationFormPaths, $assetPaths);
+                break;
+            case 'nominee_application':
+                $this->allowedPaths = array_merge($nomineeApplicationPaths, $assetPaths);
+                break;
+            case 'campaign_material':
+                $this->allowedPaths = array_merge($campaignMaterialPaths, $assetPaths);
+                break;
+            case 'schedule_location':
+                $this->allowedPaths = array_merge($scheduleLocationPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;
