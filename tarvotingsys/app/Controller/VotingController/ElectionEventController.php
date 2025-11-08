@@ -35,6 +35,21 @@ class ElectionEventController
         }
     }
 
+    private function mustBePendingOrAbort($electionID)
+    {
+        $row = $this->electionEventModel->getElectionEventById($electionID);
+        if (!$row) {
+            \set_flash('fail', 'Election Event not found.');
+            header('Location: /admin/election-event'); exit;
+        }
+        $status = strtoupper($row['status'] ?? '');
+        if (in_array($status, ['ONGOING','COMPLETED'], true)) {
+            \set_flash('fail', 'This election event cannot be modified or deleted because it is ' . $status . '.');
+            header('Location: /admin/election-event'); exit;
+        }
+    }
+
+
     // ----------------------------------------- Create Election Event ----------------------------------------- //
     // Display Create Election Event Form
     public function CreateElectionEvent()
@@ -197,7 +212,7 @@ class ElectionEventController
             header('Location: /login');
             exit;
         }
-        
+        $this->mustBePendingOrAbort($electionID); // block if ONGOING/COMPLETED
         $electionEventData = $this->electionEventModel->getElectionEventById($electionID);
         $filePath = $this->fileHelper->getFilePath('EditElectionEvent');
         if ($filePath && file_exists($filePath)) {
@@ -215,6 +230,8 @@ class ElectionEventController
             header('Location: /login');
             exit;
         }
+
+        $this->mustBePendingOrAbort($electionID); // block if ONGOING/COMPLETED
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->editElectionEvent($electionID);
@@ -384,9 +401,12 @@ class ElectionEventController
             return;
         }
 
+        $this->mustBePendingOrAbort($electionID); // block if ONGOING/COMPLETED
         $this->electionEventModel->deleteElectionEvent($electionID);
         \set_flash('success', 'Election Event deleted successfully.');
         header('Location: /admin/election-event');
     }
+
+
 
 }

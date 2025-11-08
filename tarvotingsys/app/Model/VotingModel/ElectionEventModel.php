@@ -15,7 +15,7 @@ class ElectionEventModel
         $this->db = Database::getConnection();
     }
 
-    private function determineStatus(string $start, string $end)
+    private function determineStatus($start, $end)
     {
         $now = time();
         $startTs = strtotime($start);
@@ -34,20 +34,23 @@ class ElectionEventModel
     public function getAllElectionEvents()
     {
         try {
-            // Fetch all events
-            $stmt = $this->db->prepare("SELECT * FROM electionevent");
+            $stmt = $this->db->prepare("
+                SELECT 
+                    e.*,
+                    acc.fullName AS creatorName
+                FROM electionevent e
+                LEFT JOIN account acc ON acc.accountID = e.accountID
+            ");
             $stmt->execute();
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Update statuses dynamically
             foreach ($events as &$event) {
                 $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
 
-                // Update DB only if status has changed
                 if ($currentStatus !== $event['status']) {
                     $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
                     $update->execute([$currentStatus, $event['electionID']]);
-                    $event['status'] = $currentStatus; // reflect change in memory too
+                    $event['status'] = $currentStatus;
                 }
             }
             return $events;
@@ -56,6 +59,7 @@ class ElectionEventModel
             return false;
         }
     }
+
 
 
     public function createElectionEvent($data)
@@ -82,20 +86,22 @@ class ElectionEventModel
         try {
             $stmt = $this->db->prepare("
                 SELECT 
-                    electionID,
-                    title,
-                    description,
-                    electionStartDate,
-                    electionEndDate,
-                    DATE(electionStartDate) AS startDate,
-                    DATE_FORMAT(electionStartDate, '%H:%i') AS startTime,
-                    DATE(electionEndDate)   AS endDate,
-                    DATE_FORMAT(electionEndDate,   '%H:%i') AS endTime,
-                    status,
-                    dateCreated,
-                    accountID
-                FROM electionevent
-                WHERE electionID = ?
+                    e.electionID,
+                    e.title,
+                    e.description,
+                    e.electionStartDate,
+                    e.electionEndDate,
+                    DATE(e.electionStartDate) AS startDate,
+                    DATE_FORMAT(e.electionStartDate, '%H:%i') AS startTime,
+                    DATE(e.electionEndDate)   AS endDate,
+                    DATE_FORMAT(e.electionEndDate,   '%H:%i') AS endTime,
+                    e.status,
+                    e.dateCreated,
+                    e.accountID,
+                    acc.fullName AS creatorName
+                FROM electionevent e
+                LEFT JOIN account acc ON acc.accountID = e.accountID
+                WHERE e.electionID = ?
             ");
             $stmt->execute([$electionID]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
@@ -104,6 +110,7 @@ class ElectionEventModel
             return false;
         }
     }
+
 
     public function updateElectionEvent($electionID, $data)
     {

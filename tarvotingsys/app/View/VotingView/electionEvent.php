@@ -41,21 +41,51 @@ if (!isset($electionEvents) || !is_array($electionEvents)) {
                             </tr>
                         <?php else: ?>
                             <?php foreach ($electionEvents as $index => $event): ?>
-                                <?php $eventId = urlencode($event['electionID'] ?? ''); ?>
+                                <?php 
+                                    $eventId   = urlencode($event['electionID'] ?? '');
+                                    $statusRaw = strtoupper(trim($event['status'] ?? ''));
+                                    $isLocked  = in_array($statusRaw, ['ONGOING','COMPLETED'], true);
+                                ?>
                                 <tr class="clickable-row" data-href="/admin/election-event/view/<?= $eventId ?>">
                                     <td><?= $index + 1 ?></td>
                                     <td><?= htmlspecialchars($event['title'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($event['dateCreated'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($event['status'] ?? '') ?></td>
+                                    <td>
+                                        <span class="badge <?= $statusRaw === 'PENDING' ? 'bg-secondary' : ($statusRaw === 'ONGOING' ? 'bg-info' : 'bg-success') ?>">
+                                        <?= htmlspecialchars($statusRaw) ?>
+                                        </span>
+                                    </td>
                                     <td onclick="event.stopPropagation()">
+                                        <!-- Edit -->
+                                        <?php if ($isLocked): ?>
+                                        <a
+                                            class="btn btn-sm btn-warning disabled"
+                                            role="button" aria-disabled="true" tabindex="-1"
+                                            data-bs-toggle="tooltip" data-bs-title="Unavailable for ongoing/completed events">
+                                            Edit
+                                        </a>
+                                        <?php else: ?>
                                         <a href="/admin/election-event/edit/<?= $eventId ?>" class="btn btn-sm btn-warning">Edit</a>
+                                        <?php endif; ?>
+
+                                        <!-- Delete -->
+                                        <?php if ($isLocked): ?>
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-danger" disabled
+                                            data-bs-toggle="tooltip" data-bs-title="Unavailable for ongoing/completed events">
+                                            Delete
+                                        </button>
+                                        <?php else: ?>
                                         <form method="POST" action="/admin/election-event/delete/<?= $eventId ?>" class="d-inline"
                                                 onsubmit="return confirm('Are you sure you want to delete this election event?');">
                                             <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -78,6 +108,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Extra safety: stop row-click bubbling from action controls
   document.querySelectorAll('.clickable-row .btn, .clickable-row form')
     .forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+
+  document.querySelectorAll('.clickable-row').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('a, button, input, select, textarea, label, form')) return;
+      window.location.href = row.dataset.href;
+    });
+  });
+  document.querySelectorAll('.clickable-row .btn, .clickable-row form')
+    .forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+
+  // Bootstrap tooltip init (BS5)
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
 });
 </script>
 

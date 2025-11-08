@@ -12,17 +12,33 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
             <p class="card-text"><strong>Event ID:</strong> <?= htmlspecialchars($electionEventData['electionID'] ?? '') ?></p>
             <p class="card-text"><strong>Description:</strong> <?= nl2br(htmlspecialchars($electionEventData['description'] ?? '')) ?></p>
 
-            <?php $startDateTime = !empty($electionEventData['startDate'])? date('Y-m-d H:i', strtotime($electionEventData['startDate'])): '';
-            $endDateTime = !empty($electionEventData['endDate'])? date('Y-m-d H:i', strtotime($electionEventData['endDate'])): '';?>
+            <?php
+            // Prefer the full DATETIME columns returned by the model:
+            $startAt = !empty($electionEventData['electionStartDate'])
+            ? date('Y-m-d H:i', strtotime($electionEventData['electionStartDate']))
+            : '';
+
+            $endAt = !empty($electionEventData['electionEndDate'])
+            ? date('Y-m-d H:i', strtotime($electionEventData['electionEndDate']))
+            : '';
+            ?>
             <p class="card-text">
-                <strong>Start Date:</strong> <?= htmlspecialchars($startDateTime) ?>
+            <strong>Start Date & Time:</strong> <?= htmlspecialchars($startAt) ?>
             </p>
             <p class="card-text">
-                <strong>End Date:</strong> <?= htmlspecialchars($endDateTime) ?>
+            <strong>End Date Time:</strong> <?= htmlspecialchars($endAt) ?>
             </p>
+
             <p class="card-text"><strong>Date Created:</strong> <?= htmlspecialchars($electionEventData['dateCreated'] ?? '') ?></p>
             <p class="card-text"><strong>Status:</strong> <?= htmlspecialchars($electionEventData['status'] ?? '') ?></p>
-            <p class="card-text"><strong>Account ID:</strong> <?= htmlspecialchars($electionEventData['accountID'] ?? '') ?></p>
+            <p class="card-text">
+                <strong>Created By:</strong>
+                <?= htmlspecialchars(($electionEventData['accountID'] ?? '')) ?>
+                <?php if (!empty($electionEventData['creatorName'])): ?>
+                    - <?= htmlspecialchars($electionEventData['creatorName']) ?>
+                <?php endif; ?>
+            </p>
+
         </div>
             
             <a href="/admin/election-event/edit/<?= urlencode($electionEventData['electionID'] ?? '') ?>" class="btn btn-primary">Edit Event</a>
