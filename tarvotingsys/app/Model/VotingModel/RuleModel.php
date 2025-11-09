@@ -64,20 +64,30 @@ class RuleModel
     }
 
     public function getRuleById($ruleID) {
-    try {
-        $stmt = $this->db->prepare("
-            SELECT r.*, e.title AS event_name, e.status AS event_status
-            FROM rule r
-            INNER JOIN electionevent e ON r.electionID = e.electionID
-            WHERE r.ruleID = ?
-        ");
-        $stmt->execute([$ruleID]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log('Error in getRuleById: '.$e->getMessage());
-        return false;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT r.*, e.title AS event_name, e.status AS event_status, e.electionStartDate, e.electionEndDate
+                FROM rule r
+                INNER JOIN electionevent e ON r.electionID = e.electionID
+                WHERE r.ruleID = ?
+            ");
+            $stmt->execute([$ruleID]);
+            $rule = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Check & Update Election Events Status
+            $currentStatus = $this->electionEventModel->determineStatus($rule['electionStartDate'], $rule['electionEndDate']);
+
+            if ($currentStatus !== $rule['event_status']) {
+                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $update->execute([$currentStatus, $rule['electionID']]);
+                $rule['event_status'] = $currentStatus;
+            }
+            return $rule;
+        } catch (PDOException $e) {
+            error_log('Error in getRuleById: '.$e->getMessage());
+            return false;
+        }
     }
-}
 
 
     public function updateRule($ruleID, $data) {
