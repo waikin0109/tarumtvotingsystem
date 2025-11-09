@@ -15,7 +15,7 @@ class ElectionEventModel
         $this->db = Database::getConnection();
     }
 
-    private function determineStatus($start, $end)
+    public function determineStatus($start, $end)
     {
         $now = time();
         $startTs = strtotime($start);
@@ -44,6 +44,7 @@ class ElectionEventModel
             $stmt->execute();
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Update Election Event Status
             foreach ($events as &$event) {
                 $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
 
@@ -104,7 +105,18 @@ class ElectionEventModel
                 WHERE e.electionID = ?
             ");
             $stmt->execute([$electionID]);
-            return $stmt->fetch(PDO::FETCH_ASSOC);
+            $event = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Check Election Event Status
+            $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
+
+            if ($currentStatus !== $event['status']) {
+                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $update->execute([$currentStatus, $event['electionID']]);
+                $event['status'] = $currentStatus;
+            }
+            
+            return $event;
         } catch (PDOException $e) {
             error_log("Error in getElectionEventById: " . $e->getMessage());
             return false;
@@ -142,8 +154,73 @@ class ElectionEventModel
         }
     }
 
-    // --------------------------------------------------------------------------------------- //
-    
-    
+    // --------------------------------------- Other Needed Functions ------------------------------------------------ //
+    // Functions Use in Rules
+    public function getEligibleElectionEvents($allowed = ['Pending','Ongoing'])
+{
+    $allowed = array_map('strtolower', $allowed);
+
+    // We must SELECT start/end to recompute status
+    $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
+            FROM electionevent
+            ORDER BY electionID ASC";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute();
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+    $eligible = [];
+
+    foreach ($rows as $ev) {
+        $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
+
+        // If status changed, persist it
+        if ($current !== $ev['status']) {
+            $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+            $upd->execute([$current, $ev['electionID']]);
+            $ev['status'] = $current; // keep local row consistent
+        }
+
+        if (in_array(strtolower($ev['status']), $allowed, true)) {
+            // Return only fields the callers need
+            $eligible[] = [
+                'electionID' => $ev['electionID'],
+                'title'      => $ev['title'],
+                'status'     => $ev['status'],
+            ];
+        }
+    }
+
+    return $eligible;
+}
+
+// --------- Refresh + return single row if eligible ---------
+public function getElectionEventByIdIfEligible($electionID, $allowed = ['Pending','Ongoing'])
+{
+    $allowed = array_map('strtolower', $allowed);
+
+    $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
+            FROM electionevent
+            WHERE electionID = ?
+            LIMIT 1";
+    $stmt = $this->db->prepare($sql);
+    $stmt->execute([$electionID]);
+    $ev = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$ev) return false;
+
+    $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
+
+    if ($current !== $ev['status']) {
+        $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+        $upd->execute([$current, $ev['electionID']]);
+        $ev['status'] = $current;
+    }
+
+    return in_array(strtolower($ev['status']), $allowed, true)
+        ? ['electionID' => $ev['electionID'], 'title' => $ev['title'], 'status' => $ev['status']]
+        : false;
+}
+
+
 
 }

@@ -48,7 +48,8 @@ class FileHelper
             'CreateRule' => 'View/VotingView/createRule.php',
             'EditRule' => 'View/VotingView/editRule.php',
             'ViewRule' => 'View/VotingView/viewRule.php',
-            'DeleteRule' => 'View/VotingView/deleteRule.php'
+            'DeleteRule' => 'View/VotingView/deleteRule.php',
+            'RuleListStudent' => 'View/VotingView/ruleStudent.php'
         ]);
 
         $electionRegistrationFormPaths = $this->prefixWithBase([

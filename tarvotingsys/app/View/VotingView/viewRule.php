@@ -1,6 +1,21 @@
 <?php
 $_title = "View Rule Details";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+    require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
+
+$backLink = match ($roleUpper) {
+    'ADMIN'   => '/admin/rule',
+    'STUDENT' => '/student/rule',
+    'NOMINEE' => '/nominee/rule',
+    default   => '/login'
+};
 
 // ---- SAFETY GUARDS (put right after adminHeader.php include)
 if (!isset($electionEvents) || !is_array($electionEvents)) {
@@ -43,12 +58,20 @@ if (!isset($election_name) || $election_name === '' || $election_name === null) 
             <p class="card-text"><strong>Date Created:</strong> <?= htmlspecialchars($ruleData['dateCreated'] ?? '') ?></p>
         </div>
         <div class="card-footer">
-            <a href="/rule/edit/<?= urlencode($ruleData['ruleID'] ?? '') ?>" class="btn btn-primary">Edit Rule</a>
-            <a href="/rule" class="btn btn-secondary">Back to Rules List</a>
+            <?php if ($roleUpper === 'ADMIN'): ?>
+                <a href="/admin/rule/edit/<?= urlencode($ruleData['ruleID'] ?? '') ?>" class="btn btn-primary">Edit Rule</a>
+            <?php endif; ?>
+            <a href="<?= $backLink ?>" class="btn btn-secondary">Back to Rules List</a>
         </div>
     </div>
 </div>
 
 <?php
-require_once __DIR__ . '/../AdminView/adminFooter.php';
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+    require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
 ?>

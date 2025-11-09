@@ -40,12 +40,14 @@ class ElectionEventController
         $row = $this->electionEventModel->getElectionEventById($electionID);
         if (!$row) {
             \set_flash('fail', 'Election Event not found.');
-            header('Location: /admin/election-event'); exit;
+            header('Location: /admin/election-event'); 
+            exit;
         }
         $status = strtoupper($row['status'] ?? '');
         if (in_array($status, ['ONGOING','COMPLETED'], true)) {
             \set_flash('fail', 'This election event cannot be modified or deleted because it is ' . $status . '.');
-            header('Location: /admin/election-event'); exit;
+            header('Location: /admin/election-event'); 
+            exit;
         }
     }
 

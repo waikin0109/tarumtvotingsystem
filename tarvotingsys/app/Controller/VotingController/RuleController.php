@@ -19,8 +19,39 @@ class RuleController
         $this->fileHelper = new FileHelper("rule");
     }
 
+    // Role Decision Area
+    private function requireRole(...$allowed)
+    {
+        $role = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($role, $allowed, true)) {
+            \set_flash('fail', 'You do not have permission to access this page.');
+            $this->redirectByRole($role);
+        }
+    }
+
+    private function redirectByRole($role)
+    {
+        switch ($role) {
+            case 'ADMIN':   
+                header('Location: /admin/rule'); 
+                break;
+            case 'STUDENT': 
+                header('Location: /student/rule'); 
+                break;
+            case 'NOMINEE': 
+                header('Location: /nominee/rule'); 
+                break;
+            default:        
+                header('Location: /login'); 
+                break;
+        }
+        exit;
+    }
+
+    // Admin Display List
     public function listRules()
     {
+        $this->requireRole('ADMIN');
         $rules = $this->ruleModel->getAllRules();
         $filePath = $this->fileHelper->getFilePath('RuleList');
 
@@ -31,11 +62,42 @@ class RuleController
         }
     }
 
+    // Student Display List
+    public function listRulesStudent()
+    {
+        $this->requireRole('STUDENT');
+        $rules = $this->ruleModel->getAllRules();
+        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
+
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    // Nominee Display List
+    public function listRulesNominee()
+    {
+        $this->requireRole('NOMINEE');
+        $rules = $this->ruleModel->getAllRules();
+        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
+
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
     // ----------------------------------------- Create Rules ----------------------------------------- //
-    // Display Create Rule Form
     public function createRule()
     {
-        $electionEvents = $this->electionEventModel->getAllElectionEvents();
+        $this->requireRole('ADMIN');
+
+        // only eligible events
+        $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['Pending','Ongoing']);
+
         $filePath = $this->fileHelper->getFilePath('CreateRule');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
@@ -45,50 +107,56 @@ class RuleController
     }
 
     // Store New Rule + Validation
-    public function storeRule() {
+    public function storeRule() 
+    {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->createRule();
             return;
         }
 
-        //Collect Rule Input Data
         $ruleCreationData = [
-            'ruleTitle' => $_POST['ruleTitle'] ?? '',
-            'content' => $_POST['content'] ?? '',
+            'ruleTitle'  => trim($_POST['ruleTitle'] ?? ''),
+            'content'    => trim($_POST['content'] ?? ''),
             'electionID' => $_POST['electionID'] ?? null,
         ];
 
-        // --------- Validate Rule input --------- //
         $errors = [];
         $fieldErrors = [];
 
         // Rule Title Validation
-        if (empty($ruleCreationData['ruleTitle'])) {
+        if ($ruleCreationData['ruleTitle'] === '') {
             $errors[] = "Rule Title is required.";
             $fieldErrors['ruleTitle'][] = "Please provide a Rule Title.";
-        } elseif (strlen($ruleCreationData['ruleTitle']) < 5) {
-            $errors[] = "Election Event Name must be at least 5 characters long.";
+        } elseif (mb_strlen($ruleCreationData['ruleTitle']) < 5) {
+            $errors[] = "Rule Title must be at least 5 characters long.";
             $fieldErrors['ruleTitle'][] = "At least 5 characters.";
         }
 
         // Rule Content Validation
-        if (empty($ruleCreationData['content'])) {
-            $errors[] = "Rule Content is required";
-            $fieldErrors['content'][] = "Please add a Rule Content.";
+        if ($ruleCreationData['content'] === '') {
+            $errors[] = "Rule Content is required.";
+            $fieldErrors['content'][] = "Please add Rule Content.";
         }
 
-        // Election Event Validation
+        // Election Event Validation (eligible only)
         if (empty($ruleCreationData['electionID'])) {
             $errors[] = "Associated Election Event is required.";
             $fieldErrors['electionID'][] = "Please select an Election Event.";
-        } elseif (!$this->electionEventModel->getElectionEventById($ruleCreationData['electionID'])) {
-            $errors[] = "Selected Election Event does not exist.";
-            $fieldErrors['electionID'][] = "Please select a valid Election Event.";
+        } else {
+            $eligible = $this->electionEventModel->getElectionEventByIdIfEligible(
+                $ruleCreationData['electionID'],
+                ['Pending','Ongoing']
+            );
+            if (!$eligible) {
+                $errors[] = "Selected Election Event is not allowed (must be Pending or Ongoing).";
+                $fieldErrors['electionID'][] = "Please select a valid pending/ongoing event.";
+            }
         }
 
-        // Invalid Input -> put back the SAME view with errors + old values
         if (!empty($errors)) {
-            $electionEvents = $this->electionEventModel->getAllElectionEvents();
+            $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['Pending','Ongoing']);
             $filePath = $this->fileHelper->getFilePath('CreateRule');
             if ($filePath && file_exists($filePath)) {
                 include $filePath;
@@ -98,18 +166,32 @@ class RuleController
             return;
         }
 
-        // Valid Input -> Store the Rule
+        // Store
         $this->ruleModel->createRule($ruleCreationData);
-        // Redirect to Rule List after successful creation
         \set_flash('success', 'Rule created successfully.');
-        header('Location: /rule');
+        header('Location: /admin/rule'); 
+        exit;
     }
 
     // ----------------------------------------- Edit Rules ----------------------------------------- //
-    // Display Edit Rule Form
     public function editRule($ruleID) {
+        $this->requireRole('ADMIN');
+
         $ruleData = $this->ruleModel->getRuleById($ruleID);
-        $electionEvents = $this->electionEventModel->getAllElectionEvents();
+
+        if (!$ruleData) {
+            \set_flash('fail','Rule not found.');
+            header('Location: /admin/rule'); 
+            exit;
+        }
+
+        if (strtolower($ruleData['event_status'] ?? '') === 'completed') {
+            set_flash('fail','This rule belongs to a completed event and cannot be edited.');
+            header('Location: /admin/rule'); 
+            exit;
+        }
+        
+        $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['Pending','Ongoing']);
 
         $filePath = $this->fileHelper->getFilePath('EditRule');
         if ($filePath && file_exists($filePath)) {
@@ -119,49 +201,65 @@ class RuleController
         }
     }
 
-    // Store Edited Rule + Validation
-    public function editStoreRule($ruleID) {
+    public function editStoreRule($ruleID) 
+    {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->editRule($ruleID);
             return;
         }
 
-        // Collect Rule Input Data
+        $existing = $this->ruleModel->getRuleById($ruleID);
+        if (!$existing) { 
+            set_flash('fail','Rule not found.'); 
+            header('Location: /admin/rule'); 
+            exit; 
+        }
+        if (strtolower($existing['event_status'] ?? '') === 'completed') {
+            set_flash('fail','This rule belongs to a completed event and cannot be edited.');
+            header('Location: /admin/rule'); 
+            exit;
+        }
+
         $ruleData = [
-            'ruleTitle' => $_POST['ruleTitle'] ?? '',
-            'content' => $_POST['content'] ?? '',
+            'ruleTitle'  => trim($_POST['ruleTitle'] ?? ''),
+            'content'    => trim($_POST['content'] ?? ''),
             'electionID' => $_POST['electionID'] ?? null,
         ];
 
-        // --------- Validate Rule input --------- //
         $errors = [];
         $fieldErrors = [];
 
-        // Rule Title Validation
-        if (empty($ruleData['ruleTitle'])) {
+        if ($ruleData['ruleTitle'] === '') {
             $errors[] = "Rule Title is required.";
             $fieldErrors['ruleTitle'][] = "Please provide a Rule Title.";
-        } elseif (strlen($ruleData['ruleTitle']) < 5) {
-            $errors[] = "Election Event Name must be at least 5 characters long.";
+        } elseif (mb_strlen($ruleData['ruleTitle']) < 5) {
+            $errors[] = "Rule Title must be at least 5 characters long.";
             $fieldErrors['ruleTitle'][] = "At least 5 characters.";
         }
 
-        if (empty($ruleData['content'])) {
-            $errors[] = "Rule Content is required";
-            $fieldErrors['content'][] = "Please add a Rule Content.";
+        if ($ruleData['content'] === '') {
+            $errors[] = "Rule Content is required.";
+            $fieldErrors['content'][] = "Please add Rule Content.";
         }
 
         if (empty($ruleData['electionID'])) {
             $errors[] = "Associated Election Event is required.";
             $fieldErrors['electionID'][] = "Please select an Election Event.";
-        } elseif (!$this->electionEventModel->getElectionEventById($ruleData['electionID'])) {
-            $errors[] = "Selected Election Event does not exist.";
-            $fieldErrors['electionID'][] = "Please select a valid Election Event.";
+        } else {
+            $eligible = $this->electionEventModel->getElectionEventByIdIfEligible(
+                $ruleData['electionID'],
+                ['Pending','Ongoing']
+            );
+            if (!$eligible) {
+                $errors[] = "Selected Election Event is not allowed (must be Pending or Ongoing).";
+                $fieldErrors['electionID'][] = "Please select a valid pending/ongoing event.";
+            }
         }
 
-        // Invalid Input -> put back the SAME view with errors + old values
         if (!empty($errors)) {
-            $electionEvents = $this->electionEventModel->getAllElectionEvents();
+            $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['Pending','Ongoing']);
             $filePath = $this->fileHelper->getFilePath('EditRule');
             if ($filePath && file_exists($filePath)) {
                 include $filePath;
@@ -171,16 +269,56 @@ class RuleController
             return;
         }
 
-        // Valid Input -> Update the Rule
         $this->ruleModel->updateRule($ruleID, $ruleData);
-        // Redirect to Rule List after successful update
         \set_flash('success', 'Rule updated successfully.');
-        header('Location: /rule');
+        header('Location: /admin/rule'); exit;
     }
 
+
     // ----------------------------------------- View Rule Details ----------------------------------------- //
-    public function viewRule($ruleID) {
+    public function viewRule($ruleID) 
+    {
+        $this->requireRole('ADMIN');
+
         $ruleData = $this->ruleModel->getRuleById($ruleID);
+        if (!$ruleData) {
+            \set_flash('fail','Rule not found.');
+            $this->redirectByRole(strtoupper($_SESSION['role'] ?? ''));
+        }
+        $filePath = $this->fileHelper->getFilePath('ViewRule');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function viewRuleStudent($ruleID) 
+    {
+        $this->requireRole('STUDENT');
+
+        $ruleData = $this->ruleModel->getRuleById($ruleID);
+        if (!$ruleData) {
+            \set_flash('fail','Rule not found.');
+            $this->redirectByRole(strtoupper($_SESSION['role'] ?? ''));
+        }
+        $filePath = $this->fileHelper->getFilePath('ViewRule');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function viewRuleNominee($ruleID) 
+    {
+        $this->requireRole('NOMINEE');
+
+        $ruleData = $this->ruleModel->getRuleById($ruleID);
+        if (!$ruleData) {
+            \set_flash('fail','Rule not found.');
+            $this->redirectByRole(strtoupper($_SESSION['role'] ?? ''));
+        }
         $filePath = $this->fileHelper->getFilePath('ViewRule');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
@@ -190,15 +328,33 @@ class RuleController
     }
 
     // ----------------------------------------- Delete Rule ----------------------------------------- //
-    public function deleteRule($ruleID) {
+    public function deleteRule($ruleID) 
+    {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: /election-event');
             return;
         }
 
+        $ruleData = $this->ruleModel->getRuleById($ruleID);
+        if (!$ruleData) { 
+            set_flash('fail','Rule not found.'); 
+            header('Location: /admin/rule'); 
+            exit; 
+        }
+        if (strtolower($ruleData['event_status'] ?? '') === 'completed') {
+            set_flash('fail','This rule belongs to a completed event and cannot be deleted.');
+            header('Location: /admin/rule'); exit;
+        }
+
         $this->ruleModel->deleteRule($ruleID);
         \set_flash('success', 'Rule deleted successfully.');
-        header('Location: /rule');
+        header('Location: /admin/rule');
     }
 
 }

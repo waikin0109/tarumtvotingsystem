@@ -11,8 +11,7 @@ use Controller\CampaignHandlingController\CampaignMaterialController;
 use Controller\CampaignHandlingController\ScheduleLocationController;
 
 
-Route::get('/election-events', [ElectionEventController::class, 'listElectionEvents']);
-
+// TH Part Routes
 // Login routes
 Route::get('/login', [LoginController::class, 'login']);
 Route::post('/login', [LoginController::class, 'authenticate']);
@@ -42,7 +41,7 @@ Route::get ('/announcements/{id}',            [AnnouncementController::class, 'v
 
 
 
-
+// WK Part Routes
 // Election Event Routes
 Route::get('/admin/election-event', [ElectionEventController::class, 'listElectionEvents']);
 Route::get('/admin/election-event/create', [ElectionEventController::class, 'CreateElectionEvent']);
@@ -53,13 +52,25 @@ Route::get('/admin/election-event/view/{id}', [ElectionEventController::class, '
 Route::post('/admin/election-event/delete/{id}', [ElectionEventController::class, 'deleteElectionEvent']);
 
 // Rules and Regulations Routes
-Route::get('/rule', [RuleController::class, 'listRules']);
-Route::get('/rule/create', [RuleController::class, 'createRule']);
-Route::post('/rule/create', [RuleController::class, 'storeRule']);
-Route::get('/rule/edit/{id}', [RuleController::class, 'editRule']);
-Route::post('/rule/edit/{id}', [RuleController::class, 'editStoreRule']);
-Route::get('/rule/view/{id}', [RuleController::class, 'viewRule']);
-Route::post('/rule/delete/{id}', [RuleController::class, 'deleteRule']);
+// Admin Sided
+Route::get('/admin/rule', [RuleController::class, 'listRules']);
+Route::get('/admin/rule/create', [RuleController::class, 'createRule']);
+Route::post('/admin/rule/create', [RuleController::class, 'storeRule']);
+Route::get('/admin/rule/edit/{id}', [RuleController::class, 'editRule']);
+Route::post('/admin/rule/edit/{id}', [RuleController::class, 'editStoreRule']);
+Route::get('/admin/rule/view/{id}', [RuleController::class, 'viewRule']);
+Route::post('/admin/rule/delete/{id}', [RuleController::class, 'deleteRule']);
+
+// Student Sided
+Route::get('/student/rule', [RuleController::class, 'listRulesStudent']);
+Route::get('/student/rule/view/{id}', [RuleController::class, 'viewRuleStudent']);
+
+// Nominee Sided
+Route::get('/nominee/rule', [RuleController::class, 'listRulesNominee']);
+Route::get('/nominee/rule/view/{id}', [RuleController::class, 'viewRuleNominee']);
+
+
+
 
 // Election Registration Form Routes
 Route::get('/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
