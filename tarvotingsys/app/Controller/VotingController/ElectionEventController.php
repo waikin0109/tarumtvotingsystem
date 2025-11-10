@@ -380,6 +380,11 @@ class ElectionEventController
         }
 
         $electionEventData = $this->electionEventModel->getElectionEventById($electionID);
+        if (!$electionEventData) {
+            \set_flash('fail', 'Election Event not found.');
+            header('Location: /admin/election-event'); 
+            exit;
+        }
         $filePath = $this->fileHelper->getFilePath('ViewElectionEvent');
         if ($filePath && file_exists($filePath)) {
             include $filePath;

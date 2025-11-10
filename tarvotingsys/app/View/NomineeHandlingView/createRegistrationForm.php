@@ -6,17 +6,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 <div class="container mt-4">
     <h2>Create Election Registration Form</h2>
 
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                <?php foreach ($errors as $error): ?>
-                    <li><?= htmlspecialchars($error) ?></li>
-                <?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
-    <form action="/election-registration-form/create" method="POST">
+    <form action="/admin/election-registration-form/create" method="POST">
         <div class="mb-3">
             <label for="registrationFormTitle" class="form-label">Registration Form Title</label>
             <input type="text" 

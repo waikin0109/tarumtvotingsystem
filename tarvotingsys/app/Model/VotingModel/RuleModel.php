@@ -30,6 +30,10 @@ class RuleModel
             $stmt->execute();
             $rules = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            if (!$rules) {
+                return false;
+            }
+
             // Check & Update Election Events Status
             foreach ($rules as &$rule) {
                 $currentStatus = $this->electionEventModel->determineStatus($rule['electionStartDate'], $rule['electionEndDate']);
@@ -73,6 +77,10 @@ class RuleModel
             ");
             $stmt->execute([$ruleID]);
             $rule = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$rule) {
+                return false;
+            }
 
             // Check & Update Election Events Status
             $currentStatus = $this->electionEventModel->determineStatus($rule['electionStartDate'], $rule['electionEndDate']);

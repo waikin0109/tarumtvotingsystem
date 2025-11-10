@@ -22,12 +22,17 @@ class ElectionEventModel
         $endTs   = strtotime($end);
 
         if ($startTs > $now) {
-            return 'Pending';
+            return 'PENDING';
         } elseif ($endTs > $now) {
-            return 'Ongoing';
+            return 'ONGOING';
         } else {
-            return 'Completed';
+            return 'COMPLETED';
         }
+    }
+
+    public function updateElectionStatus($currentStatus, $electionID){
+        $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+        $update->execute([$currentStatus, $electionID]);
     }
 
 
@@ -43,6 +48,10 @@ class ElectionEventModel
             ");
             $stmt->execute();
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!$events) {
+                return false;
+            }
 
             // Update Election Event Status
             foreach ($events as &$event) {
@@ -106,6 +115,10 @@ class ElectionEventModel
             ");
             $stmt->execute([$electionID]);
             $event = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$event) {
+                return false;
+            }
             
             // Check Election Event Status
             $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
@@ -220,6 +233,7 @@ public function getElectionEventByIdIfEligible($electionID, $allowed = ['Pending
         ? ['electionID' => $ev['electionID'], 'title' => $ev['title'], 'status' => $ev['status']]
         : false;
 }
+
 
 
 

@@ -10,7 +10,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                 <h2>Election Registration Form</h2>
             </div>
             <div class="col-sm-6">
-                <a href="/election-registration-form/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button></a>
+                <a href="/admin/election-registration-form/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button></a>
             </div>
         </div>
     </div>
@@ -35,15 +35,30 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                             </tr>
                         <?php else: ?>
                             <?php foreach ($registrationForms as $index => $form): ?>
-                                <tr class="clickable-row" data-href="/election-registration-form/view/<?= urlencode($form['registrationFormID'] ?? '') ?>">
+                                <tr class="clickable-row" data-href="/admin/election-registration-form/view/<?= urlencode($form['registrationFormID'] ?? '') ?>">
                                     <td><?= $index + 1 ?></td>
                                     <td><?= htmlspecialchars($form['registrationFormTitle'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($form['event_name'] ?? '—') ?></td>
+                                    <?php
+                                    $start = isset($form['registerStartDate']) ? strtotime($form['registerStartDate']) : null;
+                                    $locked = $start !== null && $start <= time();
+                                    ?>
                                     <td onclick="event.stopPropagation()">
-                                        <a href="/election-registration-form/edit/<?= urlencode($form['registrationFormID'] ?? '') ?>" class="btn btn-sm btn-warning">Edit</a>
-                                        <form method="POST" action="/election-registration-form/delete/<?= urlencode($form['registrationFormID'] ?? '') ?>" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this registration form?');">
-                                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                                        </form>
+                                        <?php if (!$locked): ?>
+                                            <a href="/admin/election-registration-form/edit/<?= urlencode($form['registrationFormID'] ?? '') ?>"
+                                            class="btn btn-sm btn-warning">Edit</a>
+                                            <form method="POST"
+                                                action="/admin/election-registration-form/delete/<?= urlencode($form['registrationFormID'] ?? '') ?>"
+                                                class="d-inline"
+                                                onsubmit="return confirm('Are you sure you want to delete this registration form?');">
+                                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                            </form>
+                                        <?php else: ?>
+                                            <button class="btn btn-sm btn-secondary" disabled
+                                                    title="Locked after start">Edit</button>
+                                            <button class="btn btn-sm btn-secondary" disabled
+                                                    title="Locked after start">Delete</button>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

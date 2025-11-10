@@ -2,6 +2,8 @@
 
 // Retrieve session data (set from LoginController)
 $accountLoggedInId = $_SESSION['accountID'] ?? '';
+$roleId = $_SESSION['roleID'] ?? null;
+$adminLoggedInId = is_scalar($roleId) ? (string)$roleId : ''; 
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
 $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
@@ -94,7 +96,7 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                 <div class="position-sticky pb-5">
                     <div class="list-group list-group-flush">
                         <a href="/admin/election-event" class="list-group-item list-group-item-action">Election Event</a>
-                        <a href="/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
+                        <a href="/admin/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
                         <a href="/admin/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
                         <a href="/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
                         <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
@@ -113,8 +115,6 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                         <img src="https://via.placeholder.com/40" alt="avatar"
                             style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
-                            <!-- <div style="font-weight:600;">Simon</div>
-                            <div style="font-size:12px;color:#6c757d;">Administrator</div> -->
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
 

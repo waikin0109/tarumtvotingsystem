@@ -3,17 +3,28 @@
 namespace Controller\AdminController;
 
 use Model\AdminModel\LoginModel;
+// Admin,  Student, Nominee
+use Model\AdminModel\AdminModel;
+use Model\NomineeModel\NomineeModel;
+use Model\StudentModel\StudentModel;
+
 use FileHelper;
 use SessionHelper;
 
 class LoginController
 {
     private $loginModel;
+    private $adminModel;
+    private $nomineeModel;
+    private $studentModel;
     private $fileHelper;
 
     public function __construct()
     {
         $this->loginModel = new LoginModel();
+        $this->adminModel = new AdminModel();
+        $this->nomineeModel = new NomineeModel();
+        $this->studentModel = new StudentModel();
         $this->fileHelper = new FileHelper("login");
     }
 
@@ -114,6 +125,14 @@ class LoginController
         $_SESSION['loginID'] = (int) $user['loginID'];
         $_SESSION['role'] = (string) $user['role'];
         $_SESSION['fullName'] = (string) $user['fullName'];
+        // admin/student/nominee
+        if ($user['role'] === 'ADMIN') {
+            $_SESSION['roleID'] = $this->adminModel->getAdminIdByAccId($user['accountID']);
+        } elseif ($user['role'] === 'STUDENT') {
+            $_SESSION['roleID'] = $this->studentModel->getStudentIdByAccId($user['accountID']);
+        } elseif ($user['role'] === 'NOMINEE') {
+            $_SESSION['roleID'] = $this->nomineeModel->getNomineeIdByAccId($user['accountID']);
+        }
     }
 
     public function logout()

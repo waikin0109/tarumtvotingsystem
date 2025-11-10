@@ -2,6 +2,8 @@
 
 // Retrieve session data (set from LoginController)
 $accountLoggedInId = $_SESSION['accountID'] ?? '';
+$roleId = $_SESSION['roleID'] ?? null;
+$nommineeLoggedInId = is_scalar($roleId) ? (string)$roleId : ''; 
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
 $annLink = ($role === 'NOMINEE') ? '/announcements' : '/announcements/public';

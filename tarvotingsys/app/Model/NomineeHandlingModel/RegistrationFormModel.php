@@ -2,6 +2,7 @@
 
 namespace Model\NomineeHandlingModel;
 
+use Model\VotingModel\ElectionEventModel;
 use PDO;
 use PDOException;
 use Database;
@@ -9,33 +10,98 @@ use Database;
 class RegistrationFormModel
 {
     private $db;
+    private ElectionEventModel $electionEventModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->electionEventModel = new ElectionEventModel();
+
     }
 
     public function getAllRegistrationForms()
     {
         try {
             $stmt = $this->db->prepare("
-                SELECT rf.*, e.title AS event_name
+                SELECT 
+                    rf.registrationFormID,
+                    rf.registrationFormTitle,
+                    rf.registerStartDate,
+                    rf.registerEndDate,
+                    rf.electionID,
+                    e.title AS event_name,
+                    e.status,
+                    e.electionStartDate, 
+                    e.electionEndDate,
+                    acc.fullName AS admin_name,
+                    rf.adminID
                 FROM registrationform rf
-                LEFT JOIN electionevent e ON rf.electionID = e.electionID
+                LEFT JOIN electionevent  e   ON rf.electionID = e.electionID
+                LEFT JOIN administrator  a   ON a.adminID     = rf.adminID
+                LEFT JOIN account        acc ON acc.accountID = a.accountID
                 ORDER BY rf.registrationFormID ASC
             ");
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $registrationForms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!$registrationForms) {
+                return false;
+            }
+            
+            // Check & Update Election Events Status
+            foreach ($registrationForms as &$registrationForm) {
+                $currentStatus = $this->electionEventModel->determineStatus($registrationForm['electionStartDate'], $registrationForm['electionEndDate']);
+
+                if ($currentStatus !== $registrationForm['status']) {
+                    $this->electionEventModel->updateElectionStatus($currentStatus, $registrationForm['electionID']);
+                    $registrationForm['status'] = $currentStatus;
+                }
+            }
+            
+            return $registrationForms;
+
         } catch (PDOException $e) {
             error_log("Error in getAllRegistrationForms: " . $e->getMessage());
             return false;
         }
     }
 
-    /**
-     * Insert form + attributes as one transaction.
-     * @return int|false The new registrationFormID on success, false on failure.
-     */
+
+/** True if the form has started (start <= NOW()). Once started it is "locked". */
+public function hasStarted(int $formId): bool {
+    $st = $this->db->prepare("
+        SELECT 1
+        FROM registrationform
+        WHERE registrationFormID = ?
+          AND registerStartDate IS NOT NULL
+          AND registerStartDate <= NOW()
+        LIMIT 1
+    ");
+    $st->execute([$formId]);
+    return (bool)$st->fetchColumn();
+}
+
+/** True if the form has ended (end < NOW()) — not strictly needed but handy. */
+public function hasEnded(int $formId): bool {
+    $st = $this->db->prepare("
+        SELECT 1
+        FROM registrationform
+        WHERE registrationFormID = ?
+          AND registerEndDate IS NOT NULL
+          AND registerEndDate < NOW()
+        LIMIT 1
+    ");
+    $st->execute([$formId]);
+    return (bool)$st->fetchColumn();
+}
+
+/** Convenience: locked once started (includes 'open' and 'ended'). */
+public function isLocked(int $formId): bool {
+    return $this->hasStarted($formId);
+}
+
+
+   
     public function createRegistrationFormWithAttributes($data, $attributes)
     {
         // allow only known attribute keys
@@ -50,13 +116,14 @@ class RegistrationFormModel
                 INSERT INTO registrationform
                 (registrationFormTitle, registerStartDate, registerEndDate, dateCreated, electionID, adminID)
                 VALUES
-                (?, ?, ?, NOW(), ?, 1)
+                (?, ?, ?, NOW(), ?, ?)
             ");
             $stmt->execute([
                 $data['registrationFormTitle'],
                 $data['registerStartDateTime'], // Y-m-d H:i:s
                 $data['registerEndDateTime'],   // Y-m-d H:i:s
-                $data['electionID']
+                $data['electionID'],
+                $data['adminID']
             ]);
 
             $formId = (int)$this->db->lastInsertId();
@@ -113,16 +180,45 @@ class RegistrationFormModel
     // Fetch a registration form by ID
     public function getRegistrationFormById($formId)
     {
-        $stmt = $this->db->prepare("
-            SELECT rf.*, e.title AS event_name
-            FROM registrationform rf
-            LEFT JOIN electionevent e ON rf.electionID = e.electionID
-            WHERE rf.registrationFormID = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$formId]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    rf.*,
+                    e.title AS event_name,
+                    e.status,
+                    e.electionStartDate, 
+                    e.electionEndDate,
+                    acc.fullName AS admin_name
+                FROM registrationform rf
+                LEFT JOIN electionevent e   ON rf.electionID = e.electionID
+                LEFT JOIN administrator a   ON a.adminID     = rf.adminID
+                LEFT JOIN account acc       ON acc.accountID = a.accountID
+                WHERE rf.registrationFormID = ?
+                LIMIT 1
+            ");
+            $stmt->execute([$formId]);
+            $registrationForm = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$registrationForm) {
+                return false;
+            }
+
+            // Check & Update Election Events Status
+            $currentStatus = $this->electionEventModel->determineStatus($registrationForm['electionStartDate'], $registrationForm['electionEndDate']);
+
+            if ($currentStatus !== $registrationForm['status']) {
+                $this->electionEventModel->updateElectionStatus($currentStatus, $registrationForm['electionID']);
+                $registrationForm['status'] = $currentStatus;
+            }
+            
+            return $registrationForm;
+        } catch (PDOException $e) {
+            error_log('Error in getRegistrationFormById: '.$e->getMessage());
+            return false;
+        }
+
     }
+
 
 
     // Update form + replace its attributes

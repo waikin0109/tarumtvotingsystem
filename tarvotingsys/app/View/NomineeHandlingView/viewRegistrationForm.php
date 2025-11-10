@@ -36,12 +36,21 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 
             <p class="card-text"><strong>Date Created:</strong> <?= htmlspecialchars($registrationFormData['dateCreated'] ?? '') ?></p>
 
-            <p class="card-text"><strong>Admin Handler Account ID:</strong> <?= htmlspecialchars($registrationFormData['adminID'] ?? '') ?></p>
+            <?php
+            $adminId   = $registrationFormData['adminID']   ?? '';
+            $adminName = $registrationFormData['admin_name'] ?? '';
+            $createdBy = trim($adminId) !== '' 
+                ? ($adminName !== '' ? "{$adminId} - {$adminName}" : (string)$adminId)
+                : ($adminName !== '' ? $adminName : 'Unknown');
+            ?>
+            <p class="card-text">
+            <strong>Created By: </strong> <?= htmlspecialchars($createdBy) ?>
+            </p>
         </div>
 
         <div class="card-footer">
-            <a href="/election-registration-form/edit/<?= urlencode($registrationFormData['registrationFormID'] ?? '') ?>" class="btn btn-primary">Edit Registration Form</a>
-            <a href="/election-registration-form" class="btn btn-secondary">Back to Registration Forms List</a>
+            <a href="/admin/election-registration-form/edit/<?= urlencode($registrationFormData['registrationFormID'] ?? '') ?>" class="btn btn-primary">Edit Registration Form</a>
+            <a href="/admin/election-registration-form" class="btn btn-secondary">Back to Registration Forms List</a>
         </div>
     </div>
 </div>

@@ -2,6 +2,8 @@
 
 // Retrieve session data (set from LoginController)
 $accountLoggedInId = $_SESSION['accountID'] ?? '';
+$roleId = $_SESSION['roleID'] ?? null;
+$studentLoggedInId = is_scalar($roleId) ? (string)$roleId : ''; 
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
 $annLink = ($role === 'STUDENT') ? '/announcements' : '/announcements/public';
@@ -110,8 +112,6 @@ $annLink = ($role === 'STUDENT') ? '/announcements' : '/announcements/public';
                         <img src="https://via.placeholder.com/40" alt="avatar"
                             style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
-                            <!-- <div style="font-weight:600;">Simon</div>
-                            <div style="font-size:12px;color:#6c757d;">Administrator</div> -->
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
 

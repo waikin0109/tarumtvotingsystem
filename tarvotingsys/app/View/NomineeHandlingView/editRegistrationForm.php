@@ -16,7 +16,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
         </div>
     <?php endif; ?>
 
-    <form action="/election-registration-form/edit/<?= htmlspecialchars($registrationFormEditionData['registrationFormID']) ?>" method="POST">
+    <form action="/admin/election-registration-form/edit/<?= htmlspecialchars($registrationFormEditionData['registrationFormID']) ?>" method="POST">
         <!-- Title -->
         <div class="mb-3">
             <label for="registrationFormTitle" class="form-label">Registration Form Title</label>

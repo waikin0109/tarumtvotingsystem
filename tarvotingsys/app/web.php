@@ -73,13 +73,13 @@ Route::get('/nominee/rule/view/{id}', [RuleController::class, 'viewRuleNominee']
 
 
 // Election Registration Form Routes
-Route::get('/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
-Route::get('/election-registration-form/create', [RegistrationFormController::class, 'createRegistrationForm']);
-Route::post('/election-registration-form/create', [RegistrationFormController::class, 'storeRegistrationForm']);
-Route::get('/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editRegistrationForm']);
-Route::post('/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editStoreRegistrationForm']);
-Route::get('/election-registration-form/view/{id}', [RegistrationFormController::class, 'viewRegistrationForm']);
-Route::post('/election-registration-form/delete/{id}', [RegistrationFormController::class, 'deleteRegistrationForm']);
+Route::get('/admin/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
+Route::get('/admin/election-registration-form/create', [RegistrationFormController::class, 'createRegistrationForm']);
+Route::post('/admin/election-registration-form/create', [RegistrationFormController::class, 'storeRegistrationForm']);
+Route::get('/admin/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editRegistrationForm']);
+Route::post('/admin/election-registration-form/edit/{id}', [RegistrationFormController::class, 'editStoreRegistrationForm']);
+Route::get('/admin/election-registration-form/view/{id}', [RegistrationFormController::class, 'viewRegistrationForm']);
+Route::post('/admin/election-registration-form/delete/{id}', [RegistrationFormController::class, 'deleteRegistrationForm']);
 
 // Nominee Application Routes
 Route::get('/nominee-application', [NomineeApplicationController::class, 'listNomineeApplications']);

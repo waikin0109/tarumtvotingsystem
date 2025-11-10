@@ -19,8 +19,25 @@ class RegistrationFormController
         $this->fileHelper = new FileHelper('election_registration_form');
     }
 
+    /** Abort if the form is locked (started already). */
+    private function abortIfLocked(int $registrationFormId): void
+    {
+        if ($this->registrationFormModel->isLocked($registrationFormId)) {
+            \set_flash('fail', 'This registration form has already started and can no longer be edited or deleted.');
+            header('Location: /admin/election-registration-form');
+            exit;
+        }
+    }
+
+
     public function listRegistrationForms()
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
         $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormList');
         
@@ -35,9 +52,15 @@ class RegistrationFormController
     // Display Create Registration Form
     public function createRegistrationForm()
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $registrationFormAttributes = $this->registrationFormModel->getAllRegistrationFormAttributes();
-        $electionEvents = $this->electionEventModel->getAllElectionEvents(); // <-- ADD
-        // Optional: initialize to avoid undefined notices in the view
+        $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['PENDING','ONGOING']);
+        
         $registrationFormData = $registrationFormData ?? [];
         $errors = $errors ?? [];
         $fieldErrors = $fieldErrors ?? [];
@@ -54,6 +77,12 @@ class RegistrationFormController
     // Store New Registration Form + Validation
     public function storeRegistrationForm()
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->createRegistrationForm();
             return;
@@ -68,6 +97,7 @@ class RegistrationFormController
             'registrationEndTime'   => $_POST['registrationEndTime'] ?? '',
             'electionID'            => $_POST['electionID'] ?? '',
             'attributes'            => $_POST['attributes'] ?? [],
+            'adminID'               => $_SESSION['roleID'] ?? ''
         ];
 
         $errors = [];
@@ -128,19 +158,23 @@ class RegistrationFormController
             $errors[] = "Associated Election Event is required.";
             $fieldErrors['electionID'][] = "Please select an Election Event.";
         } else {
-            $event = $this->electionEventModel->getElectionEventById($registrationFormData['electionID']);
+            // Use FULL getter (includes start/end) and then check status here
+            $event = $this->electionEventModel->getElectionEventById((int)$registrationFormData['electionID']);
             if (!$event) {
                 $errors[] = "Selected Election Event does not exist.";
                 $fieldErrors['electionID'][] = "Invalid Election Event.";
+            } else {
+                if (!in_array(($event['status'] ?? ''), ['PENDING','ONGOING'], true)) {
+                    $errors[] = "Only PENDING or ONGOING election events can be associated.";
+                    $fieldErrors['electionID'][] = "Select a PENDING or ONGOING event.";
+                }
+                if ($this->registrationFormModel->existsForElection((int)$registrationFormData['electionID'])) {
+                    $errors[] = "This election event already has a registration form.";
+                    $fieldErrors['electionID'][] = "Only one registration form is allowed per election event.";
+                }
             }
-
-            // Only one registration form per election event
-            if ($event && $this->registrationFormModel->existsForElection((int)$registrationFormData['electionID'])) {
-                $errors[] = "This election event already has a registration form.";
-                $fieldErrors['electionID'][] = "Only one registration form is allowed per election event.";
-            }
-
         }
+
 
         // ---- Compare start & end (only if both DateTimes exist and no earlier field errors on date/time)
         if ($startDt && $endDt
@@ -186,7 +220,7 @@ class RegistrationFormController
 
         // If invalid -> re-render with same data
         if (!empty($errors)) {
-            $electionEvents = $this->electionEventModel->getAllElectionEvents();
+            $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['PENDING','ONGOING']);
             $registrationFormAttributes = $this->registrationFormModel->getAllRegistrationFormAttributes();
             $filePath = $this->fileHelper->getFilePath('CreateElectionRegistrationForm');
             if ($filePath && file_exists($filePath)) { include $filePath; } else { echo "View file not found."; }
@@ -204,24 +238,33 @@ class RegistrationFormController
         );
 
         if ($formId === false) {
-            \set_flash('danger', 'Failed to create Registration Form. Please try again.');
+            \set_flash('fail', 'Failed to create Registration Form. Please try again.');
             $this->createRegistrationForm();
             return;
         }
 
         \set_flash('success', 'Registration Form created successfully.');
-        header('Location: /election-registration-form');
+        header('Location: /admin/election-registration-form');
+        exit;
     }
 
     // ----------------------------------------- Edit Registration Form ----------------------------------------- //
     // Display Edit Registration Form
     public function editRegistrationForm($registrationFormId)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+        // block editing once started
+        $this->abortIfLocked($registrationFormId);
         // Fetch existing form data
         $form = $this->registrationFormModel->getRegistrationFormById($registrationFormId);
         if (!$form) {
-            echo "<div class='alert alert-danger m-4'>Registration Form not found.</div>";
-            return;
+            \set_flash('fail', 'Registration Form was not found.');
+            header('Location: /admin/election-registration-form');
+            exit;
         }
 
         // Split datetime into date/time
@@ -237,7 +280,17 @@ class RegistrationFormController
 
         $registrationFormEditionAttributes = $this->registrationFormModel->getAllRegistrationFormAttributes();
         $selectedEditionAttributes = $this->registrationFormModel->getAttributesByFormId($registrationFormId);
-        $electionEvents = $this->electionEventModel->getAllElectionEvents();
+        $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['PENDING','ONGOING']);
+
+        $currentEvent = $this->electionEventModel->getElectionEventById((int)$form['electionID']);
+        if ($currentEvent && !in_array($currentEvent['status'], ['PENDING','ONGOING'], true)) {
+            $alreadyIn = false;
+            foreach ($electionEvents as $ev) {
+                if ((int)$ev['electionID'] === (int)$currentEvent['electionID']) { $alreadyIn = true; break; }
+            }
+            if (!$alreadyIn) { $electionEvents[] = $currentEvent; }
+        }
+
         $errors = [];
         $fieldErrors = [];
 
@@ -253,9 +306,25 @@ class RegistrationFormController
     // Store Edited Registration Form + Validation
     public function editStoreRegistrationForm($registrationFormId)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->editRegistrationForm($registrationFormId);
             return;
+        }
+
+        // block update once started
+        $this->abortIfLocked($registrationFormId);
+
+        $original = $this->registrationFormModel->getRegistrationFormById($registrationFormId);;
+        if (!$original) {
+            \set_flash('fail', 'Registration Form was not found.');
+            header('Location: /admin/election-registration-form');
+            exit;
         }
 
         // Collect Registration Form Input
@@ -318,7 +387,6 @@ class RegistrationFormController
         }
 
         // ---- Election event exists?
-        $event = null;
         if (empty($registrationFormEditionData['electionID'])) {
             $errors[] = "Associated Election Event is required.";
             $fieldErrors['electionID'][] = "Please select an Election Event.";
@@ -327,18 +395,13 @@ class RegistrationFormController
             if (!$event) {
                 $errors[] = "Selected Election Event does not exist.";
                 $fieldErrors['electionID'][] = "Invalid Election Event.";
+            } else {
+                $changingEvent = ((int)$registrationFormEditionData['electionID'] !== (int)$original['electionID']);
+                if ($changingEvent && !in_array(($event['status'] ?? ''), ['PENDING','ONGOING'], true)) {
+                    $errors[] = "You may only switch to an election event with status PENDING or ONGOING.";
+                    $fieldErrors['electionID'][] = "Select a PENDING or ONGOING event.";
+                }
             }
-
-            // Only one registration form per election event (ignores the current registration form)
-            if ($event && $this->registrationFormModel->existsForOtherElection(
-                (int)$registrationFormEditionData['electionID'],
-                (int)$registrationFormId
-            )) {
-                $errors[] = "This election event already has another registration form.";
-                $fieldErrors['electionID'][] = "Only one registration form is allowed per election event.";
-            }
-
-
         }
 
         // ---- Compare start & end (only if both DateTimes exist and no earlier field errors on date/time)
@@ -385,7 +448,17 @@ class RegistrationFormController
 
         // If invalid -> re-render with same data
         if (!empty($errors)) {
-            $electionEvents = $this->electionEventModel->getAllElectionEvents();
+            $electionEvents = $this->electionEventModel->getEligibleElectionEvents(['PENDING','ONGOING']);
+            // ensure current (possibly COMPLETED) still appears
+            $currentEvent = $this->electionEventModel->getElectionEventById((int)$original['electionID']);
+            if ($currentEvent && !in_array(($currentEvent['status'] ?? ''), ['PENDING','ONGOING'], true)) {
+                $alreadyIn = false;
+                foreach ($electionEvents as $ev) {
+                    if ((int)$ev['electionID'] === (int)$currentEvent['electionID']) { $alreadyIn = true; break; }
+                }
+                if (!$alreadyIn) { $electionEvents[] = $currentEvent; }
+            }
+
             $registrationFormEditionAttributes = $this->registrationFormModel->getAllRegistrationFormAttributes();
             $selectedEditionAttributes = $attrs;
 
@@ -408,24 +481,31 @@ class RegistrationFormController
         );
 
         if ($formId === false) {
-            \set_flash('danger', 'Failed to update Registration Form. Please try again.');
+            \set_flash('fail', 'Failed to update Registration Form. Please try again.');
             $this->createRegistrationForm();
             return;
         }
 
         \set_flash('success', 'Registration Form updated successfully.');
-        header('Location: /election-registration-form');
-
+        header('Location: /admin/election-registration-form');
+        exit;
     }
 
 
     // ----------------------------------------- View Registration Form Details ----------------------------------------- //
     public function viewRegistrationForm($registrationFormId)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         $registrationFormData = $this->registrationFormModel->getRegistrationFormById($registrationFormId);
         if (!$registrationFormData) {
-            echo "<div class='alert alert-danger m-4'>Registration Form not found.</div>";
-            return;
+            \set_flash('fail', 'Registration Form was not found.');
+            header('Location: /admin/election-registration-form');
+            exit;
         }
 
         $registrationFormAttributes = $this->registrationFormModel->getAttributesByFormId($registrationFormId);
@@ -441,14 +521,24 @@ class RegistrationFormController
     // ----------------------------------------- Delete Registration Form ----------------------------------------- //
     public function deleteRegistrationForm($registrationFormId)
     {
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            \set_flash('fail', 'You do not have permission to access!');
+            header('Location: /login');
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: /election-registration-form');
+            header('Location: /admin/election-registration-form');
             return;
         }
 
+        // block delete once started
+        $this->abortIfLocked($registrationFormId);
+
         $this->registrationFormModel->deleteRegistrationForm($registrationFormId);
         \set_flash('success', 'Registration Form deleted successfully.');
-        header('Location: /election-registration-form');
+        header('Location: /admin/election-registration-form');
+        exit;
     }
 
 }
