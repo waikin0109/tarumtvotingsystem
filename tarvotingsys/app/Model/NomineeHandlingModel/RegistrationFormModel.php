@@ -48,13 +48,18 @@ class RegistrationFormModel
                 return false;
             }
             
-            // Check & Update Election Events Status
+            // Check Election Event Status + Nominee Role (After Completed)
             foreach ($registrationForms as &$registrationForm) {
                 $currentStatus = $this->electionEventModel->determineStatus($registrationForm['electionStartDate'], $registrationForm['electionEndDate']);
 
                 if ($currentStatus !== $registrationForm['status']) {
                     $this->electionEventModel->updateElectionStatus($currentStatus, $registrationForm['electionID']);
                     $registrationForm['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($registrationForm['electionID']);
+                    }
                 }
             }
             
@@ -203,12 +208,17 @@ public function isLocked(int $formId): bool {
                 return false;
             }
 
-            // Check & Update Election Events Status
+            // Check Election Event Status + Nominee Role (After Completed)
             $currentStatus = $this->electionEventModel->determineStatus($registrationForm['electionStartDate'], $registrationForm['electionEndDate']);
 
             if ($currentStatus !== $registrationForm['status']) {
                 $this->electionEventModel->updateElectionStatus($currentStatus, $registrationForm['electionID']);
                 $registrationForm['status'] = $currentStatus;
+
+                // Update Nominee Role (when event just became COMPLETED) 
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($registrationForm['electionID']);
+                }
             }
             
             return $registrationForm;

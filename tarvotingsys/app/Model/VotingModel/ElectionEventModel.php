@@ -2,6 +2,7 @@
 
 namespace Model\VotingModel;
 
+use Model\NomineeModel\NomineeModel; 
 use PDO;
 use PDOException;
 use Database;
@@ -9,10 +10,12 @@ use Database;
 class ElectionEventModel
 {
     private $db;
+    private NomineeModel $nomineeModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->nomineeModel = new NomineeModel();
     }
 
     public function determineStatus($start, $end)
@@ -53,16 +56,23 @@ class ElectionEventModel
                 return false;
             }
 
-            // Update Election Event Status
+            // Check Election Event Status + Nominee Role (After Completed)
             foreach ($events as &$event) {
                 $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
 
                 if ($currentStatus !== $event['status']) {
-                    $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
-                    $update->execute([$currentStatus, $event['electionID']]);
+                    // You can wrap these two lines in a transaction if you want atomicity
+                    $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                    $upd->execute([$currentStatus, $event['electionID']]);
                     $event['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($event['electionID']);
+                    }
                 }
             }
+
             return $events;
         } catch (PDOException $e) {
             error_log("Error in getAllElectionEvents: " . $e->getMessage());
@@ -119,16 +129,21 @@ class ElectionEventModel
             if (!$event) {
                 return false;
             }
-            
-            // Check Election Event Status
+
+            // Check Election Event Status + Nominee Role (After Completed)
             $currentStatus = $this->determineStatus($event['electionStartDate'], $event['electionEndDate']);
 
             if ($currentStatus !== $event['status']) {
-                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
-                $update->execute([$currentStatus, $event['electionID']]);
+                $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $upd->execute([$currentStatus, $event['electionID']]);
                 $event['status'] = $currentStatus;
+
+                // Update Nominee Role on completion
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($event['electionID']);
+                }
             }
-            
+
             return $event;
         } catch (PDOException $e) {
             error_log("Error in getElectionEventById: " . $e->getMessage());

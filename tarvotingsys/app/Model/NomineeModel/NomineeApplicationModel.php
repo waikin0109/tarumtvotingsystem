@@ -351,19 +351,23 @@ class NomineeApplicationModel
 
             // 4) Insert nominee rows (avoid duplicates)
             $sqlNominee = "
-                INSERT INTO nominee (accountID)
-                SELECT DISTINCT a.accountID
+                INSERT INTO nominee (accountID, electionID)
+                SELECT DISTINCT a.accountID, na.electionID
                 FROM account a
                 JOIN student s ON s.accountID = a.accountID
                 JOIN nomineeapplication na ON na.studentID = s.studentID
                 WHERE na.electionID = ?
                 AND na.applicationStatus = 'PUBLISHED'
                 AND NOT EXISTS (
-                    SELECT 1 FROM nominee n WHERE n.accountID = a.accountID
+                    SELECT 1
+                    FROM nominee n
+                    WHERE n.accountID = a.accountID
+                        AND n.electionID = na.electionID
                 )
             ";
             $stNominee = $this->db->prepare($sqlNominee);
             $stNominee->execute([$electionID]);
+
 
             $this->db->commit();
             return true;

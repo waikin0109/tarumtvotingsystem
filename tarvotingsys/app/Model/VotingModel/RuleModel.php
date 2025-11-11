@@ -3,6 +3,7 @@
 namespace Model\VotingModel;
 
 use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeModel; 
 use PDO;
 use PDOException;
 use Database;
@@ -11,11 +12,13 @@ class RuleModel
 {
     private $db;
     private ElectionEventModel $electionEventModel;
+    private NomineeModel $nomineeModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
         $this->electionEventModel = new ElectionEventModel();
+        $this->nomineeModel = new NomineeModel();
     }
 
     public function getAllRules()
@@ -34,7 +37,7 @@ class RuleModel
                 return false;
             }
 
-            // Check & Update Election Events Status
+            // Check Election Event Status + Nominee Role (After Completed)
             foreach ($rules as &$rule) {
                 $currentStatus = $this->electionEventModel->determineStatus($rule['electionStartDate'], $rule['electionEndDate']);
 
@@ -42,6 +45,11 @@ class RuleModel
                     $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
                     $update->execute([$currentStatus, $rule['electionID']]);
                     $rule['event_status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($rule['electionID']);
+                    }
                 }
             }
             return $rules;
@@ -82,14 +90,20 @@ class RuleModel
                 return false;
             }
 
-            // Check & Update Election Events Status
+            // Check Election Event Status + Nominee Role (After Completed)
             $currentStatus = $this->electionEventModel->determineStatus($rule['electionStartDate'], $rule['electionEndDate']);
 
             if ($currentStatus !== $rule['event_status']) {
                 $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
                 $update->execute([$currentStatus, $rule['electionID']]);
                 $rule['event_status'] = $currentStatus;
+
+                // Update Nominee Role (when event just became COMPLETED) 
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($rule['electionID']);
+                }
             }
+
             return $rule;
         } catch (PDOException $e) {
             error_log('Error in getRuleById: '.$e->getMessage());
