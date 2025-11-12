@@ -24,15 +24,7 @@ function cat_from_filename(string $fname): string {
 <div class="container mt-4">
   <h2>Edit Nominee Application</h2>
 
-  <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
-      </ul>
-    </div>
-  <?php endif; ?>
-
-  <form action="/nominee-application/edit/<?= (int)$na['nomineeApplicationID'] ?>" method="POST" id="appForm" novalidate enctype="multipart/form-data">
+  <form action="/admin/nominee-application/edit/<?= (int)$na['nomineeApplicationID'] ?>" method="POST" id="appForm" novalidate enctype="multipart/form-data">
 
     <!-- Registration Form (read-only) -->
     <div class="mb-3">
@@ -153,7 +145,7 @@ function cat_from_filename(string $fname): string {
     </div>
 
     <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a class="btn btn-outline-secondary" href="/nominee-application">Cancel</a>
+    <a class="btn btn-outline-secondary" href="/admin/nominee-application">Cancel</a>
   </form>
 </div>
 

@@ -33,22 +33,55 @@ class StudentModel
     }
 
     public function getStudentIdByAccId(int $accountID): ?int {
-    try {
-        $stmt = $this->db->prepare("
-            SELECT s.studentID
-            FROM student s
-            INNER JOIN account acc ON acc.accountID = s.accountID
-            WHERE s.accountID = ?
-              AND acc.role = 'STUDENT'
-            LIMIT 1
-        ");
-        $stmt->execute([$accountID]);
-        $id = $stmt->fetchColumn();
-        return $id !== false ? (int)$id : null;
-    } catch (PDOException $e) {
-        error_log('getStudentIdByAccId error: '.$e->getMessage());
-        return null;
+        try {
+            $stmt = $this->db->prepare("
+                SELECT s.studentID
+                FROM student s
+                INNER JOIN account acc ON acc.accountID = s.accountID
+                WHERE s.accountID = ?
+                AND acc.role = 'STUDENT'
+                LIMIT 1
+            ");
+            $stmt->execute([$accountID]);
+            $id = $stmt->fetchColumn();
+            return $id !== false ? (int)$id : null;
+        } catch (PDOException $e) {
+            error_log('getStudentIdByAccId error: '.$e->getMessage());
+            return null;
+        }
     }
-}
+
+    public function getStudentById(int $studentID): ?array {
+        $st = $this->db->prepare("SELECT s.studentID, ac.fullName
+                                FROM student s
+                                JOIN account ac ON ac.accountID = s.accountID
+                                WHERE s.studentID = ?
+                                LIMIT 1");
+        $st->execute([$studentID]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function getStudentIdByNomineeId(int $nomineeID): ?int
+    {
+        try {
+            $st = $this->db->prepare("
+                SELECT s.studentID
+                FROM nominee n
+                JOIN account a ON a.accountID = n.accountID
+                JOIN student s ON s.accountID = a.accountID
+                WHERE n.nomineeID = ?
+                LIMIT 1
+            ");
+            $st->execute([$nomineeID]);
+            $id = $st->fetchColumn();
+            return $id !== false ? (int)$id : null;
+        } catch (PDOException $e) {
+            error_log('getStudentIdByNomineeId error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+
 
 }

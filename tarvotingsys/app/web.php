@@ -73,6 +73,7 @@ Route::get('/nominee/rule/view/{id}', [RuleController::class, 'viewRuleNominee']
 
 
 // Election Registration Form Routes
+// Admin Sided
 Route::get('/admin/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
 Route::get('/admin/election-registration-form/create', [RegistrationFormController::class, 'createRegistrationForm']);
 Route::post('/admin/election-registration-form/create', [RegistrationFormController::class, 'storeRegistrationForm']);
@@ -81,18 +82,40 @@ Route::post('/admin/election-registration-form/edit/{id}', [RegistrationFormCont
 Route::get('/admin/election-registration-form/view/{id}', [RegistrationFormController::class, 'viewRegistrationForm']);
 Route::post('/admin/election-registration-form/delete/{id}', [RegistrationFormController::class, 'deleteRegistrationForm']);
 
+// Student Sided
+Route::get('/student/election-registration-form', [RegistrationFormController::class, 'listRegistrationFormsStudent']);
+Route::get('/student/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyFormStudent']);
+Route::post('/student/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyStoreStudent']);
+
+Route::get('/student/election-registration-form/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplicationStudent']);
+
+// Nominee Sided
+Route::get('/nominee/election-registration-form', [RegistrationFormController::class, 'listRegistrationFormsNominee']);
+Route::get('/nominee/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyFormNominee']);
+Route::post('/nominee/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyStoreNominee']);
+Route::get('/nominee/election-registration-form/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplicationNominee']);
+
 // Nominee Application Routes
-Route::get('/nominee-application', [NomineeApplicationController::class, 'listNomineeApplications']);
-Route::get('/nominee-application/create', [NomineeApplicationController::class, 'createNomineeApplication']);
-Route::post('/nominee-application/create', [NomineeApplicationController::class, 'storeNomineeApplication']);
-Route::get('/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editNomineeApplication']);
-Route::post('/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editStoreNomineeApplication']);
-Route::get('/nominee-application/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplication']);
-Route::post('/nominee-application/accept/{id}', [NomineeApplicationController::class, 'acceptNomineeApplication']);
-Route::post('/nominee-application/reject/{id}', [NomineeApplicationController::class, 'rejectNomineeApplication']);
-Route::get('/nominee-application/publish', [NomineeApplicationController::class, 'publishNomineeApplications']);
-Route::post('/nominee-application/publish', [NomineeApplicationController::class, 'publishStoreNomineeApplications']);
-Route::get('/nominee-application/publish/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplications']);
+// Admin Sided
+Route::get('/admin/nominee-application', [NomineeApplicationController::class, 'listNomineeApplications']);
+Route::get('/admin/nominee-application/create', [NomineeApplicationController::class, 'createNomineeApplication']);
+Route::post('/admin/nominee-application/create', [NomineeApplicationController::class, 'storeNomineeApplication']);
+Route::get('/admin/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editNomineeApplication']);
+Route::post('/admin/nominee-application/edit/{id}', [NomineeApplicationController::class, 'editStoreNomineeApplication']);
+Route::get('/admin/nominee-application/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplication']);
+Route::post('/admin/nominee-application/accept/{id}', [NomineeApplicationController::class, 'acceptNomineeApplication']);
+Route::post('/admin/nominee-application/reject/{id}', [NomineeApplicationController::class, 'rejectNomineeApplication']);
+Route::get('/admin/nominee-application/publish', [NomineeApplicationController::class, 'publishNomineeApplications']);
+Route::post('/admin/nominee-application/publish', [NomineeApplicationController::class, 'publishStoreNomineeApplications']);
+Route::get('/admin/nominee-application/publish/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplications']);
+
+// Student Sided
+
+
+// Nominee Sided
+
+
+
 
 // Campaign Material Routes
 Route::get('/campaign-material', [CampaignMaterialController::class, 'listCampaignMaterials']);

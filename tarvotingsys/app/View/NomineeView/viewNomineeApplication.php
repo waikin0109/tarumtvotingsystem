@@ -1,11 +1,23 @@
 <?php
 $_title = "Student's Nominee Application";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
 
-/** @var array $na         // header & fixed fields
- *  @var array $showAttrs  // [ ['code','label','value'], ... ]
- *  @var array $documents  // rows from academicdocument
- */
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+    require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
+
+$backLink = match ($roleUpper) {
+    'ADMIN'   => '/admin/nominee-application',
+    'STUDENT' => '/student/election-registration-form',
+    'NOMINEE' => '/nominee/election-registration-form',
+    default   => '/login'
+};
+
+
 $subId = (int)($na['applicationSubmissionID'] ?? 0);
 $docBaseUrl = "/uploads/academic_document/" . $subId . "/";
 ?>
@@ -13,7 +25,7 @@ $docBaseUrl = "/uploads/academic_document/" . $subId . "/";
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Nominee Application Details</h2>
-    <a href="/nominee-application" class="btn btn-outline-secondary">Back to List</a>
+    <a href="<?= $backLink ?>" class="btn btn-outline-secondary">Back to List</a>
   </div>
 
   <div class="card mb-4">
@@ -128,4 +140,12 @@ $docBaseUrl = "/uploads/academic_document/" . $subId . "/";
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+    require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
+?>

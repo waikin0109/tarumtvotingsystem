@@ -11,10 +11,10 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
             </div>
         </div>
         <div class="col-sm-5 d-flex justify-content-end">
-            <a href="/nominee-application/publish">
+            <a href="/admin/nominee-application/publish">
                 <button class="btn btn-primary mx-2">Publish</button>
             </a>
-            <a href="/nominee-application/create">
+            <a href="/admin/nominee-application/create">
                 <button class="btn btn-primary mx-2">Create (+)</button>
             </a>
         </div>
@@ -40,7 +40,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                             </tr>
                         <?php else: ?>
                             <?php foreach ($nomineeApplications as $index => $application): ?>
-                                <tr class="clickable-row" data-href="/nominee-application/view/<?= urlencode($application['nomineeApplicationID'] ?? '') ?>">
+                                <tr class="clickable-row" data-href="/admin/nominee-application/view/<?= urlencode($application['nomineeApplicationID'] ?? '') ?>">
                                     <td><?= $index + 1 ?></td>
                                     <td><?= htmlspecialchars($application['fullName'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($application['applicationStatus'] ?? '') ?></td>
@@ -56,21 +56,21 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 
                                         <!-- Edit (optional: disable when event already published) -->
                                         <?php if (!$eventPublished): ?>
-                                            <a href="/nominee-application/edit/<?= $naId ?>" class="btn btn-sm btn-warning">Edit</a>
+                                            <a href="/admin/nominee-application/edit/<?= $naId ?>" class="btn btn-sm btn-warning">Edit</a>
                                         <?php else: ?>
                                             <button type="button" class="btn btn-sm btn-warning" disabled title="Event published—editing disabled">Edit</button>
                                         <?php endif; ?>
 
                                         <?php if ($isPubApp || $eventPublished): ?>
                                             <!-- After election is published (regardless of this row's status), only show View -->
-                                            <a href="/nominee-application/publish/<?= $eventId ?>" class="btn btn-sm btn-info">View</a>
+                                            <a href="/admin/nominee-application/publish/<?= $eventId ?>" class="btn btn-sm btn-info">View</a>
                                         <?php else: ?>
                                             <!-- Before publish: Accept / Reject available -->
-                                            <form method="POST" action="/nominee-application/accept/<?= $naId ?>" class="d-inline"
+                                            <form method="POST" action="/admin/nominee-application/accept/<?= $naId ?>" class="d-inline"
                                                 onsubmit="return confirm('Accept this nominee application?');">
                                             <button type="submit" class="btn btn-sm btn-success">Accept</button>
                                             </form>
-                                            <form method="POST" action="/nominee-application/reject/<?= $naId ?>" class="d-inline"
+                                            <form method="POST" action="/admin/nominee-application/reject/<?= $naId ?>" class="d-inline"
                                                 onsubmit="return confirm('Reject this nominee application?');">
                                             <button type="submit" class="btn btn-sm btn-danger">Reject</button>
                                             </form>

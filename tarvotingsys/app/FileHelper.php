@@ -57,7 +57,9 @@ class FileHelper
             'CreateElectionRegistrationForm' => 'View/NomineeHandlingView/createRegistrationForm.php',
             'EditElectionRegistrationForm' => 'View/NomineeHandlingView/editRegistrationForm.php',
             'ViewElectionRegistrationForm' => 'View/NomineeHandlingView/viewRegistrationForm.php',
-            'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php'
+            'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php',
+            'ElectionRegistrationFormListStudent' => 'View/NomineeHandlingView/registrationFormListStudent.php',
+            
         ]);
 
         $nomineeApplicationPaths = $this->prefixWithBase([
@@ -68,7 +70,8 @@ class FileHelper
             'AcceptNomineeApplication' => 'View/NomineeView/acceptNomineeApplication.php',
             'RejectNomineeApplication' => 'View/NomineeView/rejectNomineeApplication.php',
             'PublishNomineeApplications' => 'View/NomineeView/publishNomineeApplication.php',
-            'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php'
+            'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php',
+            'ApplyNomineeApplicationStudent' => 'View/NomineeHandlingView/applyRegistrationForm.php',
         ]);
 
         $campaignMaterialPaths = $this->prefixWithBase([

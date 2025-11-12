@@ -6,16 +6,8 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 <div class="container mt-4">
     <h2>Publish Final Nominee Applications</h2>
 
-    <?php if (!empty($errors)): ?>
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
-            </ul>
-        </div>
-    <?php endif; ?>
-
     <!-- POST form (keeps your publish action) -->
-    <form action="/nominee-application/publish" method="POST" id="publishForm"
+    <form action="/admin/nominee-application/publish" method="POST" id="publishForm"
           onsubmit="return confirm('Are you sure you want to publish the nominee applications for the selected election event?');"
           novalidate>
         <div class="mb-3">
@@ -37,6 +29,11 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
             <?php if (!empty($fieldErrors['electionEventID'])): ?>
                 <div class="invalid-feedback">
                     <?= htmlspecialchars($fieldErrors['electionEventID']) ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($errors)): ?>
+                <div class="text-danger">
+                  <?php foreach ($errors as $e): ?><?= htmlspecialchars($e) ?><br/><?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </div>

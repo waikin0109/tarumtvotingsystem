@@ -95,7 +95,7 @@ $annLink = ($role === 'NOMINEE') ? '/announcements' : '/announcements/public';
                 style="height:calc(100vh - 56px); z-index:1020;">
                 <div class="position-sticky pb-5">
                     <div class="list-group list-group-flush">
-                        <a href="/election-event" class="list-group-item list-group-item-action">Election Registration</a>
+                        <a href="/nominee/election-registration-form" class="list-group-item list-group-item-action">Election Registration</a>
                         <a href="/nominee/rule" class="list-group-item list-group-item-action">Rules and Regulations</a>
                         <a href="#" class="list-group-item list-group-item-action">Nominees' Registration History</a>
                         <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>

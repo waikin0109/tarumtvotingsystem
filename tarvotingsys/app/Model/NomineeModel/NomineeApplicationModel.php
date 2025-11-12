@@ -28,9 +28,7 @@ class NomineeApplicationModel
                     na.*,
                     ac.fullName,
                     e.title AS event_name,
-                    -- use for Edit Button 
                     (rf.registerEndDate IS NULL OR rf.registerEndDate > NOW()) AS reg_is_open,
-                    -- Check if event has any PUBLISHED applications
                     EXISTS (
                         SELECT 1 FROM nomineeapplication na2
                         WHERE na2.electionID = na.electionID
@@ -405,6 +403,84 @@ class NomineeApplicationModel
             return [];
         }
     }
+
+    // List Unpublished Registration Form Election Events
+    public function listUnpublishedElectionEvents()
+    {
+        try {
+            $sql = "
+                SELECT e.electionID, e.title
+                FROM electionevent e
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM nomineeapplication na
+                    WHERE na.electionID = e.electionID
+                    AND na.applicationStatus = 'PUBLISHED'
+                )
+                ORDER BY e.electionID DESC
+            ";
+            $st = $this->db->query($sql);
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('listUnpublishedElectionEvents error: '.$e->getMessage());
+            return [];
+        }
+    }
+
+    /** Return student's applications keyed by registrationFormID */
+    public function getApplicationsByStudentIndexed(int $studentID): array
+    {
+        $sql = "
+            SELECT nomineeApplicationID, registrationFormID, applicationStatus
+            FROM nomineeapplication
+            WHERE studentID = ?
+            ORDER BY nomineeApplicationID DESC
+        ";
+        $st = $this->db->prepare($sql);
+        $st->execute([$studentID]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(int)$r['registrationFormID']] = [
+                'nomineeApplicationID' => (int)$r['nomineeApplicationID'],
+                'applicationStatus'    => (string)$r['applicationStatus'],
+            ];
+        }
+        return $out;
+    }
+
+    /** Return a nominee's applications (keyed by registrationFormID) using nomineeID */
+    public function getApplicationsByAccountIndexed(int $accountID): array
+    {
+        $sql = "
+            SELECT na.nomineeApplicationID, na.registrationFormID, na.applicationStatus
+            FROM nomineeapplication na
+            JOIN student s
+            ON s.studentID = na.studentID
+            WHERE s.accountID = ?
+            ORDER BY na.nomineeApplicationID DESC
+        ";
+
+        $st = $this->db->prepare($sql);
+        $st->execute([$accountID]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $out = [];
+        foreach ($rows as $r) {
+            $formId = (int)$r['registrationFormID'];
+            // first row is the latest (because of DESC), so only set if not already set
+            if (!isset($out[$formId])) {
+                $out[$formId] = [
+                    'nomineeApplicationID' => (int)$r['nomineeApplicationID'],
+                    'applicationStatus'    => (string)$r['applicationStatus'],
+                ];
+            }
+        }
+        return $out;
+    }
+
+
 
 
 

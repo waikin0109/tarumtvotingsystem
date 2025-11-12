@@ -4,18 +4,25 @@ namespace Controller\NomineeHandlingController;
 
 use Model\NomineeHandlingModel\RegistrationFormModel;
 use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeApplicationModel;
+use Model\StudentModel\StudentModel;
+use Model\NomineeModel\NomineeModel;
 use FileHelper;
 
 class RegistrationFormController
 {
     private RegistrationFormModel $registrationFormModel;
     private ElectionEventModel $electionEventModel;
+    private NomineeApplicationModel $nomineeApplicationModel;
+    private StudentModel $studentModel;
+    private NomineeModel $nomineeModel;
     private FileHelper $fileHelper;
 
     public function __construct()
     {
         $this->registrationFormModel = new RegistrationFormModel();
         $this->electionEventModel = new ElectionEventModel();
+        $this->nomineeApplicationModel = new NomineeApplicationModel();
         $this->fileHelper = new FileHelper('election_registration_form');
     }
 
@@ -29,14 +36,39 @@ class RegistrationFormController
         }
     }
 
+    // Role Decision Area
+    private function requireRole(...$allowed)
+    {
+        $role = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($role, $allowed, true)) {
+            \set_flash('fail', 'You do not have permission to access this page.');
+            $this->redirectByRole($role);
+        }
+    }
+
+    private function redirectByRole($role)
+    {
+        switch ($role) {
+            case 'ADMIN':   
+                header('Location: /admin/election-registration-form'); 
+                break;
+            case 'STUDENT': 
+                header('Location: /student/election-registration-form'); 
+                break;
+            case 'NOMINEE': 
+                header('Location: /nominee/election-registration-form'); 
+                break;
+            default:        
+                header('Location: /login'); 
+                break;
+        }
+        exit;
+    }
+
 
     public function listRegistrationForms()
     {
-        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
-            \set_flash('fail', 'You do not have permission to access!');
-            header('Location: /login');
-            exit;
-        }
+        $this->requireRole('ADMIN');
 
         $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
         $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormList');
@@ -47,6 +79,72 @@ class RegistrationFormController
             echo "View file not found.";
         }
     }
+
+    public function listRegistrationFormsStudent()
+    {
+        $this->requireRole('STUDENT');
+
+        // 1) Get all forms (your existing line)
+        $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
+
+        // 2) Resolve current studentID
+        $studentID = (int)($_SESSION['roleID'] ?? 0);
+        if ($studentID <= 0 && !empty($_SESSION['accountID'])) {
+            // fallback if needed
+            if (method_exists($this->studentModel, 'getStudentIdByAccId')) {
+                $studentID = (int)$this->studentModel->getStudentIdByAccId((int)$_SESSION['accountID']);
+            }
+        }
+
+        // 3) Build an index of my apps by registrationFormID
+        $myAppsByForm = [];
+        if ($studentID > 0) {
+            $myAppsByForm = $this->nomineeApplicationModel->getApplicationsByStudentIndexed($studentID);
+        }
+
+        // 4) Render
+        $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormListStudent'); // whatever this file is
+        if ($filePath && file_exists($filePath)) {
+            // make $myAppsByForm available to the view
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+
+    public function listRegistrationFormsNominee()
+    {
+        $this->requireRole('NOMINEE');
+
+        // 1) Get all forms (your existing line)
+        $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
+
+        // 2) Resolve current studentID
+        $nomineeID = (int)($_SESSION['roleID'] ?? 0);
+        if ($nomineeID <= 0 && !empty($_SESSION['accountID'])) {
+            // fallback if needed
+            if (method_exists($this->nomineeModel, 'getNomineeIdByAccId')) {
+                $nomineeID = (int)$this->nomineeModel->getNomineeIdByAccId((int)$_SESSION['accountID']);
+            }
+        }
+
+        // 3) Build an index of my apps by registrationFormID
+        $myAppsByForm = [];
+        if ($nomineeID > 0) {
+            $myAppsByForm = $this->nomineeApplicationModel->getApplicationsByAccountIndexed($_SESSION['accountID']);
+        }
+
+        // 4) Render
+        $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormListStudent'); // whatever this file is
+        if ($filePath && file_exists($filePath)) {
+            // make $myAppsByForm available to the view
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
 
     // ----------------------------------------- Create Registration Form ----------------------------------------- //
     // Display Create Registration Form
@@ -541,4 +639,7 @@ class RegistrationFormController
         exit;
     }
 
+    // ----------------------------------------------------------------------------------------------------------------------//
+
+    
 }

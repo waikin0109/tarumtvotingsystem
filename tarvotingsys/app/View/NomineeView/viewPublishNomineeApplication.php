@@ -9,7 +9,7 @@ $acceptedCandidates = (isset($acceptedCandidates) && is_array($acceptedCandidate
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Final Nominee Application Lists</h2>
-    <a href="/nominee-application" class="btn btn-outline-secondary">Back to List</a>
+    <a href="/admin/nominee-application" class="btn btn-outline-secondary">Back to List</a>
   </div>
 
   <div class="container-fluid mb-5">
@@ -18,7 +18,7 @@ $acceptedCandidates = (isset($acceptedCandidates) && is_array($acceptedCandidate
         <table class="table table-bordered table-striped align-middle">
           <thead class="table-light">
             <tr>
-              <th>#</th>
+              <th>No.</th>
               <th>Student Name</th>
               <th>Student ID</th>
               <th>loginID</th>

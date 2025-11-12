@@ -7,22 +7,14 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
  */
 function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-invalid' : ''; }
 ?>
-<div class="container mt-4">
-  <h2>Create Nominee Application</h2>
+<div class="container mt-4"><h2>Create Nominee Application</h2>
 
-  <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
-      </ul></div>
-  <?php endif; ?>
-
-  <form action="/nominee-application/create" method="POST" id="appForm" novalidate enctype="multipart/form-data">
+  <form action="/admin/nominee-application/create" method="POST" id="appForm" novalidate enctype="multipart/form-data">
 
     <!-- Select Registration Form -->
     <div class="mb-3">
       <label for="registrationFormID" class="form-label">Registration Form</label>
-      <select class="form-select" id="registrationFormID" name="registrationFormID" required>
+      <select class="form-select <?= invalid($fieldErrors,'registrationFormID') ?>" id="registrationFormID" name="registrationFormID" required>
         <option value="">-- Select a Registration Form --</option>
         <?php foreach ($forms as $f): ?>
           <option value="<?= (int)$f['registrationFormID'] ?>"
@@ -31,6 +23,9 @@ function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-inva
           </option>
         <?php endforeach; ?>
       </select>
+      <?php if (!empty($fieldErrors['registrationFormID'])): ?>
+        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['registrationFormID'])) ?></div>
+      <?php endif; ?>
     </div>
 
     <!-- Student (searchable dropdown by name, scrollable, submits numeric studentID) -->
@@ -140,7 +135,7 @@ function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-inva
     </div>
 
     <button type="submit" class="btn btn-primary">Create Application</button>
-    <a class="btn btn-outline-secondary" href="/nominee-application/create">Reset</a>
+    <a class="btn btn-outline-secondary" href="/admin/nominee-application/create">Reset</a>
   </form>
 </div>
 
@@ -148,8 +143,8 @@ function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-inva
 <script>
 document.getElementById('registrationFormID')?.addEventListener('change', function(){
   const id = this.value;
-  if(!id){ window.location = '/nominee-application/create'; return; }
-  window.location = '/nominee-application/create?registrationFormID=' + encodeURIComponent(id);
+  if(!id){ window.location = '/admin/nominee-application/create'; return; }
+  window.location = '/admin/nominee-application/create?registrationFormID=' + encodeURIComponent(id);
 });
 
 /** Student dropdown logic (no library) */
