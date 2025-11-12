@@ -1,6 +1,21 @@
 <?php
 $_title = "Registration Applications Accepted List";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+    require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
+
+$backLink = match ($roleUpper) {
+    'ADMIN'   => '/admin/nominee-application',
+    'STUDENT' => '/student/nominee-final-list',
+    'NOMINEE' => '/nominee/nominee-final-list',
+    default   => '/login'
+};
 
 /** Ensure the variable is an array */
 $acceptedCandidates = (isset($acceptedCandidates) && is_array($acceptedCandidates)) ? $acceptedCandidates : [];
@@ -9,7 +24,7 @@ $acceptedCandidates = (isset($acceptedCandidates) && is_array($acceptedCandidate
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Final Nominee Application Lists</h2>
-    <a href="/admin/nominee-application" class="btn btn-outline-secondary">Back to List</a>
+    <a href="<?= $backLink ?>" class="btn btn-outline-secondary">Back to List</a>
   </div>
 
   <div class="container-fluid mb-5">
@@ -50,4 +65,12 @@ $acceptedCandidates = (isset($acceptedCandidates) && is_array($acceptedCandidate
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+    require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
+?>

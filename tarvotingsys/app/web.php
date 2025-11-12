@@ -110,10 +110,12 @@ Route::post('/admin/nominee-application/publish', [NomineeApplicationController:
 Route::get('/admin/nominee-application/publish/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplications']);
 
 // Student Sided
-
+Route::get('/student/nominee-final-list', [NomineeApplicationController::class, 'listNomineeApplicationsStudent']);
+Route::get('/student/nominee-final-list/view/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplicationsStudent']);
 
 // Nominee Sided
-
+Route::get('/nominee/nominee-final-list', [NomineeApplicationController::class, 'listNomineeApplicationsNominee']);
+Route::get('/nominee/nominee-final-list/view/{id}', [NomineeApplicationController::class, 'finalizePublishNomineeApplicationsNominee']);
 
 
 

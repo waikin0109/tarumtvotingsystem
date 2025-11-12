@@ -45,7 +45,7 @@ class NomineeApplicationController
     {
         switch ($role) {
             case 'ADMIN':   
-                header('Location: /admin/election-registration-form'); 
+                header('Location: /admin/nominee-application'); 
                 break;
             case 'STUDENT': 
                 header('Location: /student/election-registration-form'); 
@@ -1380,6 +1380,59 @@ class NomineeApplicationController
         }
     }
 
+    public function finalizePublishNomineeApplicationsStudent($id)
+    {
+        $this->requireRole('STUDENT');
+        
+        $electionEventID = (int)$id;
+
+        $header = $this->nomineeApplicationModel->getPublishedApplicationsByElection($electionEventID);
+        if (!$header) {
+            \set_flash('warning', 'Nominee Application not found.');
+            header("Location: /student/nominee-final-list");
+            exit;
+        }
+        
+
+        // If you want PUBLISHED (after publish), use this:
+        $acceptedCandidates = $electionEventID > 0
+            ? ($this->nomineeApplicationModel->getPublishedApplicationsByElection($electionEventID) ?: [])
+            : [];
+
+        $filePath = $this->fileHelper->getFilePath('ViewPublishNomineeApplications');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function finalizePublishNomineeApplicationsNominee($id)
+    {
+        $this->requireRole('NOMINEE');
+        
+        $electionEventID = (int)$id;
+
+        $header = $this->nomineeApplicationModel->getPublishedApplicationsByElection($electionEventID);
+        if (!$header) {
+            \set_flash('warning', 'Nominee Application not found.');
+            header("Location: /nominee/nominee-final-list");
+            exit;
+        }
+
+        // If you want PUBLISHED (after publish), use this:
+        $acceptedCandidates = $electionEventID > 0
+            ? ($this->nomineeApplicationModel->getPublishedApplicationsByElection($electionEventID) ?: [])
+            : [];
+
+        $filePath = $this->fileHelper->getFilePath('ViewPublishNomineeApplications');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
     // ------------------------------------------------------------------------------------------------------ //
     // -------------------- Student Apply (GET) --------------------
     public function applyFormStudent($registrationFormID)
@@ -2001,6 +2054,33 @@ class NomineeApplicationController
 
         \set_flash('success', 'Application submitted successfully.');
         header('Location: /nominee/election-registration-form');
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------- //
+    public function listNomineeApplicationsStudent()
+    {
+        $this->requireRole('STUDENT');
+        $nomineeApplications = $this->nomineeApplicationModel->getAllNomineeApplications();
+        $filePath = $this->fileHelper->getFilePath('NomineeApplicationListStudent');
+
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function listNomineeApplicationsNominee()
+    {
+        $this->requireRole('NOMINEE');
+        $nomineeApplications = $this->nomineeApplicationModel->getAllNomineeApplications();
+        $filePath = $this->fileHelper->getFilePath('NomineeApplicationListStudent');
+
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
     }
 
 }

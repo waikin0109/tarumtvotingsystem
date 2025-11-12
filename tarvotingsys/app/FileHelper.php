@@ -72,6 +72,7 @@ class FileHelper
             'PublishNomineeApplications' => 'View/NomineeView/publishNomineeApplication.php',
             'ViewPublishNomineeApplications' => 'View/NomineeView/viewPublishNomineeApplication.php',
             'ApplyNomineeApplicationStudent' => 'View/NomineeHandlingView/applyRegistrationForm.php',
+            'NomineeApplicationListStudent' => 'View/NomineeView/nomineeFinalList.php'
         ]);
 
         $campaignMaterialPaths = $this->prefixWithBase([
