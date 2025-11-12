@@ -28,7 +28,7 @@ class NomineeApplicationController
         $this->studentModel            = new StudentModel();
         $this->nomineeModel            = new NomineeModel();
         $this->electionEventModel      = new ElectionEventModel();
-        $this->fileHelper              = new FileHelper('nominee_application'); // keep NomineeView location
+        $this->fileHelper              = new FileHelper('nominee_application'); 
     }
 
     // Role Decision Area
@@ -90,6 +90,7 @@ class NomineeApplicationController
 
     public function listNomineeApplications()
     {
+        $this->requireRole('ADMIN');
         $nomineeApplications = $this->nomineeApplicationModel->getAllNomineeApplications();
         $filePath = $this->fileHelper->getFilePath('NomineeApplicationList');
 
@@ -112,6 +113,7 @@ class NomineeApplicationController
     // -------------------- Show create page (NomineeView) --------------------
     public function createNomineeApplication()
     {
+        $this->requireRole('ADMIN');
         $forms = $this->registrationFormModel->listOpenForms();
 
         $errors = [];
@@ -156,6 +158,8 @@ class NomineeApplicationController
     // -------------------- Handle submit (NomineeView) --------------------
     public function storeNomineeApplication()
     {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->createNomineeApplication();
             return;
@@ -327,7 +331,7 @@ class NomineeApplicationController
 
             $old = [
                 'studentID'   => $studentID,
-                'studentName' => '',  // display text in the visible input
+                'studentName' => '',  
                 'fields'    => $clean
             ];
 
@@ -383,7 +387,7 @@ class NomineeApplicationController
 
             $old = [
                 'studentID'   => $studentID,
-                'studentName' => '',  // display text in the visible input
+                'studentName' => '',  
                 'fields'    => $clean
             ];
 
@@ -406,7 +410,7 @@ class NomineeApplicationController
             return;
         }
 
-        // 4) Handle uploads -> /public/uploads/academic_document/{submissionId}/
+        // Handle uploads -> /public/uploads/academic_document/{submissionId}/
         $uploads = $_FILES['uploads'] ?? [];
         $publicBase = realpath(__DIR__ . '/../../public');
         if ($publicBase === false) {
@@ -456,7 +460,6 @@ class NomineeApplicationController
             $dest   = $targetDir . '/' . $stored;
 
             if (@move_uploaded_file($file['tmp_name'], $dest)) {
-                // Insert: academicdocument(academicFilename, applicationSubmissionID)
                 $this->academicDocumentModel->insert($submissionId, $stored);
             }
         };
@@ -477,13 +480,13 @@ class NomineeApplicationController
         header("Location: /admin/nominee-application");
     }
 
-    /** Single-file key present? */
+    // Single-file key present
     private function hasSingleUpload(array $uploads, string $key): bool {
         if (!isset($uploads['name'][$key])) return false;
         return ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
     }
 
-    /** Count files in a multi-file key */
+    // Count files in a multi-file key 
     private function countMultiUploads(array $uploads, string $key): int {
         if (!isset($uploads['name'][$key]) || !is_array($uploads['name'][$key])) return 0;
         $cnt = 0;
@@ -496,6 +499,8 @@ class NomineeApplicationController
     // -------------------- Edit Nominee Application --------------------
     public function editNomineeApplication($nomineeApplicationID)
     {
+        $this->requireRole('ADMIN');
+
         $naId = (int)$nomineeApplicationID;
         $errors = [];
         $fieldErrors = [];
@@ -519,13 +524,12 @@ class NomineeApplicationController
         $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID);
         $subCols   = $this->registrationFormModel->getSubmissionColumns();
 
-        // Submission row (if any)
+        // Submission row
         $submission = null;
         $applicationSubmissionID = (int)($header['applicationSubmissionID'] ?? 0);
         if ($applicationSubmissionID > 0) {
             $submission = $this->nomineeApplicationModel->getSubmissionById($applicationSubmissionID);
         } else {
-            // In case legacy rows exist without submission; keep null-safe defaults
             $submission = ['cgpa'=>null,'reason'=>'','achievements'=>'','behaviorReport'=>0];
         }
 
@@ -577,6 +581,8 @@ class NomineeApplicationController
     /** ---------- EDIT (POST) ---------- */
     public function editStoreNomineeApplication($nomineeApplicationID)
     {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->editNomineeApplication($nomineeApplicationID);
             return;
@@ -709,11 +715,6 @@ class NomineeApplicationController
             return;
         }
 
-        // Update submission row
-        if ($applicationSubmissionID <= 0) {
-            // Safety: if for some reason there is no submission row yet, create one minimal & reuse your create logic
-            // But normally your create flow already inserted it; here we assume it exists.
-        }
         $this->nomineeApplicationModel->updateSubmission($applicationSubmissionID, $clean);
 
         // ---- SAFETY: do not allow deleting the last file per category ----
@@ -725,13 +726,13 @@ class NomineeApplicationController
 
         $uploads  = $_FILES['uploads'] ?? [];
 
-        // ✳️ JPEG-only validation (preflight) — only for attributes present in this form
+        // JPEG-only validation (preflight) — only for attributes present in this form
         $singleKeys = [
             'cgpa'           => 'cgpa_file',
             'behaviorreport' => 'behaviorreport_file',
         ];
         foreach ($singleKeys as $key => $errKey) {
-            if (!$hasAttr($key)) continue; // <-- NEW: skip if attr not in this form
+            if (!$hasAttr($key)) continue;
             if (isset($uploads['name'][$key]) && ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                 $file = [
                     'name'     => $uploads['name'][$key],
@@ -771,7 +772,6 @@ class NomineeApplicationController
             'behaviorreport' => $hasAttr('behaviorreport') && $this->hasSingleUpload($uploads, 'behaviorreport') ? 1 : 0,
         ];
 
-        // Enforce "at least one doc" only for categories present in this form
         $requiredCats = array_values(array_filter(
             ['cgpa','achievements','behaviorreport'],
             fn($c) => $hasAttr($c)
@@ -793,10 +793,8 @@ class NomineeApplicationController
 
 
         if (!empty($errors) || !empty($fieldErrors)) {
-            // Rebuild view state and re-render Edit page
             $documents = $this->academicDocumentModel->listBySubmissionId($applicationSubmissionID);
 
-            // Build renderAttrs
             $renderAttrs = [];
             foreach ($attrNames as $name) {
                 $code = strtolower($name);
@@ -890,7 +888,7 @@ class NomineeApplicationController
             return $out;
         };
 
-        // ✳️ JPEG-only + auto-increment save
+        // JPEG-only + auto-increment save
         $saveOne = function(array $file, string $prefix) use ($targetDir, $submissionId) {
             if (!$this->isJpegUpload($file)) return;
             $counter = $this->nextCounter($targetDir, $prefix);
@@ -902,9 +900,9 @@ class NomineeApplicationController
             }
         };
 
-        // Save new files if any were chosen (optional on edit)
+        // Save new files if any were chosen
         if ($cgpa = $pickSingle($uploads, 'cgpa')) {
-            // Optional: we don't auto-delete previous cgpa file(s); user should tick delete to remove old ones.
+            // don't auto-delete previous cgpa file(s); user should tick delete to remove old ones.
             $saveOne($cgpa, 'cgpa');
         }
 
@@ -1023,22 +1021,23 @@ class NomineeApplicationController
 
         $naId = (int)$nomineeApplicationID;
 
-        // 1) Header (form title, student, dates, status, admin id, etc.)
+        // Header (form title, student, dates, status, admin id, etc.)
         $header = $this->nomineeApplicationModel->getNomineeApplicationById($naId);
         if (!$header) {
-            echo "Nominee Application not found.";
-            return;
+            \set_flash('warning', 'Nominee Application not found.');
+            header("Location: /admin/nominee-application");
+            exit;
         }
 
-        // 2) Admin handler full name (or N/A)
+        // Admin handler full name (or N/A)
         $adminFullname = $this->nomineeApplicationModel->getAdminFullnameByAdminId(
             isset($header['adminID']) ? (int)$header['adminID'] : null
         );
 
-        // 3) Submission (dynamic fields)
+        // Submission (dynamic fields)
         $submission = $this->nomineeApplicationModel->getSubmissionByAppId($naId) ?? [];
 
-        // 4) Attributes for this registration form (what to show)
+        // Attributes for this registration form (what to show)
         $registrationFormID = (int)$header['registrationFormID'];
         $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID); // returns ['cgpa','achievements','behaviorReport',...]
         $showAttrs = [];
@@ -1060,13 +1059,13 @@ class NomineeApplicationController
             }
         }
 
-        // 5) Documents for this submission
+        // Documents for this submission
         $applicationSubmissionID = (int)($submission['applicationSubmissionID'] ?? 0);
         $documents = $applicationSubmissionID > 0
             ? $this->academicDocumentModel->listBySubmissionId($applicationSubmissionID)
             : [];
 
-        // 6) Pack view data
+        // Pack view data
         $na = [
             'registrationFormTitle' => $header['registrationFormTitle'] ?? '',
             'registrationFormID'    => (int)$header['registrationFormID'],
@@ -1081,8 +1080,6 @@ class NomineeApplicationController
         // 7) Render
         $filePath = $this->fileHelper->getFilePath('ViewNomineeApplication');
         if ($filePath && file_exists($filePath)) {
-            // Make these available in the view:
-            // $na, $showAttrs, $documents
             include $filePath;
         } else {
             echo "View file not found.";
@@ -1095,33 +1092,38 @@ class NomineeApplicationController
 
         $naId = (int)$nomineeApplicationID;
 
-        // 1) Header (form title, student, dates, status, admin id, etc.)
+        // Header (form title, student, dates, status, admin id, etc.)
         $header = $this->nomineeApplicationModel->getNomineeApplicationById($naId);
         if (!$header) {
-            echo "Nominee Application not found.";
-            return;
+            \set_flash('warning', 'Nominee Application not found.');
+            header("Location: /student/election-registration-form");
+            exit;
         }
 
-        // 2) Admin handler full name (or N/A)
+        if ($header['studentID'] != $_SESSION['roleID']) {
+            \set_flash('fail', 'You are not authorise to view this!');
+            header("Location: /student/election-registration-form");
+            exit;
+        }
+
+        // Admin handler full name (or N/A)
         $adminFullname = $this->nomineeApplicationModel->getAdminFullnameByAdminId(
             isset($header['adminID']) ? (int)$header['adminID'] : null
         );
 
-        // 3) Submission (dynamic fields)
+        // Submission (dynamic fields)
         $submission = $this->nomineeApplicationModel->getSubmissionByAppId($naId) ?? [];
 
-        // 4) Attributes for this registration form (what to show)
+        // Attributes for this registration form (what to show)
         $registrationFormID = (int)$header['registrationFormID'];
-        $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID); // returns ['cgpa','achievements','behaviorReport',...]
+        $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID); 
         $showAttrs = [];
         foreach ($attrNames as $attrName) {
-            // DB column names are exactly as stored in registrationformattribute.attributeName
-            $col = $attrName; // e.g., 'cgpa', 'reason', 'achievements', 'behaviorReport'
+            $col = $attrName; 
             $label = preg_replace('/([a-z])([A-Z])/', '$1 $2', $attrName); // split camelCase => "behavior Report"
             $label = ucwords(str_replace(['_','-'], ' ', $label));
             $value = $submission[$col] ?? null;
 
-            // Normalise boolean-ish display for behaviorReport (tinyint(1))
             if ($col === 'behaviorReport') {
                 $value = ((int)($value ?? 0) === 1) ? 'Yes' : 'No';
             }
@@ -1132,13 +1134,13 @@ class NomineeApplicationController
             }
         }
 
-        // 5) Documents for this submission
+        // Documents for this submission
         $applicationSubmissionID = (int)($submission['applicationSubmissionID'] ?? 0);
         $documents = $applicationSubmissionID > 0
             ? $this->academicDocumentModel->listBySubmissionId($applicationSubmissionID)
             : [];
 
-        // 6) Pack view data
+        // Pack view data
         $na = [
             'registrationFormTitle' => $header['registrationFormTitle'] ?? '',
             'registrationFormID'    => (int)$header['registrationFormID'],
@@ -1150,11 +1152,9 @@ class NomineeApplicationController
             'applicationSubmissionID'=> $applicationSubmissionID,
         ];
 
-        // 7) Render
+        // Render
         $filePath = $this->fileHelper->getFilePath('ViewNomineeApplication');
         if ($filePath && file_exists($filePath)) {
-            // Make these available in the view:
-            // $na, $showAttrs, $documents
             include $filePath;
         } else {
             echo "View file not found.";
@@ -1167,33 +1167,38 @@ class NomineeApplicationController
 
         $naId = (int)$nomineeApplicationID;
 
-        // 1) Header (form title, student, dates, status, admin id, etc.)
+        // Header (form title, student, dates, status, admin id, etc.)
         $header = $this->nomineeApplicationModel->getNomineeApplicationById($naId);
         if (!$header) {
-            echo "Nominee Application not found.";
-            return;
+            \set_flash('warning', 'Nominee Application not found.');
+            header("Location: /nominee/election-registration-form");
         }
 
-        // 2) Admin handler full name (or N/A)
+        $studentIdNomineeApplicationForm = $this->studentModel->getStudentIdByNomineeId($_SESSION['roleID']);
+        if ($header['studentID'] != $studentIdNomineeApplicationForm) {
+            \set_flash('fail', 'You are not authorise to view this!');
+            header("Location: /nominee/election-registration-form");
+            exit;
+        }
+
+        // Admin handler full name (or N/A)
         $adminFullname = $this->nomineeApplicationModel->getAdminFullnameByAdminId(
             isset($header['adminID']) ? (int)$header['adminID'] : null
         );
 
-        // 3) Submission (dynamic fields)
+        // Submission (dynamic fields)
         $submission = $this->nomineeApplicationModel->getSubmissionByAppId($naId) ?? [];
 
-        // 4) Attributes for this registration form (what to show)
+        // Attributes for this registration form (what to show)
         $registrationFormID = (int)$header['registrationFormID'];
-        $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID); // returns ['cgpa','achievements','behaviorReport',...]
+        $attrNames = $this->registrationFormModel->getAttributesByFormId($registrationFormID); 
         $showAttrs = [];
         foreach ($attrNames as $attrName) {
-            // DB column names are exactly as stored in registrationformattribute.attributeName
-            $col = $attrName; // e.g., 'cgpa', 'reason', 'achievements', 'behaviorReport'
+            $col = $attrName; 
             $label = preg_replace('/([a-z])([A-Z])/', '$1 $2', $attrName); // split camelCase => "behavior Report"
             $label = ucwords(str_replace(['_','-'], ' ', $label));
             $value = $submission[$col] ?? null;
 
-            // Normalise boolean-ish display for behaviorReport (tinyint(1))
             if ($col === 'behaviorReport') {
                 $value = ((int)($value ?? 0) === 1) ? 'Yes' : 'No';
             }
@@ -1204,13 +1209,13 @@ class NomineeApplicationController
             }
         }
 
-        // 5) Documents for this submission
+        // Documents for this submission
         $applicationSubmissionID = (int)($submission['applicationSubmissionID'] ?? 0);
         $documents = $applicationSubmissionID > 0
             ? $this->academicDocumentModel->listBySubmissionId($applicationSubmissionID)
             : [];
 
-        // 6) Pack view data
+        // Pack view data
         $na = [
             'registrationFormTitle' => $header['registrationFormTitle'] ?? '',
             'registrationFormID'    => (int)$header['registrationFormID'],
@@ -1222,11 +1227,9 @@ class NomineeApplicationController
             'applicationSubmissionID'=> $applicationSubmissionID,
         ];
 
-        // 7) Render
+        // Render
         $filePath = $this->fileHelper->getFilePath('ViewNomineeApplication');
         if ($filePath && file_exists($filePath)) {
-            // Make these available in the view:
-            // $na, $showAttrs, $documents
             include $filePath;
         } else {
             echo "View file not found.";
@@ -1236,6 +1239,8 @@ class NomineeApplicationController
     // Accept / Reject Nominee Application
     public function acceptNomineeApplication($nomineeApplicationID)
     {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: /admin/nominee-application'");
             return;
@@ -1248,6 +1253,8 @@ class NomineeApplicationController
 
     public function rejectNomineeApplication($nomineeApplicationID)
     {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header("Location: /admin/nominee-application'");
             return;
@@ -1261,6 +1268,8 @@ class NomineeApplicationController
     // -------------------------------- Publish Nominee Applications --------------------------------
     public function publishNomineeApplications()
     {
+        $this->requireRole('ADMIN');
+
         $errors = [];
         $fieldErrors = [];
         $old = [];
@@ -1272,8 +1281,9 @@ class NomineeApplicationController
         $selectedEventId = (int)($_GET['electionEventID'] ?? 0);
 
         $validIds = array_map(static fn($r) => (int)$r['electionID'], $electionEvents);
+        
         if ($selectedEventId > 0 && !in_array($selectedEventId, $validIds, true)) {
-            $selectedEventId = 0; // event already published or invalid → don’t preview
+            $selectedEventId = 0; 
         }
 
         $acceptedCandidates = [];
@@ -1284,7 +1294,7 @@ class NomineeApplicationController
 
         $filePath = $this->fileHelper->getFilePath('PublishNomineeApplications');
         if ($filePath && file_exists($filePath)) {
-            include $filePath; // expects: $electionEvents, $selectedEventId, $acceptedCandidates, $errors, $fieldErrors, $old
+            include $filePath; 
         } else {
             echo "View file not found.";
         }
@@ -1292,6 +1302,8 @@ class NomineeApplicationController
 
     public function publishStoreNomineeApplications()
     {
+        $this->requireRole('ADMIN');
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->publishNomineeApplications();
             return;
@@ -1351,6 +1363,8 @@ class NomineeApplicationController
     // -------------------------------- View Published Nominee Applications --------------------------------
     public function finalizePublishNomineeApplications($id)
     {
+        $this->requireRole('ADMIN');
+        
         $electionEventID = (int)$id;
 
         // If you want PUBLISHED (after publish), use this:
@@ -1368,252 +1382,58 @@ class NomineeApplicationController
 
     // ------------------------------------------------------------------------------------------------------ //
     // -------------------- Student Apply (GET) --------------------
-public function applyFormStudent($registrationFormID)
-{
-    // Only STUDENT may access
-    if (strtoupper($_SESSION['role'] ?? '') !== 'STUDENT') {
-        \set_flash('fail', 'You do not have permission to access!');
-        header('Location: /login');
-        exit;
-    }
+    public function applyFormStudent($registrationFormID)
+    {
+        // Only STUDENT may access
+        $this->requireRole('STUDENT');
 
-    $regFormId = (int)$registrationFormID;
-    if ($regFormId <= 0) {
-        \set_flash('fail', 'Invalid registration form.');
-        header('Location: /student/election-registration-form');
-        exit;
-    }
-
-    // Fixed registration form
-    $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
-    if (!$form) {
-        \set_flash('fail', 'Registration form not found.');
-        header('Location: /student/election-registration-form');
-        exit;
-    }
-
-    // Must be open
-    if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
-        \set_flash('warning', 'Registration is closed.');
-        header('Location: /student/election-registration-form');
-        exit;
-    }
-
-    // Resolve studentID from session (fallback via accountID if needed)
-    $studentID = (int)($_SESSION['roleID'] ?? 0);
-    if ($studentID <= 0 && !empty($_SESSION['accountID'])) {
-        if (method_exists($this->studentModel, 'getStudentIdByAccountId')) {
-            $studentID = (int)$this->studentModel->getStudentIdByAccountId((int)$_SESSION['accountID']);
+        $regFormId = (int)$registrationFormID;
+        if ($regFormId <= 0) {
+            \set_flash('fail', 'Invalid registration form.');
+            header('Location: /student/election-registration-form');
+            exit;
         }
-    }
-    if ($studentID <= 0) {
-        \set_flash('fail', 'Cannot resolve your student ID.');
-        header('Location: /login');
-        exit;
-    }
 
-    // Prevent duplicate application into the same election
-    $electionID = (int)$form['electionID'];
-    if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
-        \set_flash('warning', 'You have already applied for this election.');
-        header('Location: /student/election-registration-form');
-        exit;
-    }
-
-    // Build dynamic fields (like createNomineeApplication)
-    $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
-    $subCols   = $this->registrationFormModel->getSubmissionColumns();
-
-    $renderAttrs = [];
-    foreach ($attrNames as $name) {
-        $code = strtolower($name);
-        if (isset($subCols[$code])) {
-            $renderAttrs[] = [
-                'code'  => $code,
-                'label' => ucwords(str_replace(['_','-'],' ', $name)),
-                'type'  => $this->typeFor($code), // reuse your helper
-            ];
+        // Fixed registration form
+        $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
+        if (!$form) {
+            \set_flash('fail', 'Registration form not found.');
+            header('Location: /student/election-registration-form');
+            exit;
         }
-    }
 
-    // Banner
-    $registrationOpen = true; // already checked
-    $regWindow        = $this->registrationFormModel->getRegWindowByFormId($regFormId);
-
-    // For this page we don’t need student list or dropdown
-    $errors = [];
-    $fieldErrors = [];
-    $old = ['fields' => []];
-
-    // View
-    $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent'); // new view file (below)
-    if ($filePath && file_exists($filePath)) {
-        // expected variables in view:
-        // $form, $renderAttrs, $errors, $fieldErrors, $old, $registrationOpen, $regWindow
-        include $filePath;
-    } else {
-        echo "View file not found.";
-    }
-}
-
-// -------------------- Student Apply (POST) --------------------
-public function applyStoreStudent($registrationFormID)
-{
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        $this->applyFormStudent($registrationFormID);
-        return;
-    }
-
-    if (strtoupper($_SESSION['role'] ?? '') !== 'STUDENT') {
-        \set_flash('fail', 'You do not have permission to access!');
-        header('Location: /login');
-        exit;
-    }
-
-    $regFormId = (int)$registrationFormID;
-    $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
-    if (!$form) {
-        \set_flash('fail', 'Registration form not found.');
-        header('Location: /student/election-registration-form');
-        exit;
-    }
-    if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
-        \set_flash('warning', 'Registration is closed. Creating is not allowed.');
-        header('Location: /student/election-registration-form');
-        return;
-    }
-
-    // Student id from session (fallback)
-    $studentID = (int)($_SESSION['roleID'] ?? 0);
-    if ($studentID <= 0 && !empty($_SESSION['accountID'])) {
-        if (method_exists($this->studentModel, 'getStudentIdByAccountId')) {
-            $studentID = (int)$this->studentModel->getStudentIdByAccountId((int)$_SESSION['accountID']);
+        // Must be open
+        if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
+            \set_flash('warning', 'Registration is closed.');
+            header('Location: /student/election-registration-form');
+            exit;
         }
-    }
-    if ($studentID <= 0) {
-        \set_flash('fail', 'Cannot resolve your student ID.');
-        header('Location: /login');
-        exit;
-    }
 
-    $electionID = (int)$form['electionID'];
-    $errors = [];
-    $fieldErrors = [];
-
-    // Prevent duplicate application into the same election
-    if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
-        $errors[] = 'You have already applied for this election.';
-    }
-
-    // Collect attributes like your create flow
-    $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
-    $subCols   = $this->registrationFormModel->getSubmissionColumns();
-
-    $clean = [];
-    foreach ($attrNames as $name) {
-        $code = strtolower($name);
-        if (!isset($subCols[$code])) continue;
-        $type = $this->typeFor($code);
-        $raw  = $_POST['fields'][$code] ?? null;
-        if ($type === 'checkbox') {
-            $clean[$code] = isset($raw) ? 1 : 0;
-        } else {
-            $val = is_string($raw) ? trim($raw) : '';
-            if ($code === 'cgpa') {
-                $clean[$code] = ($val !== '' && is_numeric($val)) ? (float)$val : $val;
-            } else {
-                $clean[$code] = $val;
+        // Resolve studentID from session (fallback via accountID if needed)
+        $studentID = (int)($_SESSION['roleID'] ?? 0);
+        if ($studentID <= 0 && !empty($_SESSION['accountID'])) {
+            if (method_exists($this->studentModel, 'getStudentIdByAccountId')) {
+                $studentID = (int)$this->studentModel->getStudentIdByAccountId((int)$_SESSION['accountID']);
             }
         }
-    }
+        if ($studentID <= 0) {
+            \set_flash('fail', 'Cannot resolve your student ID.');
+            header('Location: /login');
+            exit;
+        }
 
-    // Validate inputs (same rules as your create)
-    foreach ($attrNames as $name) {
-        $code = strtolower($name);
-        if ($code === 'cgpa') {
-            if ($clean['cgpa'] === '' || $clean['cgpa'] === null) {
-                $fieldErrors['cgpa'][] = 'CGPA is required.';
-            } else {
-                if (!is_numeric($clean['cgpa'])) {
-                    $fieldErrors['cgpa'][] = 'CGPA must be a number.';
-                } else {
-                    $f = (float)$clean['cgpa'];
-                    if ($f < 0.00 || $f > 4.00) {
-                        $fieldErrors['cgpa'][] = 'CGPA must be between 0.00 and 4.00.';
-                    }
-                }
-            }
-        } elseif ($code === 'reason') {
-            if (($clean['reason'] ?? '') === '') {
-                $fieldErrors['reason'][] = 'Reason is required.';
-            }
-        } elseif ($code === 'achievements') {
-            if (($clean['achievements'] ?? '') === '') {
-                $fieldErrors['achievements'][] = 'Achievements are required.';
-            }
-        } elseif ($code === 'behaviorreport') {
-            if (($clean['behaviorreport'] ?? 0) != 1) {
-                $fieldErrors['behaviorreport'][] = 'Behavior report confirmation is required.';
-            }
+        // Prevent duplicate application into the same election
+        $electionID = (int)$form['electionID'];
+        if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
+            \set_flash('warning', 'You have already applied for this election.');
+            header('Location: /student/election-registration-form');
+            exit;
         }
-    }
 
-    // Files (JPEG-only) same as create
-    $uploads = $_FILES['uploads'] ?? [];
-
-    // Require presence per attribute
-    if (in_array('cgpa', array_map('strtolower', $attrNames), true)) {
-        if (!$this->hasSingleUpload($uploads, 'cgpa')) {
-            $fieldErrors['cgpa_file'][] = 'CGPA proof file is required.';
-        }
-    }
-    if (in_array('achievements', array_map('strtolower', $attrNames), true)) {
-        if ($this->countMultiUploads($uploads, 'achievements') < 1) {
-            $fieldErrors['achievements_files'][] = 'At least one achievement document is required.';
-        }
-    }
-    if (in_array('behaviorReport', $attrNames, true) || in_array('behaviorreport', array_map('strtolower', $attrNames), true)) {
-        if (!$this->hasSingleUpload($uploads, 'behaviorreport')) {
-            $fieldErrors['behaviorreport_file'][] = 'Behavior report file is required.';
-        }
-    }
-
-    // JPEG checks
-    $singleKeys = ['cgpa' => 'cgpa_file', 'behaviorreport' => 'behaviorreport_file'];
-    foreach ($singleKeys as $key => $errKey) {
-        if (isset($uploads['name'][$key]) && ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $file = [
-                'name'     => $uploads['name'][$key],
-                'type'     => $uploads['type'][$key] ?? '',
-                'tmp_name' => $uploads['tmp_name'][$key] ?? '',
-                'error'    => $uploads['error'][$key],
-                'size'     => $uploads['size'][$key] ?? 0,
-            ];
-            if (!$this->isJpegUpload($file)) {
-                $fieldErrors[$errKey][] = 'Only JPG/JPEG files are allowed.';
-            }
-        }
-    }
-    if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
-        foreach ($uploads['name']['achievements'] as $i => $n) {
-            if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
-            $file = [
-                'name'     => $n,
-                'type'     => $uploads['type']['achievements'][$i] ?? '',
-                'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
-                'error'    => $uploads['error']['achievements'][$i],
-                'size'     => $uploads['size']['achievements'][$i] ?? 0,
-            ];
-            if (!$this->isJpegUpload($file)) {
-                $fieldErrors['achievements_files'][] = 'Only JPG/JPEG files are allowed for achievements.';
-                break;
-            }
-        }
-    }
-
-    if (!empty($errors) || !empty($fieldErrors)) {
-        // rebuild minimal state
+        // Build dynamic fields (like createNomineeApplication)
         $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
+        $subCols   = $this->registrationFormModel->getSubmissionColumns();
+
         $renderAttrs = [];
         foreach ($attrNames as $name) {
             $code = strtolower($name);
@@ -1621,220 +1441,317 @@ public function applyStoreStudent($registrationFormID)
                 $renderAttrs[] = [
                     'code'  => $code,
                     'label' => ucwords(str_replace(['_','-'],' ', $name)),
-                    'type'  => $this->typeFor($code),
+                    'type'  => $this->typeFor($code), 
                 ];
             }
         }
-        $registrationOpen = true;
-        $regWindow = $this->registrationFormModel->getRegWindowByFormId($regFormId);
-        $old = ['fields' => $clean];
 
-        $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent');
+        // Banner
+        $registrationOpen = true; 
+        $regWindow        = $this->registrationFormModel->getRegWindowByFormId($regFormId);
+
+        // For this page we don’t need student list or dropdown
+        $errors = [];
+        $fieldErrors = [];
+        $old = ['fields' => []];
+
+        // View
+        $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent'); 
         if ($filePath && file_exists($filePath)) {
             include $filePath;
         } else {
             echo "View file not found.";
         }
-        return;
     }
 
-    // Create (reusing your model)
-    $ids = $this->nomineeApplicationModel->createNomineeApplication(
-        $studentID,
-        $regFormId,
-        $electionID,
-        $clean
-    );
-    $appId        = (int)$ids['nomineeApplicationID'];
-    $submissionId = (int)$ids['applicationSubmissionID'];
-
-    if ($appId <= 0 || $submissionId <= 0) {
-        \set_flash('danger', 'Failed to submit application. Please try again.');
-        $this->applyFormStudent($regFormId);
-        return;
-    }
-
-    // Save uploads (same as create)
-    $publicBase = realpath(__DIR__ . '/../../public');
-    if ($publicBase === false) { $publicBase = dirname(__DIR__, 3) . '/public'; }
-    $targetDir = rtrim($publicBase, DIRECTORY_SEPARATOR) . '/uploads/academic_document/' . $submissionId;
-    if (!is_dir($targetDir)) { @mkdir($targetDir, 0775, true); }
-
-    $saveOne = function(array $file, string $prefix) use ($targetDir, $submissionId) {
-        if (!$this->isJpegUpload($file)) return;
-        $counter = $this->nextCounter($targetDir, $prefix);
-        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION)) ?: 'jpg';
-        $stored = "{$prefix}_{$counter}.{$ext}";
-        $dest   = $targetDir . '/' . $stored;
-        if (@move_uploaded_file($file['tmp_name'], $dest)) {
-            $this->academicDocumentModel->insert($submissionId, $stored);
+    // -------------------- Student Apply (POST) --------------------
+    public function applyStoreStudent($registrationFormID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->applyFormStudent($registrationFormID);
+            return;
         }
-    };
 
-    // Singles
-    if (($uploads['error']['cgpa'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-        $saveOne([
-            'name'     => $uploads['name']['cgpa'],
-            'type'     => $uploads['type']['cgpa'] ?? '',
-            'tmp_name' => $uploads['tmp_name']['cgpa'] ?? '',
-            'error'    => $uploads['error']['cgpa'],
-            'size'     => $uploads['size']['cgpa'] ?? 0,
-        ], 'cgpa');
-    }
-    if (($uploads['error']['behaviorreport'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-        $saveOne([
-            'name'     => $uploads['name']['behaviorreport'],
-            'type'     => $uploads['type']['behaviorreport'] ?? '',
-            'tmp_name' => $uploads['tmp_name']['behaviorreport'] ?? '',
-            'error'    => $uploads['error']['behaviorreport'],
-            'size'     => $uploads['size']['behaviorreport'] ?? 0,
-        ], 'behaviorReport');
-    }
-    // Multi (achievements)
-    if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
-        foreach ($uploads['name']['achievements'] as $i => $n) {
-            if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+        $this->requireRole('STUDENT');
+
+        $regFormId = (int)$registrationFormID;
+        $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
+        if (!$form) {
+            \set_flash('fail', 'Registration form not found.');
+            header('Location: /student/election-registration-form');
+            exit;
+        }
+        if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
+            \set_flash('warning', 'Registration is closed. Creating is not allowed.');
+            header('Location: /student/election-registration-form');
+            return;
+        }
+
+        // Student id from session (fallback)
+        $studentID = (int)($_SESSION['roleID'] ?? 0);
+        if ($studentID <= 0 && !empty($_SESSION['accountID'])) {
+            if (method_exists($this->studentModel, 'getStudentIdByAccountId')) {
+                $studentID = (int)$this->studentModel->getStudentIdByAccountId((int)$_SESSION['accountID']);
+            }
+        }
+        if ($studentID <= 0) {
+            \set_flash('fail', 'Cannot resolve your student ID.');
+            header('Location: /login');
+            exit;
+        }
+
+        $electionID = (int)$form['electionID'];
+        $errors = [];
+        $fieldErrors = [];
+
+        // Prevent duplicate application into the same election
+        if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
+            $errors[] = 'You have already applied for this election.';
+        }
+
+        // Collect attributes like your create flow
+        $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
+        $subCols   = $this->registrationFormModel->getSubmissionColumns();
+
+        $clean = [];
+        foreach ($attrNames as $name) {
+            $code = strtolower($name);
+            if (!isset($subCols[$code])) continue;
+            $type = $this->typeFor($code);
+            $raw  = $_POST['fields'][$code] ?? null;
+            if ($type === 'checkbox') {
+                $clean[$code] = isset($raw) ? 1 : 0;
+            } else {
+                $val = is_string($raw) ? trim($raw) : '';
+                if ($code === 'cgpa') {
+                    $clean[$code] = ($val !== '' && is_numeric($val)) ? (float)$val : $val;
+                } else {
+                    $clean[$code] = $val;
+                }
+            }
+        }
+
+        // Validate inputs (same rules as your create)
+        foreach ($attrNames as $name) {
+            $code = strtolower($name);
+            if ($code === 'cgpa') {
+                if ($clean['cgpa'] === '' || $clean['cgpa'] === null) {
+                    $fieldErrors['cgpa'][] = 'CGPA is required.';
+                } else {
+                    if (!is_numeric($clean['cgpa'])) {
+                        $fieldErrors['cgpa'][] = 'CGPA must be a number.';
+                    } else {
+                        $f = (float)$clean['cgpa'];
+                        if ($f < 0.00 || $f > 4.00) {
+                            $fieldErrors['cgpa'][] = 'CGPA must be between 0.00 and 4.00.';
+                        }
+                    }
+                }
+            } elseif ($code === 'reason') {
+                if (($clean['reason'] ?? '') === '') {
+                    $fieldErrors['reason'][] = 'Reason is required.';
+                }
+            } elseif ($code === 'achievements') {
+                if (($clean['achievements'] ?? '') === '') {
+                    $fieldErrors['achievements'][] = 'Achievements are required.';
+                }
+            } elseif ($code === 'behaviorreport') {
+                if (($clean['behaviorreport'] ?? 0) != 1) {
+                    $fieldErrors['behaviorreport'][] = 'Behavior report confirmation is required.';
+                }
+            }
+        }
+
+        // Files (JPEG-only) same as create
+        $uploads = $_FILES['uploads'] ?? [];
+
+        // Require presence per attribute
+        if (in_array('cgpa', array_map('strtolower', $attrNames), true)) {
+            if (!$this->hasSingleUpload($uploads, 'cgpa')) {
+                $fieldErrors['cgpa_file'][] = 'CGPA proof file is required.';
+            }
+        }
+        if (in_array('achievements', array_map('strtolower', $attrNames), true)) {
+            if ($this->countMultiUploads($uploads, 'achievements') < 1) {
+                $fieldErrors['achievements_files'][] = 'At least one achievement document is required.';
+            }
+        }
+        if (in_array('behaviorReport', $attrNames, true) || in_array('behaviorreport', array_map('strtolower', $attrNames), true)) {
+            if (!$this->hasSingleUpload($uploads, 'behaviorreport')) {
+                $fieldErrors['behaviorreport_file'][] = 'Behavior report file is required.';
+            }
+        }
+
+        // JPEG checks
+        $singleKeys = ['cgpa' => 'cgpa_file', 'behaviorreport' => 'behaviorreport_file'];
+        foreach ($singleKeys as $key => $errKey) {
+            if (isset($uploads['name'][$key]) && ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $file = [
+                    'name'     => $uploads['name'][$key],
+                    'type'     => $uploads['type'][$key] ?? '',
+                    'tmp_name' => $uploads['tmp_name'][$key] ?? '',
+                    'error'    => $uploads['error'][$key],
+                    'size'     => $uploads['size'][$key] ?? 0,
+                ];
+                if (!$this->isJpegUpload($file)) {
+                    $fieldErrors[$errKey][] = 'Only JPG/JPEG files are allowed.';
+                }
+            }
+        }
+        if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
+            foreach ($uploads['name']['achievements'] as $i => $n) {
+                if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                $file = [
+                    'name'     => $n,
+                    'type'     => $uploads['type']['achievements'][$i] ?? '',
+                    'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
+                    'error'    => $uploads['error']['achievements'][$i],
+                    'size'     => $uploads['size']['achievements'][$i] ?? 0,
+                ];
+                if (!$this->isJpegUpload($file)) {
+                    $fieldErrors['achievements_files'][] = 'Only JPG/JPEG files are allowed for achievements.';
+                    break;
+                }
+            }
+        }
+
+        if (!empty($errors) || !empty($fieldErrors)) {
+            // rebuild minimal state
+            $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
+            $renderAttrs = [];
+            foreach ($attrNames as $name) {
+                $code = strtolower($name);
+                if (isset($subCols[$code])) {
+                    $renderAttrs[] = [
+                        'code'  => $code,
+                        'label' => ucwords(str_replace(['_','-'],' ', $name)),
+                        'type'  => $this->typeFor($code),
+                    ];
+                }
+            }
+            $registrationOpen = true;
+            $regWindow = $this->registrationFormModel->getRegWindowByFormId($regFormId);
+            $old = ['fields' => $clean];
+
+            $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent');
+            if ($filePath && file_exists($filePath)) {
+                include $filePath;
+            } else {
+                echo "View file not found.";
+            }
+            return;
+        }
+
+        // Create (reusing your model)
+        $ids = $this->nomineeApplicationModel->createNomineeApplication(
+            $studentID,
+            $regFormId,
+            $electionID,
+            $clean
+        );
+        $appId        = (int)$ids['nomineeApplicationID'];
+        $submissionId = (int)$ids['applicationSubmissionID'];
+
+        if ($appId <= 0 || $submissionId <= 0) {
+            \set_flash('danger', 'Failed to submit application. Please try again.');
+            $this->applyFormStudent($regFormId);
+            return;
+        }
+
+        // Save uploads (same as create)
+        $publicBase = realpath(__DIR__ . '/../../public');
+        if ($publicBase === false) { $publicBase = dirname(__DIR__, 3) . '/public'; }
+        $targetDir = rtrim($publicBase, DIRECTORY_SEPARATOR) . '/uploads/academic_document/' . $submissionId;
+        if (!is_dir($targetDir)) { @mkdir($targetDir, 0775, true); }
+
+        $saveOne = function(array $file, string $prefix) use ($targetDir, $submissionId) {
+            if (!$this->isJpegUpload($file)) return;
+            $counter = $this->nextCounter($targetDir, $prefix);
+            $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION)) ?: 'jpg';
+            $stored = "{$prefix}_{$counter}.{$ext}";
+            $dest   = $targetDir . '/' . $stored;
+            if (@move_uploaded_file($file['tmp_name'], $dest)) {
+                $this->academicDocumentModel->insert($submissionId, $stored);
+            }
+        };
+
+        // Singles
+        if (($uploads['error']['cgpa'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $saveOne([
-                'name'     => $n,
-                'type'     => $uploads['type']['achievements'][$i] ?? '',
-                'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
-                'error'    => $uploads['error']['achievements'][$i],
-                'size'     => $uploads['size']['achievements'][$i] ?? 0,
-            ], 'achievement');
+                'name'     => $uploads['name']['cgpa'],
+                'type'     => $uploads['type']['cgpa'] ?? '',
+                'tmp_name' => $uploads['tmp_name']['cgpa'] ?? '',
+                'error'    => $uploads['error']['cgpa'],
+                'size'     => $uploads['size']['cgpa'] ?? 0,
+            ], 'cgpa');
         }
-    }
-
-    \set_flash('success', 'Application submitted successfully.');
-    header('Location: /student/election-registration-form');
-}
-
-// -------------------- Nominee Apply (GET) --------------------
-public function applyFormNominee($registrationFormID)
-{
-    // Only NOMINEE may access this route (student uses /student route)
-    if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
-        \set_flash('fail', 'You do not have permission to access!');
-        header('Location: /login'); exit;
-    }
-
-    $regFormId = (int)$registrationFormID;
-    if ($regFormId <= 0) {
-        \set_flash('fail', 'Invalid registration form.');
-        header('Location: /nominee/election-registration-form'); exit;
-    }
-
-    $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
-    if (!$form) {
-        \set_flash('fail', 'Registration form not found.');
-        header('Location: /nominee/election-registration-form'); exit;
-    }
-
-    if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
-        \set_flash('warning', 'Registration is closed.');
-        header('Location: /nominee/election-registration-form'); exit;
-    }
-
-    // ✅ Always resolve studentID (even though role is NOMINEE)
-    $studentID = $this->resolveStudentIdForSession();
-    if ($studentID <= 0) {
-        \set_flash('fail', 'Cannot resolve your student identity.');
-        header('Location: /login'); exit;
-    }
-
-    // Prevent duplicate application into the same election (by student)
-    $electionID = (int)$form['electionID'];
-    if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
-        \set_flash('warning', 'You have already applied for this election.');
-        header('Location: /nominee/election-registration-form'); exit;
-    }
-
-    // Dynamic fields
-    $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
-    $subCols   = $this->registrationFormModel->getSubmissionColumns();
-    $renderAttrs = [];
-    foreach ($attrNames as $name) {
-        $code = strtolower($name);
-        if (isset($subCols[$code])) {
-            $renderAttrs[] = [
-                'code'  => $code,
-                'label' => ucwords(str_replace(['_','-'],' ', $name)),
-                'type'  => $this->typeFor($code),
-            ];
+        if (($uploads['error']['behaviorreport'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $saveOne([
+                'name'     => $uploads['name']['behaviorreport'],
+                'type'     => $uploads['type']['behaviorreport'] ?? '',
+                'tmp_name' => $uploads['tmp_name']['behaviorreport'] ?? '',
+                'error'    => $uploads['error']['behaviorreport'],
+                'size'     => $uploads['size']['behaviorreport'] ?? 0,
+            ], 'behaviorReport');
         }
-    }
-
-    $registrationOpen = true;
-    $regWindow        = $this->registrationFormModel->getRegWindowByFormId($regFormId);
-    $errors = [];
-    $fieldErrors = [];
-    $old = ['fields' => []];
-
-    $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent');
-    if ($filePath && file_exists($filePath)) { include $filePath; } else { echo "View file not found."; }
-}
-
-
-// -------------------- Nominee Apply (POST) --------------------
-public function applyStoreNominee($registrationFormID)
-{
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        $this->applyFormNominee($registrationFormID); return;
-    }
-
-    if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
-        \set_flash('fail', 'You do not have permission to access!');
-        header('Location: /login'); exit;
-    }
-
-    $regFormId = (int)$registrationFormID;
-    $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
-    if (!$form) {
-        \set_flash('fail', 'Registration form not found.');
-        header('Location: /nominee/election-registration-form'); exit;
-    }
-    if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
-        \set_flash('warning', 'Registration is closed. Creating is not allowed.');
-        header('Location: /nominee/election-registration-form'); return;
-    }
-
-    // ✅ Resolve studentID for this NOMINEE session
-    $studentID = $this->resolveStudentIdForSession();
-    if ($studentID <= 0) {
-        \set_flash('fail', 'Cannot resolve your student identity.');
-        header('Location: /login'); exit;
-    }
-
-    $electionID = (int)$form['electionID'];
-    $errors = [];
-    $fieldErrors = [];
-
-    // Duplicate guard by student
-    if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
-        $errors[] = 'You have already applied for this election.';
-    }
-
-    // Collect fields
-    $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
-    $subCols   = $this->registrationFormModel->getSubmissionColumns();
-    $clean = [];
-    foreach ($attrNames as $name) {
-        $code = strtolower($name);
-        if (!isset($subCols[$code])) continue;
-        $type = $this->typeFor($code);
-        $raw  = $_POST['fields'][$code] ?? null;
-        if ($type === 'checkbox') {
-            $clean[$code] = isset($raw) ? 1 : 0;
-        } else {
-            $val = is_string($raw) ? trim($raw) : '';
-            $clean[$code] = ($code === 'cgpa' && $val !== '' && is_numeric($val)) ? (float)$val : $val;
+        // Multi (achievements)
+        if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
+            foreach ($uploads['name']['achievements'] as $i => $n) {
+                if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                $saveOne([
+                    'name'     => $n,
+                    'type'     => $uploads['type']['achievements'][$i] ?? '',
+                    'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
+                    'error'    => $uploads['error']['achievements'][$i],
+                    'size'     => $uploads['size']['achievements'][$i] ?? 0,
+                ], 'achievement');
+            }
         }
+
+        \set_flash('success', 'Application submitted successfully.');
+        header('Location: /student/election-registration-form');
     }
 
-    // Your existing per-field validators…
-    // Your JPEG presence/type checks…
+    // -------------------- Nominee Apply (GET) --------------------
+    public function applyFormNominee($registrationFormID)
+    {
+        // Only NOMINEE may access this route (student uses /student route)
+        $this->requireRole('NOMINEE');
 
-    if (!empty($errors) || !empty($fieldErrors)) {
-        // rebuild -> render
+        $regFormId = (int)$registrationFormID;
+        if ($regFormId <= 0) {
+            \set_flash('fail', 'Invalid registration form.');
+            header('Location: /nominee/election-registration-form'); exit;
+        }
+
+        $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
+        if (!$form) {
+            \set_flash('fail', 'Registration form not found.');
+            header('Location: /nominee/election-registration-form'); exit;
+        }
+
+        if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
+            \set_flash('warning', 'Registration is closed.');
+            header('Location: /nominee/election-registration-form'); exit;
+        }
+
+        // ✅ Always resolve studentID (even though role is NOMINEE)
+        $studentID = $this->resolveStudentIdForSession();
+        if ($studentID <= 0) {
+            \set_flash('fail', 'Cannot resolve your student identity.');
+            header('Location: /login'); exit;
+        }
+
+        // Prevent duplicate application into the same election (by student)
+        $electionID = (int)$form['electionID'];
+        if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
+            \set_flash('warning', 'You have already applied for this election.');
+            header('Location: /nominee/election-registration-form'); exit;
+        }
+
+        // Dynamic fields
+        $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
+        $subCols   = $this->registrationFormModel->getSubmissionColumns();
         $renderAttrs = [];
         foreach ($attrNames as $name) {
             $code = strtolower($name);
@@ -1846,87 +1763,244 @@ public function applyStoreNominee($registrationFormID)
                 ];
             }
         }
+
         $registrationOpen = true;
-        $regWindow = $this->registrationFormModel->getRegWindowByFormId($regFormId);
-        $old = ['fields' => $clean];
+        $regWindow        = $this->registrationFormModel->getRegWindowByFormId($regFormId);
+        $errors = [];
+        $fieldErrors = [];
+        $old = ['fields' => []];
 
         $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent');
         if ($filePath && file_exists($filePath)) { include $filePath; } else { echo "View file not found."; }
-        return;
     }
 
-    // ✅ Create using studentID (single pathway)
-    $ids = $this->nomineeApplicationModel->createNomineeApplication(
-        $studentID,
-        $regFormId,
-        $electionID,
-        $clean
-    );
 
-    $appId        = (int)($ids['nomineeApplicationID'] ?? 0);
-    $submissionId = (int)($ids['applicationSubmissionID'] ?? 0);
-
-    if ($appId <= 0 || $submissionId <= 0) {
-        \set_flash('danger', 'Failed to submit application. Please try again.');
-        $this->applyFormNominee($regFormId); return;
-    }
-
-    // Save uploads (unchanged)
-    $publicBase = realpath(__DIR__ . '/../../public');
-    if ($publicBase === false) { $publicBase = dirname(__DIR__, 3) . '/public'; }
-    $targetDir = rtrim($publicBase, DIRECTORY_SEPARATOR) . '/uploads/academic_document/' . $submissionId;
-    if (!is_dir($targetDir)) { @mkdir($targetDir, 0775, true); }
-
-    $saveOne = function(array $file, string $prefix) use ($targetDir, $submissionId) {
-        if (!$this->isJpegUpload($file)) return;
-        $counter = $this->nextCounter($targetDir, $prefix);
-        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION)) ?: 'jpg';
-        $stored = "{$prefix}_{$counter}.{$ext}";
-        $dest   = $targetDir . '/' . $stored;
-        if (@move_uploaded_file($file['tmp_name'], $dest)) {
-            $this->academicDocumentModel->insert($submissionId, $stored);
+    // -------------------- Nominee Apply (POST) --------------------
+    public function applyStoreNominee($registrationFormID)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->applyFormNominee($registrationFormID); return;
         }
-    };
 
-    $uploads = $_FILES['uploads'] ?? [];
-    if (($uploads['error']['cgpa'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-        $saveOne([
-            'name'     => $uploads['name']['cgpa'],
-            'type'     => $uploads['type']['cgpa'] ?? '',
-            'tmp_name' => $uploads['tmp_name']['cgpa'] ?? '',
-            'error'    => $uploads['error']['cgpa'],
-            'size'     => $uploads['size']['cgpa'] ?? 0,
-        ], 'cgpa');
-    }
-    if (($uploads['error']['behaviorreport'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
-        $saveOne([
-            'name'     => $uploads['name']['behaviorreport'],
-            'type'     => $uploads['type']['behaviorreport'] ?? '',
-            'tmp_name' => $uploads['tmp_name']['behaviorreport'] ?? '',
-            'error'    => $uploads['error']['behaviorreport'],
-            'size'     => $uploads['size']['behaviorreport'] ?? 0,
-        ], 'behaviorReport');
-    }
-    if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
-        foreach ($uploads['name']['achievements'] as $i => $n) {
-            if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+        $this->requireRole('NOMINEE');
+
+        $regFormId = (int)$registrationFormID;
+        $form = $this->registrationFormModel->getRegistrationFormById($regFormId);
+        if (!$form) {
+            \set_flash('fail', 'Registration form not found.');
+            header('Location: /nominee/election-registration-form'); exit;
+        }
+        if (!$this->registrationFormModel->isRegistrationOpen($regFormId)) {
+            \set_flash('warning', 'Registration is closed. Creating is not allowed.');
+            header('Location: /nominee/election-registration-form'); return;
+        }
+
+        // ✅ Resolve studentID for this NOMINEE session
+        $studentID = $this->resolveStudentIdForSession();
+        if ($studentID <= 0) {
+            \set_flash('fail', 'Cannot resolve your student identity.');
+            header('Location: /login'); exit;
+        }
+
+        $electionID = (int)$form['electionID'];
+        $errors = [];
+        $fieldErrors = [];
+
+        // Duplicate guard by student
+        if ($this->nomineeApplicationModel->hasAppliedForEvent($studentID, $electionID)) {
+            $errors[] = 'You have already applied for this election.';
+        }
+
+        // Collect fields
+        $attrNames = $this->registrationFormModel->getAttributesByFormId($regFormId);
+        $subCols   = $this->registrationFormModel->getSubmissionColumns();
+        $clean = [];
+        foreach ($attrNames as $name) {
+            $code = strtolower($name);
+            if (!isset($subCols[$code])) continue;
+            $type = $this->typeFor($code);
+            $raw  = $_POST['fields'][$code] ?? null;
+            if ($type === 'checkbox') {
+                $clean[$code] = isset($raw) ? 1 : 0;
+            } else {
+                $val = is_string($raw) ? trim($raw) : '';
+                $clean[$code] = ($code === 'cgpa' && $val !== '' && is_numeric($val)) ? (float)$val : $val;
+            }
+        }
+
+        // Validate inputs (same rules as your create)
+        foreach ($attrNames as $name) {
+            $code = strtolower($name);
+            if ($code === 'cgpa') {
+                if ($clean['cgpa'] === '' || $clean['cgpa'] === null) {
+                    $fieldErrors['cgpa'][] = 'CGPA is required.';
+                } else {
+                    if (!is_numeric($clean['cgpa'])) {
+                        $fieldErrors['cgpa'][] = 'CGPA must be a number.';
+                    } else {
+                        $f = (float)$clean['cgpa'];
+                        if ($f < 0.00 || $f > 4.00) {
+                            $fieldErrors['cgpa'][] = 'CGPA must be between 0.00 and 4.00.';
+                        }
+                    }
+                }
+            } elseif ($code === 'reason') {
+                if (($clean['reason'] ?? '') === '') {
+                    $fieldErrors['reason'][] = 'Reason is required.';
+                }
+            } elseif ($code === 'achievements') {
+                if (($clean['achievements'] ?? '') === '') {
+                    $fieldErrors['achievements'][] = 'Achievements are required.';
+                }
+            } elseif ($code === 'behaviorreport') {
+                if (($clean['behaviorreport'] ?? 0) != 1) {
+                    $fieldErrors['behaviorreport'][] = 'Behavior report confirmation is required.';
+                }
+            }
+        }
+
+        // Files (JPEG-only) same as create
+        $uploads = $_FILES['uploads'] ?? [];
+
+        // Require presence per attribute
+        if (in_array('cgpa', array_map('strtolower', $attrNames), true)) {
+            if (!$this->hasSingleUpload($uploads, 'cgpa')) {
+                $fieldErrors['cgpa_file'][] = 'CGPA proof file is required.';
+            }
+        }
+        if (in_array('achievements', array_map('strtolower', $attrNames), true)) {
+            if ($this->countMultiUploads($uploads, 'achievements') < 1) {
+                $fieldErrors['achievements_files'][] = 'At least one achievement document is required.';
+            }
+        }
+        if (in_array('behaviorReport', $attrNames, true) || in_array('behaviorreport', array_map('strtolower', $attrNames), true)) {
+            if (!$this->hasSingleUpload($uploads, 'behaviorreport')) {
+                $fieldErrors['behaviorreport_file'][] = 'Behavior report file is required.';
+            }
+        }
+
+        // JPEG checks
+        $singleKeys = ['cgpa' => 'cgpa_file', 'behaviorreport' => 'behaviorreport_file'];
+        foreach ($singleKeys as $key => $errKey) {
+            if (isset($uploads['name'][$key]) && ($uploads['error'][$key] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $file = [
+                    'name'     => $uploads['name'][$key],
+                    'type'     => $uploads['type'][$key] ?? '',
+                    'tmp_name' => $uploads['tmp_name'][$key] ?? '',
+                    'error'    => $uploads['error'][$key],
+                    'size'     => $uploads['size'][$key] ?? 0,
+                ];
+                if (!$this->isJpegUpload($file)) {
+                    $fieldErrors[$errKey][] = 'Only JPG/JPEG files are allowed.';
+                }
+            }
+        }
+        if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
+            foreach ($uploads['name']['achievements'] as $i => $n) {
+                if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                $file = [
+                    'name'     => $n,
+                    'type'     => $uploads['type']['achievements'][$i] ?? '',
+                    'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
+                    'error'    => $uploads['error']['achievements'][$i],
+                    'size'     => $uploads['size']['achievements'][$i] ?? 0,
+                ];
+                if (!$this->isJpegUpload($file)) {
+                    $fieldErrors['achievements_files'][] = 'Only JPG/JPEG files are allowed for achievements.';
+                    break;
+                }
+            }
+        }
+
+        if (!empty($errors) || !empty($fieldErrors)) {
+            // rebuild -> render
+            $renderAttrs = [];
+            foreach ($attrNames as $name) {
+                $code = strtolower($name);
+                if (isset($subCols[$code])) {
+                    $renderAttrs[] = [
+                        'code'  => $code,
+                        'label' => ucwords(str_replace(['_','-'],' ', $name)),
+                        'type'  => $this->typeFor($code),
+                    ];
+                }
+            }
+            $registrationOpen = true;
+            $regWindow = $this->registrationFormModel->getRegWindowByFormId($regFormId);
+            $old = ['fields' => $clean];
+
+            $filePath = $this->fileHelper->getFilePath('ApplyNomineeApplicationStudent');
+            if ($filePath && file_exists($filePath)) { include $filePath; } else { echo "View file not found."; }
+            return;
+        }
+
+        //  Create using studentID (single pathway)
+        $ids = $this->nomineeApplicationModel->createNomineeApplication(
+            $studentID,
+            $regFormId,
+            $electionID,
+            $clean
+        );
+
+        $appId        = (int)($ids['nomineeApplicationID'] ?? 0);
+        $submissionId = (int)($ids['applicationSubmissionID'] ?? 0);
+
+        if ($appId <= 0 || $submissionId <= 0) {
+            \set_flash('danger', 'Failed to submit application. Please try again.');
+            $this->applyFormNominee($regFormId); return;
+        }
+
+        // Save uploads (unchanged)
+        $publicBase = realpath(__DIR__ . '/../../public');
+        if ($publicBase === false) { $publicBase = dirname(__DIR__, 3) . '/public'; }
+        $targetDir = rtrim($publicBase, DIRECTORY_SEPARATOR) . '/uploads/academic_document/' . $submissionId;
+        if (!is_dir($targetDir)) { @mkdir($targetDir, 0775, true); }
+
+        $saveOne = function(array $file, string $prefix) use ($targetDir, $submissionId) {
+            if (!$this->isJpegUpload($file)) return;
+            $counter = $this->nextCounter($targetDir, $prefix);
+            $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION)) ?: 'jpg';
+            $stored = "{$prefix}_{$counter}.{$ext}";
+            $dest   = $targetDir . '/' . $stored;
+            if (@move_uploaded_file($file['tmp_name'], $dest)) {
+                $this->academicDocumentModel->insert($submissionId, $stored);
+            }
+        };
+
+        $uploads = $_FILES['uploads'] ?? [];
+        if (($uploads['error']['cgpa'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
             $saveOne([
-                'name'     => $n,
-                'type'     => $uploads['type']['achievements'][$i] ?? '',
-                'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
-                'error'    => $uploads['error']['achievements'][$i],
-                'size'     => $uploads['size']['achievements'][$i] ?? 0,
-            ], 'achievement');
+                'name'     => $uploads['name']['cgpa'],
+                'type'     => $uploads['type']['cgpa'] ?? '',
+                'tmp_name' => $uploads['tmp_name']['cgpa'] ?? '',
+                'error'    => $uploads['error']['cgpa'],
+                'size'     => $uploads['size']['cgpa'] ?? 0,
+            ], 'cgpa');
         }
+        if (($uploads['error']['behaviorreport'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK) {
+            $saveOne([
+                'name'     => $uploads['name']['behaviorreport'],
+                'type'     => $uploads['type']['behaviorreport'] ?? '',
+                'tmp_name' => $uploads['tmp_name']['behaviorreport'] ?? '',
+                'error'    => $uploads['error']['behaviorreport'],
+                'size'     => $uploads['size']['behaviorreport'] ?? 0,
+            ], 'behaviorReport');
+        }
+        if (isset($uploads['name']['achievements']) && is_array($uploads['name']['achievements'])) {
+            foreach ($uploads['name']['achievements'] as $i => $n) {
+                if (($uploads['error']['achievements'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) continue;
+                $saveOne([
+                    'name'     => $n,
+                    'type'     => $uploads['type']['achievements'][$i] ?? '',
+                    'tmp_name' => $uploads['tmp_name']['achievements'][$i] ?? '',
+                    'error'    => $uploads['error']['achievements'][$i],
+                    'size'     => $uploads['size']['achievements'][$i] ?? 0,
+                ], 'achievement');
+            }
+        }
+
+        \set_flash('success', 'Application submitted successfully.');
+        header('Location: /nominee/election-registration-form');
     }
-
-    \set_flash('success', 'Application submitted successfully.');
-    header('Location: /nominee/election-registration-form');
-}
-
-
-
-
-
 
 }

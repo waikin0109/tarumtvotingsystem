@@ -101,6 +101,31 @@ class RegistrationFormController
         if ($studentID > 0) {
             $myAppsByForm = $this->nomineeApplicationModel->getApplicationsByStudentIndexed($studentID);
         }
+        
+        // 4) Filter the registration forms (check open status or if the student has already registered)
+        $filteredRegistrationForms = [];
+        foreach ($registrationForms as $registrationForm) {
+            $isOpen = false;
+            if (isset($registrationForm['registerStartDate'], $registrationForm['registerEndDate'])) {
+                $startDate = new \DateTime($registrationForm['registerStartDate']);
+                $endDate = new \DateTime($registrationForm['registerEndDate']);
+                $currentDate = new \DateTime(); // Current date and time
+
+                // Check if the current date is within the open registration period
+                if ($startDate <= $currentDate && $endDate >= $currentDate) {
+                    $isOpen = true;
+                }
+            }
+
+            // Check if the student has already registered (regardless of open/closed status)
+            $formId = (int)($registrationForm['registrationFormID'] ?? 0);
+            $mine = $myAppsByForm[$formId] ?? null;
+
+            // Add to the filtered list if the form is open or the user has already applied
+            if ($isOpen || $mine) {
+                $filteredRegistrationForms[] = $registrationForm;
+            }
+        }
 
         // 4) Render
         $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormListStudent'); // whatever this file is
@@ -133,6 +158,31 @@ class RegistrationFormController
         $myAppsByForm = [];
         if ($nomineeID > 0) {
             $myAppsByForm = $this->nomineeApplicationModel->getApplicationsByAccountIndexed($_SESSION['accountID']);
+        }
+
+        // 4) Filter the registration forms (check open status or if the student has already registered)
+        $filteredRegistrationForms = [];
+        foreach ($registrationForms as $registrationForm) {
+            $isOpen = false;
+            if (isset($registrationForm['registerStartDate'], $registrationForm['registerEndDate'])) {
+                $startDate = new \DateTime($registrationForm['registerStartDate']);
+                $endDate = new \DateTime($registrationForm['registerEndDate']);
+                $currentDate = new \DateTime(); // Current date and time
+
+                // Check if the current date is within the open registration period
+                if ($startDate <= $currentDate && $endDate >= $currentDate) {
+                    $isOpen = true;
+                }
+            }
+
+            // Check if the student has already registered (regardless of open/closed status)
+            $formId = (int)($registrationForm['registrationFormID'] ?? 0);
+            $mine = $myAppsByForm[$formId] ?? null;
+
+            // Add to the filtered list if the form is open or the user has already applied
+            if ($isOpen || $mine) {
+                $filteredRegistrationForms[] = $registrationForm;
+            }
         }
 
         // 4) Render

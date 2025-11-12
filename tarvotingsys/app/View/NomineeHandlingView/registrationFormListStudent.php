@@ -2,6 +2,7 @@
 $_title = 'Election Registration';
 $roleUpper = strtoupper($_SESSION['role'] ?? '');
 
+// Check user role and load respective headers
 if ($roleUpper === 'NOMINEE') {
     require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 } elseif ($roleUpper === 'STUDENT')  {
@@ -10,6 +11,8 @@ if ($roleUpper === 'NOMINEE') {
 
 $viewBase = ($roleUpper === 'NOMINEE') ? '/nominee/election-registration-form/view/' : '/student/election-registration-form/view/';
 $registerBase = ($roleUpper === 'NOMINEE') ? '/nominee/election-registration-form/register/' : '/student/election-registration-form/register/';
+
+
 ?>
 
 <div>
@@ -35,12 +38,12 @@ $registerBase = ($roleUpper === 'NOMINEE') ? '/nominee/election-registration-for
                     </thead>
 
                     <tbody>
-                        <?php if (empty($registrationForms)): ?>
+                        <?php if (empty($filteredRegistrationForms)): ?>
                             <tr>
                                 <td colspan="4" class="text-center text-muted">No Registration Form found.</td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($registrationForms as $index => $registrationForm): ?>
+                            <?php foreach ($filteredRegistrationForms as $index => $registrationForm): ?>
                                 <tr>
                                     <td><?= $index + 1 ?></td>
                                     <td><?= htmlspecialchars($registrationForm['registrationFormTitle'] ?? '') ?></td>
@@ -59,7 +62,6 @@ $registerBase = ($roleUpper === 'NOMINEE') ? '/nominee/election-registration-for
                                                 class="btn btn-sm btn-warning">Register</a>
                                         <?php endif; ?>
                                     </td>
-
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>
