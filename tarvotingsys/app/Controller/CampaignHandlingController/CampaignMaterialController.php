@@ -2,15 +2,18 @@
 namespace Controller\CampaignHandlingController;
 
 use Model\CampaignHandlingModel\CampaignMaterialModel;
+use Model\NomineeModel\NomineeModel;
 use FileHelper;
 
 class CampaignMaterialController {
     private CampaignMaterialModel $campaignMaterialModel;
+    private NomineeModel $nomineeModel;
     private FileHelper $fileHelper;
 
     public function __construct()
     {
         $this->campaignMaterialModel = new CampaignMaterialModel();
+        $this->nomineeModel = new NomineeModel();
         $this->fileHelper            = new FileHelper('campaign_material');
     }
 
@@ -25,6 +28,34 @@ class CampaignMaterialController {
             echo "View file not found.";
         }
     }
+
+    public function listCampaignMaterialsNominee()
+    {
+        // Only NOMINEE can access (you can adjust role check if needed)
+        if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
+            \set_flash('fail', 'You do not have permission to access this page.');
+            header('Location: /login');
+            exit;
+        }
+
+        $accountID = (int)($_SESSION['accountID'] ?? 0);
+        if ($accountID <= 0) {
+            \set_flash('fail', 'Invalid account.');
+            header('Location: /login');
+            exit;
+        }
+
+        // Get ONLY this user's campaign materials
+        $campaignMaterials = $this->campaignMaterialModel->getCampaignMaterialsByAccount($accountID);
+
+        $filePath = $this->fileHelper->getFilePath('CampaignMaterialListNominee');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;   // exposes $campaignMaterials to the view
+        } else {
+            echo "View file not found.";
+        }
+    }
+
 
     // --------------------- Create --------------------- //
     public function createCampaignMaterial()
@@ -188,7 +219,7 @@ class CampaignMaterialController {
         $this->saveCampaignUploads($appID, $_FILES['materialsFiles'] ?? null);
 
         \set_flash('success', 'Campaign material application submitted (PENDING).');
-        header('Location: /campaign-material');
+        header('Location: /admin/campaign-material');
     }
 
     /**
@@ -263,10 +294,16 @@ class CampaignMaterialController {
         $campaignMaterial = $this->campaignMaterialModel->getCampaignMaterialById($id);
         if (!$campaignMaterial) {
             \set_flash('danger', 'Campaign material not found.');
-            header('Location: /campaign-material');
+            header('Location: /admin/campaign-material');
             return;
         }
         $documents = $this->campaignMaterialModel->getDocumentsByApplication($id);
+
+        if (strtolower($campaignMaterial['status'] ?? '') === 'completed') {
+            \set_flash('fail','This campaign material belongs to a completed event and cannot be edited.');
+            header('Location: /admin/campaign-material'); 
+            exit;
+        }
 
         $errors = [];
         $fieldErrors = [];
@@ -291,7 +328,7 @@ class CampaignMaterialController {
         $header           = $this->campaignMaterialModel->getCampaignMaterialById($id);
         if (!$header) {
             \set_flash('danger', 'Campaign material not found.');
-            header('Location: /campaign-material');
+            header('Location: /admin/campaign-material');
             return;
         }
 
@@ -384,7 +421,7 @@ class CampaignMaterialController {
         $this->saveCampaignUploads($id, $_FILES['materialsFiles'] ?? null);
 
         \set_flash('success', 'Campaign material updated successfully.');
-        header('Location: /campaign-material');
+        header('Location: /admin/campaign-material');
     }
 
     /**
@@ -418,7 +455,62 @@ class CampaignMaterialController {
         $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
         if (!$cm) {
             \set_flash('danger', 'Campaign material not found.');
-            header('Location: /campaign-material');
+            header('Location: /admin/campaign-material');
+            return;
+        }
+
+        // Load docs
+        $documents = $this->campaignMaterialModel->getDocumentsByApplication($id);
+
+        // Build view-model
+        $vm = [
+            'id'             => $id,
+            'eventTitle'     => (string)($cm['electionEventTitle'] ?? ''),
+            'nomineeName'    => (string)($cm['nomineeFullName'] ?? ''),
+            'title'          => (string)($cm['materialsTitle'] ?? ''),
+            'type'           => (string)($cm['materialsType'] ?? ''),
+            'desc'           => (string)($cm['materialsDesc'] ?? ''),
+            'qty'            => (int)($cm['materialsQuantity'] ?? 0),
+            'status'         => (string)($cm['materialsApplicationStatus'] ?? 'PENDING'),
+            'adminID'        => $cm['adminID'] ?? null,
+            'badgeClass'     => $this->badgeClass((string)($cm['materialsApplicationStatus'] ?? 'PENDING')),
+            'docBaseUrl'     => "/uploads/campaign_material/{$id}/",
+        ];
+
+        // Normalize document rows for the table (url + preview flag already computed)
+        $docRows = [];
+        $i = 1;
+        foreach ($documents as $d) {
+            $fname = (string)($d['materialsFilename'] ?? '');
+            $url   = $vm['docBaseUrl'] . rawurlencode($fname);
+            $docRows[] = [
+                'idx'      => $i++,
+                'filename' => $fname,
+                'url'      => $url,
+                'isImage'  => $this->isImageFile($fname),
+            ];
+        }
+
+        // Render
+        $filePath = $this->fileHelper->getFilePath('ViewCampaignMaterial');
+        if ($filePath && file_exists($filePath)) {
+            // Expose only the data the view needs:
+            $campaign = $vm;
+            $docs     = $docRows;
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function viewCampaignMaterialNominee($materialsApplicationID)
+    {
+        $id = (int)$materialsApplicationID;
+
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header('Location: /nominee/campaign-material');
             return;
         }
 
@@ -487,28 +579,257 @@ class CampaignMaterialController {
 
 
     // --------------------- Accept / Reject --------------------- //
-    public function acceptCampaignMaterial($materialsApplicationID)
+   public function acceptCampaignMaterial($materialsApplicationID)
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: /campaign-material");
+            header("Location: /admin/campaign-material");
             return;
         }
 
-        $this->campaignMaterialModel->acceptCampaignMaterial($materialsApplicationID,1);
-        \set_flash('success', 'Campaign Material accepted successfully.');
-        header("Location: /campaign-material");
+        $id = (int)$materialsApplicationID;
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header("Location: /admin/campaign-material");
+            return;
+        }
+
+        // block if now > electionEndDate
+        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
+        $now  = new \DateTime('now', $tz);
+        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
+        if ($endAt && $now > $endAt) {
+            \set_flash('danger', 'Action not allowed after election end.');
+            header("Location: /admin/campaign-material");
+            return;
+        }
+
+        $adminId = $_SESSION['adminID'] ?? null; // make sure you set this at login
+        $this->campaignMaterialModel->acceptCampaignMaterial($id, $adminId);
+        \set_flash('success', 'Campaign Material approved successfully.');
+        header("Location: /admin/campaign-material");
     }
 
     public function rejectCampaignMaterial($materialsApplicationID)
     {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: /campaign-material'");
+            header("Location: /admin/campaign-material");
             return;
         }
 
-        $this->campaignMaterialModel->rejectCampaignMaterial($materialsApplicationID,1);
+        $id = (int)$materialsApplicationID;
+        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
+        if (!$cm) {
+            \set_flash('danger', 'Campaign material not found.');
+            header("Location: /admin/campaign-material");
+            return;
+        }
+
+        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
+        $now  = new \DateTime('now', $tz);
+        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
+        if ($endAt && $now > $endAt) {
+            \set_flash('danger', 'Action not allowed after election end.');
+            header("Location: /admin/campaign-material");
+            return;
+        }
+
+        $adminId = $_SESSION['adminID'] ?? null;
+        $this->campaignMaterialModel->rejectCampaignMaterial($id, $adminId);
         \set_flash('success', 'Campaign Material rejected successfully.');
-        header("Location: /campaign-material");
+        header("Location: /admin/campaign-material");
     }
+
+    //---------------------------------------------------------------------------------------------//
+    //Create Nominee Vers.
+    public function createCampaignMaterialNominee()
+{
+    $errors = [];
+    $fieldErrors = [];
+    $old = [];
+
+    // Get the current logged-in nominee's accountID
+    $accountID = (int)($_SESSION['accountID'] ?? 0);
+    if ($accountID <= 0) {
+        \set_flash('fail', 'Invalid account.');
+        header('Location: /login');
+        exit;
+    }
+
+    // Fetch the election events the nominee has applied to (PUBLISHED status)
+    $elections = $this->campaignMaterialModel->getElectionsForNominee($accountID);
+
+    // If the nominee has not applied to any election, display an error or redirect
+    if (empty($elections)) {
+        \set_flash('fail', 'You have not applied for any election events yet.');
+        header('Location: /nominee/campaign-material');  // Adjust redirection as necessary
+        exit;
+    }
+
+    // If user already selected an election (old state), load nominees for that election
+    $nominees = [];
+    if (!empty($_GET['electionID']) && ctype_digit($_GET['electionID'])) {
+        $old['electionID'] = (int)$_GET['electionID'];
+        $nominees = $this->campaignMaterialModel->getEligibleNomineesByElection($old['electionID']);
+    }
+
+    // Proceed to load the form
+    $filePath = $this->fileHelper->getFilePath('CreateCampaignMaterialNominee');
+    if ($filePath && file_exists($filePath)) {
+        include $filePath;
+    } else {
+        echo "View file not found.";
+    }
+}
+
+
+    public function storeCreateCampaignMaterialNominee()
+{
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $this->createCampaignMaterialNominee();
+        return;
+    }
+
+    // Get the current logged-in nominee's accountID (nomineeID is retrieved from session)
+    $accountID = (int)($_SESSION['accountID'] ?? 0);
+    if ($accountID <= 0) {
+        \set_flash('fail', 'Invalid account.');
+        header('Location: /login');
+        exit;
+    }
+
+    // Collect and sanitize input data
+    $electionID        = isset($_POST['electionID']) ? (int)$_POST['electionID'] : 0;
+    $materialsTitle    = trim($_POST['materialsTitle'] ?? '');
+    $materialsType     = $_POST['materialsType'] ?? '';
+    $materialsDesc     = trim($_POST['materialsDesc'] ?? '');
+    $materialsQuantity = isset($_POST['materialsQuantity']) ? (int)$_POST['materialsQuantity'] : 0;
+
+    $old = [
+        'electionID'        => $electionID,
+        'materialsTitle'    => $materialsTitle,
+        'materialsType'     => $materialsType,
+        'materialsDesc'     => $materialsDesc,
+        'materialsQuantity' => $materialsQuantity,
+    ];
+    $errors = [];
+    $fieldErrors = [];
+
+    // Validate the election selection
+    if ($electionID <= 0) { 
+        $fieldErrors['electionID'][] = 'Please select an election.';
+    }
+
+    if ($materialsTitle === '') {
+        $fieldErrors['materialsTitle'][] = 'Title is required.';
+    }
+
+    if (!in_array($materialsType, ['PHYSICAL', 'DIGITAL'], true)) {
+        $fieldErrors['materialsType'][] = 'Invalid type.';
+    }
+
+    if ($materialsDesc === '') {
+        $fieldErrors['materialsDesc'][] = 'Description is required.';
+    }
+
+    if ($materialsQuantity <= 0) {
+        $fieldErrors['materialsQuantity'][] = 'Quantity must be a positive integer.';
+    }
+
+    // ---------- FILES: REQUIRE AT LEAST ONE, VALIDATE EACH ----------
+    $files = $_FILES['materialsFiles'] ?? null;
+    $hasAtLeastOne = false;
+    $allowedExt = ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'ppt', 'pptx'];
+    $maxBytesPerFile = 10 * 1024 * 1024; // 10 MB
+
+    if ($files && is_array($files['name'] ?? null)) {
+        $count = count($files['name']);
+        for ($i = 0; $i < $count; $i++) {
+            $err = $files['error'][$i] ?? UPLOAD_ERR_NO_FILE;
+            if ($err === UPLOAD_ERR_NO_FILE) continue;
+
+            if ($err !== UPLOAD_ERR_OK) {
+                $errors[] = 'One of the uploaded files failed to upload.';
+                continue;
+            }
+
+            $tmpPath  = $files['tmp_name'][$i] ?? '';
+            $origName = $files['name'][$i] ?? '';
+            if (!is_uploaded_file($tmpPath)) {
+                $errors[] = "Invalid file: {$origName}";
+                continue;
+            }
+
+            // size
+            $size = filesize($tmpPath);
+            if ($size === false || $size <= 0) {
+                $errors[] = "File {$origName} is empty or unreadable.";
+                continue;
+            }
+            if ($size > $maxBytesPerFile) {
+                $errors[] = "File {$origName} exceeds 10 MB.";
+                continue;
+            }
+
+            // extension
+            $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+            if (!in_array($ext, $allowedExt, true)) {
+                $errors[] = "File {$origName} has an unsupported type. Allowed: " . strtoupper(implode(', ', $allowedExt));
+                continue;
+            }
+
+            $hasAtLeastOne = true;
+        }
+    }
+
+    if (!$hasAtLeastOne) {
+        $fieldErrors['materialsFiles'][] = 'Please upload at least one file.';
+    }
+
+    // ---------- Server-side eligibility re-check ----------
+    // Fetch eligible elections the nominee has applied to
+    $eligibleElections = $this->campaignMaterialModel->getElectionsForNominee($accountID);
+    $eligibleElectionIDs = array_column($eligibleElections, 'electionID');
+    if (!in_array($electionID, $eligibleElectionIDs)) {
+        $fieldErrors['electionID'][] = 'This election is not eligible for campaign materials (not published or registration ended).';
+    }
+
+    // If there are validation errors, re-render the form with error messages
+    if (!empty($fieldErrors) || !empty($errors)) {
+        $elections = $this->campaignMaterialModel->getElectionsForNominee($accountID); // Refresh elections
+        $filePath  = $this->fileHelper->getFilePath('CreateCampaignMaterialNominee');
+        include $filePath;
+        return;
+    }
+
+    // Save campaign material header
+    $data = [
+        'electionID'        => $electionID,
+        'nomineeID'         => $_SESSION['roleID'],
+        'materialsTitle'    => $materialsTitle,
+        'materialsType'     => $materialsType,
+        'materialsDesc'     => $materialsDesc ?: null,
+        'materialsQuantity' => $materialsQuantity,
+        'adminID'           => $_SESSION['adminID'] ?? null, // if applicable
+    ];
+
+    // Create the campaign material record
+    $appID = $this->campaignMaterialModel->createCampaignMaterial($data);
+    if ($appID <= 0) {
+        \set_flash('danger', 'Failed to create campaign material.');
+        $elections = $this->campaignMaterialModel->getElectionsForNominee($accountID); // Refresh elections
+        $errors[]  = 'Unexpected error while saving.';
+        $filePath  = $this->fileHelper->getFilePath('CreateCampaignMaterialNominee');
+        include $filePath;
+        return;
+    }
+
+    // Save files (after the campaign material header is created)
+    $this->saveCampaignUploads($appID, $_FILES['materialsFiles'] ?? null);
+
+    \set_flash('success', 'Campaign material application submitted (PENDING).');
+    header('Location: /nominee/campaign-material');
+}
+
 
 }

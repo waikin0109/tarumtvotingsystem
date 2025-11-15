@@ -98,7 +98,7 @@ $annLink = ($role === 'STUDENT') ? '/announcements' : '/announcements/public';
                         <a href="/student/election-registration-form" class="list-group-item list-group-item-action">Election Registration</a>
                         <a href="/student/rule" class="list-group-item list-group-item-action">Rules and Regulations</a>
                         <a href="/student/nominee-final-list" class="list-group-item list-group-item-action">Nominees' Registration Final Lists</a>
-                        <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
+                        <a href="/student/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
                         <a href="#" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>

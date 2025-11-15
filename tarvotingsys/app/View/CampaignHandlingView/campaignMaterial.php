@@ -15,7 +15,7 @@ $now = new DateTime('now', $tz);
         <h2>Campaign Materials Application</h2>
       </div>
       <div class="col-sm-6">
-        <a href="/campaign-material/create">
+        <a href="/admin/campaign-material/create">
           <button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create (+)</button>
         </a>
       </div>
@@ -52,15 +52,12 @@ $now = new DateTime('now', $tz);
               $endAt  = $endStr ? new DateTime($endStr, $tz) : null;
               $closed = $endAt && ($now > $endAt); // disable buttons if ended
             ?>
-              <tr class="clickable-row" data-href="/campaign-material/view/<?= urlencode($id) ?>">
+              <tr class="clickable-row" data-href="/admin/campaign-material/view/<?= urlencode($id) ?>">
                 <td><?= $index + 1 ?></td>
                 <td><?= htmlspecialchars($title) ?></td>
                 <td><?= htmlspecialchars($nom) ?></td>
                 <td>
                   <?= htmlspecialchars($event) ?>
-                  <?php if ($endAt): ?>
-                    <div class="small text-muted">Ends: <?= htmlspecialchars($endAt->format('Y-m-d H:i')) ?></div>
-                  <?php endif; ?>
                 </td>
                 <td>
                   <?php
@@ -73,21 +70,21 @@ $now = new DateTime('now', $tz);
                   <span class="badge <?= $badge ?>"><?= htmlspecialchars($status) ?></span>
                 </td>
                 <td onclick="event.stopPropagation()">
-                  <a href="/campaign-material/edit/<?= urlencode($id) ?>"
+                  <a href="/admin/campaign-material/edit/<?= urlencode($id) ?>"
                      class="btn btn-sm btn-warning <?= $closed ? 'disabled' : '' ?>"
                      <?= $closed ? 'aria-disabled="true" tabindex="-1" title="Disabled after election end"' : '' ?>>
                     Edit
                   </a>
 
-                  <form method="POST" action="/campaign-material/accept/<?= urlencode($id) ?>" class="d-inline"
-                        onsubmit="return <?= $closed ? 'false' : 'confirm(\'Accept this campaign material?\')' ?>;">
+                  <form method="POST" action="/admin/campaign-material/accept/<?= urlencode($id) ?>" class="d-inline"
+                        onsubmit="return <?= $closed ? 'false' : 'confirm(\'Approve this campaign material?\')' ?>;">
                     <button type="submit" class="btn btn-sm btn-success"
                             <?= $closed ? 'disabled title="Disabled after election end"' : '' ?>>
-                      Accept
+                      Approve
                     </button>
                   </form>
 
-                  <form method="POST" action="/campaign-material/reject/<?= urlencode($id) ?>" class="d-inline"
+                  <form method="POST" action="/admin/campaign-material/reject/<?= urlencode($id) ?>" class="d-inline"
                         onsubmit="return <?= $closed ? 'false' : 'confirm(\'Reject this campaign material?\')' ?>;">
                     <button type="submit" class="btn btn-sm btn-danger"
                             <?= $closed ? 'disabled title="Disabled after election end"' : '' ?>>

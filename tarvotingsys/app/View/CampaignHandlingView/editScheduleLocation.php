@@ -30,7 +30,7 @@ function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-inva
     </ul></div>
   <?php endif; ?>
 
-  <form action="/schedule-location/edit/<?= (int)($scheduleLocationData['eventApplicationID'] ?? 0) ?>" method="POST" id="editScheduleForm">
+  <form action="/admin/schedule-location/edit/<?= (int)($scheduleLocationData['eventApplicationID'] ?? 0) ?>" method="POST" id="editScheduleForm">
 
     <!-- Election Event (display only) -->
     <div class="mb-3">
@@ -93,7 +93,7 @@ function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-inva
     </div>
 
     <div class="d-flex justify-content-center gap-3">
-      <a href="/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
+      <a href="/admin/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
       <button type="submit" class="btn btn-primary px-4">Save</button>
     </div>
   </form>

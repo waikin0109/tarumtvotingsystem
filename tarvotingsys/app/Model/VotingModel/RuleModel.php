@@ -28,7 +28,7 @@ class RuleModel
                 SELECT r.*, e.title AS event_name, e.status AS event_status, e.electionStartDate, e.electionEndDate
                 FROM rule r
                 INNER JOIN electionevent e ON r.electionID = e.electionID
-                ORDER BY r.ruleID ASC"
+                ORDER BY r.electionID DESC"
             );
             $stmt->execute();
             $rules = $stmt->fetchAll(PDO::FETCH_ASSOC);

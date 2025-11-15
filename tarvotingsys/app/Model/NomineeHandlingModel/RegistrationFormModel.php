@@ -39,7 +39,7 @@ class RegistrationFormModel
                 LEFT JOIN electionevent  e   ON rf.electionID = e.electionID
                 LEFT JOIN administrator  a   ON a.adminID     = rf.adminID
                 LEFT JOIN account        acc ON acc.accountID = a.accountID
-                ORDER BY rf.registrationFormID ASC
+                ORDER BY rf.registerEndDate DESC
             ");
             $stmt->execute();
             $registrationForms = $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -1,13 +1,34 @@
 <?php
-$_title = 'View Final Schedule';
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$_title = 'Schedule Location Event';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT')  {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+}
+
+$backUrl = ($roleUpper === 'NOMINEE')
+    ? '/nominee/schedule-location'
+    : '/student/schedule-location';
+
+$calendarUrl = ($roleUpper === 'NOMINEE')
+    ? '/nominee/schedule-location/calendar-feed'
+    : '/student/schedule-location/calendar-feed';
+
+$viewUrl = ($roleUpper === 'NOMINEE')
+    ? '/nominee/schedule-location/view/'
+    : '/student/schedule-location/view/';
 ?>
 
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Final Campaign Schedule</h2>
-    <a href="/admin/schedule-location" class="btn btn-outline-secondary">Back to List</a>
+    <h2 class="mb-0">
+      Final Campaign Schedule - <?= htmlspecialchars($electionTitle ?? ''); ?>
+    </h2>
+    <a href="<?= htmlspecialchars($backUrl) ?>" class="btn btn-outline-secondary">Back to List</a>
   </div>
+
 
   <div class="card">
     <div class="card-body">
@@ -23,6 +44,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 <script>
 document.addEventListener('DOMContentLoaded', async function () {
   const calendarEl = document.getElementById('calendar');
+  const electionId = <?= (int)($electionId ?? 0); ?>;
 
   const calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
@@ -34,10 +56,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     },
     eventTimeFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
 
-    // Same feed as your Schedule Board
     events: async (info, success, failure) => {
       try {
-        const res = await fetch('/admin/schedule-location/calendar-feed');
+        const res = await fetch(
+          '<?= htmlspecialchars($calendarUrl) ?>?electionID=' + encodeURIComponent(electionId)
+        );
         if (!res.ok) throw new Error('Failed to load events');
         const data = await res.json();
 
@@ -58,16 +81,24 @@ document.addEventListener('DOMContentLoaded', async function () {
       }
     },
 
-    // Click -> go to the event application details page
     eventClick: function(info) {
       const eaid = info.event.extendedProps.eventApplicationID;
       if (!eaid) return;
-      window.location.href = `/admin/schedule-location/view/${eaid}`;
+
+      const baseViewUrl = "<?= $viewUrl ?>";
+      window.location.href = baseViewUrl + eaid;
     }
   });
 
   calendar.render();
 });
+
 </script>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT')  {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+}
+?>

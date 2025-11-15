@@ -1,15 +1,14 @@
 <?php
-$_title = "Create Schedule Location";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$_title = "Apply Campaign Event";
+require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 
-// Optional: if you moved invalid() to a shared include, remove this.
 if (!function_exists('invalid')) {
   function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-invalid' : ''; }
 }
 ?>
 
 <div class="container mt-4 mb-5">
-  <h2>Create Schedule Location</h2>
+  <h2>Apply for Campaign Event</h2>
 
   <?php if (!empty($errors)): ?>
     <div class="alert alert-danger"><ul class="mb-0">
@@ -17,7 +16,7 @@ if (!function_exists('invalid')) {
     </ul></div>
   <?php endif; ?>
 
-  <form action="/admin/schedule-location/create" method="POST" id="scheduleForm" novalidate>
+  <form action="/nominee/schedule-location/create" method="POST" id="scheduleForm" novalidate>
     <!-- Election (searchable) -->
     <div class="mb-3">
       <label class="form-label">Election Event <span class="text-danger">*</span></label>
@@ -48,55 +47,12 @@ if (!function_exists('invalid')) {
           <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?></div>
         <?php endif; ?>
         <div id="electionHelp" class="text-danger small d-none">
-        The event is not available. Please select from the list.
+          The event is not available. Please select from the list.
         </div>
       </div>
-      <small class="text-muted">Only elections with registration closed and at least one <b>PUBLISHED</b> nominee appear.</small>
-    </div>
-
-    <!-- Nominee (searchable, scoped to election) -->
-    <div class="mb-3">
-      <label class="form-label">Nominee <span class="text-danger">*</span></label>
-      <div class="position-relative">
-        <input type="text" class="form-control<?= invalid($fieldErrors,'nomineeID') ?>"
-               id="nomineeSearch" placeholder="Search nominee by name or ID…"
-               autocomplete="off"
-               value="<?php
-                 if (!empty($old['nomineeID'])) {
-                   foreach ($nominees as $n) {
-                     if ((int)$n['nomineeID'] === (int)$old['nomineeID']) {
-                       $label = $n['display'] ?? ($n['fullName'].' ('.$n['nomineeID'].')');
-                       echo htmlspecialchars($label); break;
-                     }
-                   }
-                 }
-               ?>"
-               <?= empty($old['electionID']) ? 'disabled' : '' ?>>
-        <input type="hidden" name="nomineeID" id="nomineeID" value="<?= (int)($old['nomineeID'] ?? 0) ?>">
-
-        <div id="nomineeList" class="dropdown-menu w-100 p-0" style="max-height:240px;overflow:auto; <?= empty($old['electionID']) ? 'pointer-events:none;opacity:.6;' : '' ?>">
-          <?php foreach ($nominees as $n):
-            $label = $n['display'] ?? ($n['fullName'].' ('.$n['nomineeID'].')');
-            $keys  = strtolower(($n['fullName'] ?? '').' '.$n['nomineeID'].' '.$label);
-          ?>
-            <button type="button" class="dropdown-item d-flex justify-content-between"
-                    data-id="<?= (int)$n['nomineeID'] ?>"
-                    data-text="<?= htmlspecialchars($label) ?>"
-                    data-keywords="<?= htmlspecialchars($keys) ?>">
-              <span><?= htmlspecialchars($n['fullName'] ?? $label) ?></span>
-              <small class="text-muted">ID <?= (int)$n['nomineeID'] ?></small>
-            </button>
-          <?php endforeach; ?>
-        </div>
-        <?php if (!empty($fieldErrors['nomineeID'])): ?>
-          <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['nomineeID'])) ?></div>
-        <?php endif; ?>
-        <div id="nomineeHelp" class="text-danger small d-none">
-        The name is not available. Please select a nominee from the list.
-        </div>
-
-      </div>
-      <small class="text-muted">Nominees listed belong only to the selected election.</small>
+      <small class="text-muted">
+        Only elections where you are a <b>PUBLISHED</b> nominee and registration has closed will appear.
+      </small>
     </div>
 
     <!-- Event Name -->
@@ -147,10 +103,9 @@ if (!function_exists('invalid')) {
       <div class="form-text">Must be at least 1 hour after start and not after the election end.</div>
     </div>
 
-
     <div class="d-flex justify-content-center gap-3">
-      <a href="/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
-      <button type="submit" class="btn btn-primary px-4">Create</button>
+      <a href="/nominee/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
+      <button type="submit" class="btn btn-primary px-4">Submit</button>
     </div>
   </form>
 </div>
@@ -166,12 +121,10 @@ if (!function_exists('invalid')) {
 
     input.addEventListener('focus', () => {
       menu.classList.add('show');
-      // don’t show help while focusing/typing
       hide(helpId);
     });
 
     input.addEventListener('input', () => {
-      // User is typing: clear hidden id and hide help
       if (hiddenId) $(hiddenId).value = '';
       hide(helpId);
 
@@ -185,7 +138,6 @@ if (!function_exists('invalid')) {
     });
 
     input.addEventListener('blur', () => {
-      // If user left typed text but didn’t select an item, show help
       const haveText = input.value.trim() !== '';
       const haveId   = hiddenId ? !!$(hiddenId).value : false;
       if (haveText && !haveId) show(helpId);
@@ -196,7 +148,7 @@ if (!function_exists('invalid')) {
     });
   };
 
-  // Election
+  // Election dropdown
   const electionInput = $('electionSearch');
   const electionList  = $('electionList');
   const electionID    = $('electionID');
@@ -210,40 +162,10 @@ if (!function_exists('invalid')) {
       electionID.value    = btn.dataset.id;
       electionList.classList.remove('show');
       hide('electionHelp');
-
-      // reload to repopulate nominees
-      const url = new URL(window.location.href);
-      url.searchParams.set('electionID', btn.dataset.id);
-      const en = $('eventName')?.value || '';
-      const et = $('eventType')?.value || '';
-      const ds = $('desiredStartDateTime')?.value || '';
-      const de = $('desiredEndDateTime')?.value   || '';
-      if (en) url.searchParams.set('eventName', en);
-      if (et) url.searchParams.set('eventType', et);
-      if (ds) url.searchParams.set('desiredStartDateTime', ds);
-      if (de) url.searchParams.set('desiredEndDateTime', de);
-      window.location.href = url.toString();
     });
   }
 
-  // Nominee
-  const nomineeInput = $('nomineeSearch');
-  const nomineeList  = $('nomineeList');
-  const nomineeID    = $('nomineeID');
-
-  if (nomineeInput && nomineeList && nomineeID) {
-    makeDropdown(nomineeInput, nomineeList, 'nomineeID', 'nomineeHelp');
-
-    nomineeList.addEventListener('click', (e) => {
-      const btn = e.target.closest('button.dropdown-item'); if (!btn) return;
-      nomineeInput.value = btn.dataset.text;
-      nomineeID.value    = btn.dataset.id;
-      nomineeList.classList.remove('show');
-      hide('nomineeHelp');
-    });
-  }
-
-  // Final submit guard
+  // Basic time validation on submit
   const form = $('scheduleForm');
   if (form) {
     form.addEventListener('submit', (e) => {
@@ -254,19 +176,11 @@ if (!function_exists('invalid')) {
         electionInput.focus();
         ok = false;
       }
-      if (nomineeInput && nomineeID && !nomineeID.value) {
-        show('nomineeHelp', 'The name is not available. Please select a nominee from the list.');
-        if (ok) nomineeInput.focus();
-        ok = false;
-      }
 
-      // Light client validation for start/end
       const startEl = $('desiredStartDateTime');
       const endEl   = $('desiredEndDateTime');
-      const clearInlineError = (el) => { el.classList.remove('is-invalid'); };
-      const setInlineError   = (el, msg) => {
+      const setInlineError = (el, msg) => {
         el.classList.add('is-invalid');
-        // show a simple next-sibling feedback if present
         let fb = el.parentElement.querySelector('.invalid-feedback');
         if (!fb) {
           fb = document.createElement('div');
@@ -274,6 +188,9 @@ if (!function_exists('invalid')) {
           el.parentElement.appendChild(fb);
         }
         fb.textContent = msg;
+      };
+      const clearInlineError = (el) => {
+        el.classList.remove('is-invalid');
       };
 
       if (startEl && endEl) {
@@ -294,20 +211,9 @@ if (!function_exists('invalid')) {
       if (!ok) e.preventDefault();
     });
   }
-
-
-  // Sync once on page load (so help doesn’t stick)
-  window.addEventListener('DOMContentLoaded', () => {
-    if (electionInput && electionID) {
-      if (!electionInput.value.trim() || electionID.value) hide('electionHelp');
-    }
-    if (nomineeInput && nomineeID) {
-      if (!nomineeInput.value.trim() || nomineeID.value) hide('nomineeHelp');
-    }
-  });
 })();
 </script>
 
-
-
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+?>

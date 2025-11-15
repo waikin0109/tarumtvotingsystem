@@ -13,10 +13,10 @@ $scheduleLocations = $scheduleLocations ?? [];
       </div>
     </div>
     <div class="col-sm-4 d-flex justify-content-end">
-      <a href="/schedule-location/schedule" class="mx-2">
+      <a href="/admin/schedule-location/schedule" class="mx-2">
         <button class="btn btn-primary">Schedule</button>
       </a>
-      <a href="/schedule-location/create" class="mx-2">
+      <a href="/admin/schedule-location/create" class="mx-2">
         <button class="btn btn-primary">Create (+)</button>
       </a>
     </div>
@@ -47,7 +47,7 @@ $scheduleLocations = $scheduleLocations ?? [];
               <?php foreach ($scheduleLocations as $index => $sl): 
                 $id = urlencode($sl['eventApplicationID'] ?? '');
               ?>
-                <tr class="clickable-row" data-href="/schedule-location/view/<?= $id ?>">
+                <tr class="clickable-row" data-href="/admin/schedule-location/view/<?= $id ?>">
                   <td><?= (int)$index + 1 ?></td>
                   <td><?= htmlspecialchars($sl['eventName'] ?? '') ?></td>
                   <td><?= htmlspecialchars($sl['election_event'] ?? '') ?></td>
@@ -68,9 +68,9 @@ $scheduleLocations = $scheduleLocations ?? [];
 
                   <td onclick="event.stopPropagation()">
                     <?php if ($status === 'PENDING'): ?>
-                      <a class="btn btn-sm btn-outline-primary me-1" href="/schedule-location/edit/<?= $id ?>">Edit</a>
+                      <a class="btn btn-sm btn-outline-primary me-1" href="/admin/schedule-location/edit/<?= $id ?>">Edit</a>
                     <?php else: ?>
-                      <a class="btn btn-sm btn-outline-info me-1" href="/schedule-location/view-schedule">View schedule</a>
+                      <a class="btn btn-sm btn-outline-info me-1" href="/admin/schedule-location/view-schedule">View schedule</a>
                     <?php endif; ?>
                   </td>
 

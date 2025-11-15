@@ -1,6 +1,6 @@
 <?php
-$_title = "Apply Campaign Material";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$_title = 'Campaign Material Lists';
+require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 
 /**
  * expects:
@@ -23,71 +23,26 @@ $errors = $errors ?? [];
     </ul></div>
   <?php endif; ?>
 
-  <form action="/admin/campaign-material/create" method="POST" id="appForm" novalidate enctype="multipart/form-data">
-    <!-- Election (searchable) -->
-    <div class="mb-3">
-      <label class="form-label">Election Event</label>
-      <div class="position-relative">
-        <input type="text" class="form-control<?= invalid($fieldErrors,'electionID') ?>"
-               id="electionSearch" placeholder="Search event…"
-               autocomplete="off"
-               value="<?php
-                 if (!empty($old['electionID'])) {
-                   $sel = array_values(array_filter($elections, fn($x)=> (int)$x['electionID']===(int)$old['electionID']));
-                   echo htmlspecialchars($sel ? $sel[0]['title'] : '');
-                 }
-               ?>">
-        <input type="hidden" name="electionID" id="electionID" value="<?= (int)($old['electionID'] ?? 0) ?>">
-        <div id="electionList" class="dropdown-menu w-100 p-0" style="max-height:240px;overflow:auto;">
-          <?php foreach (($elections ?? []) as $ev): ?>
-            <button type="button" class="dropdown-item" data-id="<?= (int)$ev['electionID'] ?>"
-                    data-text="<?= htmlspecialchars($ev['title']) ?>">
-              <?= htmlspecialchars($ev['title']) ?>
-            </button>
-          <?php endforeach; ?>
-        </div>
+  <form action="/nominee/campaign-material/create" method="POST" id="appForm" novalidate enctype="multipart/form-data">
+    <!-- Election Event Selection -->
+<div class="mb-3">
+    <label class="form-label">Election Event</label>
+    <div class="position-relative">
+        <select name="electionID" class="form-select<?= invalid($fieldErrors, 'electionID') ?>" required>
+            <option value="">Select Election Event</option>
+            <?php foreach ($elections as $ev): ?>
+                <option value="<?= (int)$ev['electionID'] ?>" 
+                    <?= isset($old['electionID']) && (int)$ev['electionID'] === (int)$old['electionID'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($ev['title']) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
         <?php if (!empty($fieldErrors['electionID'])): ?>
-          <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?></div>
+            <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?></div>
         <?php endif; ?>
-      </div>
-      <small class="text-muted">Only events with registration closed and published nominees appear.</small>
     </div>
+</div>
 
-    <!-- Nominee (depends on election) -->
-    <div class="mb-3">
-      <label class="form-label">Nominee</label>
-      <div class="position-relative">
-        <input type="text" class="form-control<?= invalid($fieldErrors,'nomineeID') ?>"
-               id="nomineeSearch" placeholder="Search nominee by name or student ID…"
-               autocomplete="off"
-               value="<?php
-                 if (!empty($old['nomineeID']) && !empty($nominees)) {
-                   foreach ($nominees as $n) {
-                     if (((int)$n['nomineeID'] === (int)$old['nomineeID'])) {
-                       echo htmlspecialchars($n['fullName'] . ' (ID '.$n['studentID'].')');
-                       break;
-                     }
-                   }
-                 }
-               ?>">
-        <input type="hidden" name="nomineeID" id="nomineeID" value="<?= (int)($old['nomineeID'] ?? 0) ?>">
-        <div id="nomineeList" class="dropdown-menu w-100 p-0" style="max-height:240px;overflow:auto;">
-          <?php foreach (($nominees ?? []) as $n): ?>
-            <button type="button" class="dropdown-item d-flex justify-content-between"
-                    data-id="<?= (int)$n['nomineeID'] ?>"
-                    data-text="<?= htmlspecialchars($n['fullName'].' (ID '.$n['studentID'].')') ?>"
-                    data-keywords="<?= htmlspecialchars(strtolower($n['fullName'].' '.$n['studentID'])) ?>">
-              <span><?= htmlspecialchars($n['fullName']) ?></span>
-              <small class="text-muted">ID <?= (int)$n['studentID'] ?></small>
-            </button>
-          <?php endforeach; ?>
-        </div>
-        <?php if (!empty($fieldErrors['nomineeID'])): ?>
-          <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['nomineeID'])) ?></div>
-        <?php endif; ?>
-      </div>
-      <small class="text-muted">Only nominees with PUBLISHED applications for the selected event.</small>
-    </div>
 
     <!-- Title -->
     <div class="mb-3">
@@ -247,4 +202,7 @@ $errors = $errors ?? [];
   });
 })();
 </script>
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+
+<?php
+require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+?>

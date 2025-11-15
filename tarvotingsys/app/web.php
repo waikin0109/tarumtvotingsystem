@@ -95,6 +95,7 @@ Route::get('/nominee/election-registration-form/register/{id}', [NomineeApplicat
 Route::post('/nominee/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyStoreNominee']);
 Route::get('/nominee/election-registration-form/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplicationNominee']);
 
+
 // Nominee Application Routes
 // Admin Sided
 Route::get('/admin/nominee-application', [NomineeApplicationController::class, 'listNomineeApplications']);
@@ -120,29 +121,52 @@ Route::get('/nominee/nominee-final-list/view/{id}', [NomineeApplicationControlle
 
 
 // Campaign Material Routes
-Route::get('/campaign-material', [CampaignMaterialController::class, 'listCampaignMaterials']);
-Route::get('/campaign-material/create', [CampaignMaterialController::class, 'createCampaignMaterial']);
-Route::post('/campaign-material/create', [CampaignMaterialController::class, 'storeCreateCampaignMaterial']);
-Route::get('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'editCampaignMaterial']);
-Route::post('/campaign-material/edit/{id}', [CampaignMaterialController::class, 'storeEditCampaignMaterial']);
-Route::get('/campaign-material/view/{id}', [CampaignMaterialController::class, 'viewCampaignMaterial']);
-Route::post('/campaign-material/accept/{id}', [CampaignMaterialController::class, 'acceptCampaignMaterial']);
-Route::post('/campaign-material/reject/{id}', [CampaignMaterialController::class, 'rejectCampaignMaterial']);
+// Admin Sided
+Route::get('/admin/campaign-material', [CampaignMaterialController::class, 'listCampaignMaterials']);
+Route::get('/admin/campaign-material/create', [CampaignMaterialController::class, 'createCampaignMaterial']);
+Route::post('/admin/campaign-material/create', [CampaignMaterialController::class, 'storeCreateCampaignMaterial']);
+Route::get('/admin/campaign-material/edit/{id}', [CampaignMaterialController::class, 'editCampaignMaterial']);
+Route::post('/admin/campaign-material/edit/{id}', [CampaignMaterialController::class, 'storeEditCampaignMaterial']);
+Route::get('/admin/campaign-material/view/{id}', [CampaignMaterialController::class, 'viewCampaignMaterial']);
+Route::post('/admin/campaign-material/accept/{id}', [CampaignMaterialController::class, 'acceptCampaignMaterial']);
+Route::post('/admin/campaign-material/reject/{id}', [CampaignMaterialController::class, 'rejectCampaignMaterial']);
+
+// Nominee Sided
+Route::get('/nominee/campaign-material', [CampaignMaterialController::class, 'listCampaignMaterialsNominee']);
+Route::get('/nominee/campaign-material/create', [CampaignMaterialController::class, 'createCampaignMaterialNominee']);
+Route::post('/nominee/campaign-material/create', [CampaignMaterialController::class, 'storeCreateCampaignMaterialNominee']);
+Route::get('/nominee/campaign-material/view/{id}', [CampaignMaterialController::class, 'viewCampaignMaterialNominee']);
 
 // Schedule Location Routes
-Route::get('/schedule-location', [ScheduleLocationController::class, 'listScheduleLocations']);
-Route::get('/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocation']);
-Route::post('/schedule-location/create', [ScheduleLocationController::class, 'storeCreateScheduleLocation']);
-Route::get('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'editScheduleLocation']);
-Route::post('/schedule-location/edit/{id}', [ScheduleLocationController::class, 'storeEditScheduleLocation']);
-Route::get('/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocation']);
+Route::get('/admin/schedule-location', [ScheduleLocationController::class, 'listScheduleLocations']);
+Route::get('/admin/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocation']);
+Route::post('/admin/schedule-location/create', [ScheduleLocationController::class, 'storeCreateScheduleLocation']);
+Route::get('/admin/schedule-location/edit/{id}', [ScheduleLocationController::class, 'editScheduleLocation']);
+Route::post('/admin/schedule-location/edit/{id}', [ScheduleLocationController::class, 'storeEditScheduleLocation']);
+Route::get('/admin/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocation']);
 
-Route::get('/schedule-location/schedule', [ScheduleLocationController::class, 'scheduleBoard']);
-Route::get('/schedule-location/locations-at', [ScheduleLocationController::class, 'locationsAt']); // optional ajax
-Route::post('/schedule-location/accept/{id}', [ScheduleLocationController::class, 'scheduleAccept']);
-Route::post('/schedule-location/reject/{id}', [ScheduleLocationController::class, 'scheduleReject']);
-Route::get('/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
-Route::post('/schedule-location/reject-accepted/{id}', [ScheduleLocationController::class, 'scheduleRejectAccepted']);
-Route::post('/schedule-location/accept-back/{id}', [ScheduleLocationController::class, 'scheduleAcceptBack']);
-Route::post('/schedule-location/unschedule/{id}', [ScheduleLocationController::class, 'scheduleUnschedule']);
-Route::get('/schedule-location/view-schedule', [ScheduleLocationController::class, 'viewCampaignSchedule']);
+Route::get('/admin/schedule-location/schedule', [ScheduleLocationController::class, 'scheduleBoard']);
+Route::get('/admin/schedule-location/locations-at', [ScheduleLocationController::class, 'locationsAt']); 
+Route::post('/admin/schedule-location/accept/{id}', [ScheduleLocationController::class, 'scheduleAccept']);
+Route::post('/admin/schedule-location/reject/{id}', [ScheduleLocationController::class, 'scheduleReject']);
+Route::get('/admin/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
+Route::post('/admin/schedule-location/reject-accepted/{id}', [ScheduleLocationController::class, 'scheduleRejectAccepted']);
+Route::post('/admin/schedule-location/accept-back/{id}', [ScheduleLocationController::class, 'scheduleAcceptBack']);
+Route::post('/admin/schedule-location/unschedule/{id}', [ScheduleLocationController::class, 'scheduleUnschedule']);
+Route::get('/admin/schedule-location/view-schedule', [ScheduleLocationController::class, 'viewCampaignSchedule']);
+
+// Student Sided
+Route::get('/student/schedule-location', [ScheduleLocationController::class, 'listScheduleLocationsStudent']);
+Route::get('/student/schedule-location/schedule/view/{id}', [ScheduleLocationController::class, 'viewCampaignScheduleStudent']);
+Route::get('/student/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
+Route::get('/student/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocationStudent']);
+
+
+// Nominee Sided
+Route::get('/nominee/schedule-location', [ScheduleLocationController::class, 'listScheduleLocationsStudent']);
+Route::get('/nominee/schedule-location/schedule/view/{id}', [ScheduleLocationController::class, 'viewCampaignScheduleStudent']);
+Route::get('/nominee/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
+Route::get('/nominee/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocationNominee']);
+Route::get('/nominee/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocationNominee']);
+Route::post('/nominee/schedule-location/create', [ScheduleLocationController::class, 'storeCreateScheduleLocationNominee']);
+

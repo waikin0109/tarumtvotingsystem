@@ -99,8 +99,8 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                         <a href="/admin/election-registration-form" class="list-group-item list-group-item-action">Election Registration Form</a>
                         <a href="/admin/rule" class="list-group-item list-group-item-action">Rules & Regulations</a>
                         <a href="/admin/nominee-application" class="list-group-item list-group-item-action">Nominees' Registration</a>
-                        <a href="/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
-                        <a href="/campaign-material" class="list-group-item list-group-item-action">Campaign Materials</a>
+                        <a href="/admin/schedule-location" class="list-group-item list-group-item-action">Schedule & Location</a>
+                        <a href="/admin/campaign-material" class="list-group-item list-group-item-action">Campaign Materials</a>
                         <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
                         <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
                         <a href="#" class="list-group-item list-group-item-action">Voting Result</a>

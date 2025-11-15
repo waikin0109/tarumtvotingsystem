@@ -23,6 +23,8 @@ class RegistrationFormController
         $this->registrationFormModel = new RegistrationFormModel();
         $this->electionEventModel = new ElectionEventModel();
         $this->nomineeApplicationModel = new NomineeApplicationModel();
+        $this->studentModel = new StudentModel();
+        $this->nomineeModel = new NomineeModel();
         $this->fileHelper = new FileHelper('election_registration_form');
     }
 

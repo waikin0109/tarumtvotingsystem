@@ -9,7 +9,7 @@ $locations = $locations ?? [];
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Schedule for Pending Event Application</h2>
     <div class="d-flex gap-2">
-      <a href="/schedule-location" class="btn btn-outline-secondary">Back to List</a>
+      <a href="/admin/schedule-location" class="btn btn-outline-secondary">Back to List</a>
     </div>
   </div>
 
@@ -57,7 +57,7 @@ $locations = $locations ?? [];
                 <td><?= htmlspecialchars($row['nomineeName']) ?></td>
                 <td><?= htmlspecialchars($row['electionTitle']) ?></td>
                 <td>
-                  <form class="d-flex gap-2" action="/schedule-location/accept/<?= $id ?>" method="POST">
+                  <form class="d-flex gap-2" action="/admin/schedule-location/accept/<?= $id ?>" method="POST">
                     <select name="eventLocationID" class="form-select form-select-sm" required>
                       <option value="">Pick location...</option>
                       <?php foreach ($locations as $loc): ?>
@@ -70,7 +70,7 @@ $locations = $locations ?? [];
                       onclick="return confirm('Accept and schedule this event?');">Accept</button>
                   </form>
 
-                  <form class="mt-1" action="/schedule-location/reject/<?= $id ?>" method="POST"
+                  <form class="mt-1" action="/admin/schedule-location/reject/<?= $id ?>" method="POST"
                         onsubmit="return confirm('Reject this application?');">
                     <button class="btn btn-sm btn-outline-danger w-100" type="submit">Reject</button>
                   </form>
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     eventTimeFormat: { hour: 'numeric', minute: '2-digit', meridiem: 'short' },
     events: async (info, success, failure) => {
       try {
-        const res = await fetch('/schedule-location/calendar-feed');
+        const res = await fetch('/admin/schedule-location/calendar-feed');
         if (!res.ok) throw new Error('Failed to load events');
         const data = await res.json();
         const evs = data.map(e => ({
@@ -134,7 +134,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (!confirm('Unschedule this event? It will move back to PENDING.')) return;
 
   try {
-    const res = await fetch(`/schedule-location/unschedule/${eaid}`, {
+    const res = await fetch(`/admin/schedule-location/unschedule/${eaid}`, {
       method: 'POST',
       headers: { 'Accept':'application/json' }
     });

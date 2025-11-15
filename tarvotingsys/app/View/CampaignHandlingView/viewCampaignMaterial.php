@@ -1,13 +1,27 @@
 <?php
 $_title = "View Campaign Material";
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+    require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
+
+$backLink = match ($roleUpper) {
+    'ADMIN'   => '/admin/campaign-material',
+    'NOMINEE' => '/nominee/campaign-material',
+    default   => '/login'
+};
+
+$editBase = ($roleUpper === 'NOMINEE') ? '/nominee/campaign-material/edit/' : '/admin/campaign-material/edit/';
 ?>
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Campaign Material Details</h2>
     <div class="d-flex gap-2">
-      <a href="/campaign-material" class="btn btn-outline-secondary">Back to List</a>
-      <a href="/campaign-material/edit/<?= (int)$campaign['id'] ?>" class="btn btn-primary">Edit</a>
+      <a href="<?= $backLink ?>" class="btn btn-outline-secondary">Back to List</a>
+      <a href="<?= $editBase . urlencode($campaign['id'] ?? '') ?>" class="btn btn-primary">Edit</a>
     </div>
   </div>
 
@@ -94,4 +108,10 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
   </div>
 </div>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'ADMIN') {
+    require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
+?>

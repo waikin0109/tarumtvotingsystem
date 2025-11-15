@@ -1,6 +1,8 @@
 <?php
 namespace Model\CampaignHandlingModel;
 
+use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeModel; 
 use PDO;
 use PDOException;
 use Database;
@@ -8,10 +10,14 @@ use Database;
 class CampaignMaterialModel
 {
     private PDO $db;
+    private ElectionEventModel $electionEventModel;
+    private NomineeModel $nomineeModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->electionEventModel = new ElectionEventModel();
+        $this->nomineeModel = new NomineeModel();
     }
 
     public function getAllCampaignMaterials(): array
@@ -24,17 +30,43 @@ class CampaignMaterialModel
                     cma.materialsApplicationStatus,
                     a.fullName,
                     ee.title AS electionEventTitle,
-                    ee.electionEndDate          -- << add this
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
+                    cma.electionID         
                 FROM campaignmaterialsapplication AS cma
                 INNER JOIN nominee n ON n.nomineeID = cma.nomineeID
                 INNER JOIN account a ON a.accountID = n.accountID
                 INNER JOIN electionevent ee ON ee.electionID = cma.electionID
-                ORDER BY cma.materialsApplicationID DESC
+                ORDER BY ee.electionEndDate DESC
             ";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $campaignMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            if (!$campaignMaterials) {
+                return false;
+            }
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            foreach ($campaignMaterials as &$campaignMaterial) {
+                $currentStatus = $this->electionEventModel->determineStatus($campaignMaterial['electionStartDate'], $campaignMaterial['electionEndDate']);
+
+                if ($currentStatus !== $campaignMaterial['status']) {
+                    // You can wrap these two lines in a transaction if you want atomicity
+                    $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                    $upd->execute([$currentStatus, $campaignMaterial['electionID']]);
+                    $campaignMaterial['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($campaignMaterial['electionID']);
+                    }
+                }
+            }
+
+            return $campaignMaterials;
         } catch (PDOException $e) {
             error_log("getAllCampaignMaterials error: " . $e->getMessage());
             return [];
@@ -51,6 +83,7 @@ class CampaignMaterialModel
                 INNER JOIN nomineeapplication na ON na.electionID = ee.electionID
                 WHERE rf.registerEndDate < NOW()
                   AND na.applicationStatus = 'PUBLISHED'
+                  AND ee.status != 'COMPLETED'
                 ORDER BY ee.title ASC
             ";
             $stmt = $this->db->prepare($sql);
@@ -74,8 +107,7 @@ class CampaignMaterialModel
                 INNER JOIN student s ON s.studentID = na.studentID
                 INNER JOIN account a ON a.accountID = s.accountID
                 INNER JOIN nominee n ON n.accountID = a.accountID
-                WHERE na.electionID = :eid
-                  AND na.applicationStatus = 'PUBLISHED'
+                WHERE n.electionID = :eid AND na.applicationStatus = 'PUBLISHED'
                 ORDER BY a.fullName ASC
             ";
             $stmt = $this->db->prepare($sql);
@@ -152,7 +184,9 @@ class CampaignMaterialModel
                     cma.materialsApplicationID,
                     cma.electionID,
                     ee.title AS electionEventTitle,
-                    ee.electionEndDate,          -- << add this
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,          
                     cma.nomineeID,
                     a.fullName AS nomineeFullName,
                     cma.materialsTitle,
@@ -171,8 +205,29 @@ class CampaignMaterialModel
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([':id' => $id]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            return $row ?: null;
+            $campaignMaterial = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$campaignMaterial) {
+                return false;
+            }
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            $currentStatus = $this->electionEventModel->determineStatus($campaignMaterial['electionStartDate'], $campaignMaterial['electionEndDate']);
+
+            if ($currentStatus !== $campaignMaterial['status']) {
+                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $update->execute([$currentStatus, $campaignMaterial['electionID']]);
+                $campaignMaterial['status'] = $currentStatus;
+
+                // Update Nominee Role (when event just became COMPLETED) 
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($campaignMaterial['electionID']);
+                }
+            }
+
+            return $campaignMaterial;
+
+
         } catch (PDOException $e) {
             error_log("getCampaignMaterialById error: " . $e->getMessage());
             return null;
@@ -292,67 +347,106 @@ class CampaignMaterialModel
     }
 
     // Accept / Reject
-    public function acceptCampaignMaterial($materialsApplicationID)
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: /campaign-material");
-            return;
-        }
-
-        $id = (int)$materialsApplicationID;
-        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
-        if (!$cm) {
-            \set_flash('danger', 'Campaign material not found.');
-            header("Location: /campaign-material");
-            return;
-        }
-
-        // block if now > electionEndDate
-        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
-        $now  = new \DateTime('now', $tz);
-        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
-        if ($endAt && $now > $endAt) {
-            \set_flash('danger', 'Action not allowed after election end.');
-            header("Location: /campaign-material");
-            return;
-        }
-
-        $adminId = $_SESSION['adminID'] ?? null; // make sure you set this at login
-        $this->campaignMaterialModel->acceptCampaignMaterial($id, $adminId);
-        \set_flash('success', 'Campaign Material accepted successfully.');
-        header("Location: /campaign-material");
+    public function acceptCampaignMaterial($id, $adminId) {
+        try {
+            $stmt = $this->db->prepare("UPDATE campaignmaterialsapplication SET materialsApplicationStatus = 'APPROVED', adminID = ? WHERE materialsApplicationID = ?");
+            $stmt->execute([$adminId, $id]);
+            return $stmt-> fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("acceptCampaignMaterial error: " . $e->getMessage());
+            return [];
+        } 
+    }
+    
+    public function rejectCampaignMaterial($id, $adminId) {
+        try {
+            $stmt = $this->db->prepare("UPDATE campaignmaterialsapplication SET materialsApplicationStatus = 'REJECTED', adminID = ? WHERE materialsApplicationID = ?");
+            $stmt->execute([$adminId, $id]);
+            return $stmt-> fetch(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("rejectCampaignMaterial error: " . $e->getMessage());
+            return [];
+        } 
     }
 
-    public function rejectCampaignMaterial($materialsApplicationID)
+    // ------------------------------------------------------------------------------------------------------------------------------------ //
+    public function getCampaignMaterialsByAccount(int $accountID): array
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: /campaign-material");
-            return;
-        }
+        try {
+            $sql = "
+                SELECT
+                    cma.materialsApplicationID,
+                    cma.materialsTitle,
+                    cma.materialsType,
+                    cma.materialsApplicationStatus,
+                    ee.title AS electionEventTitle,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
+                    cma.electionID
+                FROM campaignmaterialsapplication cma
+                INNER JOIN nominee n
+                    ON n.nomineeID = cma.nomineeID
+                INNER JOIN account a
+                    ON a.accountID = n.accountID
+                INNER JOIN electionevent ee
+                    ON ee.electionID = cma.electionID
+                WHERE a.accountID = :aid
+                ORDER BY ee.electionEndDate DESC
+            ";
 
-        $id = (int)$materialsApplicationID;
-        $cm = $this->campaignMaterialModel->getCampaignMaterialById($id);
-        if (!$cm) {
-            \set_flash('danger', 'Campaign material not found.');
-            header("Location: /campaign-material");
-            return;
-        }
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':aid' => $accountID]);
+            $campaignMaterials = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $tz   = new \DateTimeZone('Asia/Kuala_Lumpur');
-        $now  = new \DateTime('now', $tz);
-        $endAt = !empty($cm['electionEndDate']) ? new \DateTime($cm['electionEndDate'], $tz) : null;
-        if ($endAt && $now > $endAt) {
-            \set_flash('danger', 'Action not allowed after election end.');
-            header("Location: /campaign-material");
-            return;
-        }
+            if (!$campaignMaterials) {
+                return [];
+            }
 
-        $adminId = $_SESSION['adminID'] ?? null;
-        $this->campaignMaterialModel->rejectCampaignMaterial($id, $adminId);
-        \set_flash('success', 'Campaign Material rejected successfully.');
-        header("Location: /campaign-material");
+            // Check Election Event Status + Nominee Role (After Completed)
+            foreach ($campaignMaterials as &$campaignMaterial) {
+                $currentStatus = $this->electionEventModel->determineStatus($campaignMaterial['electionStartDate'], $campaignMaterial['electionEndDate']);
+
+                if ($currentStatus !== $campaignMaterial['status']) {
+                    // You can wrap these two lines in a transaction if you want atomicity
+                    $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                    $upd->execute([$currentStatus, $campaignMaterial['electionID']]);
+                    $campaignMaterials['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($campaignMaterials['electionID']);
+                    }
+                }
+            }
+
+            return $campaignMaterials;
+            
+        } catch (PDOException $e) {
+            error_log("getCampaignMaterialsByAccount error: " . $e->getMessage());
+            return [];
+        }
     }
 
+    public function getElectionsForNominee(int $accountID): array
+{
+    try {
+        $sql = "
+            SELECT ee.electionID, ee.title
+            FROM electionevent ee
+            INNER JOIN nominee n ON n.electionID = ee.electionID
+            WHERE n.accountID = :accountID
+            ORDER BY ee.electionEndDate DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':accountID' => $accountID]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        error_log("getElectionsForNominee error: " . $e->getMessage());
+        return [];
+    }
+}
 
 
 }

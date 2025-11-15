@@ -82,6 +82,8 @@ class FileHelper
             'ViewCampaignMaterial' => 'View/CampaignHandlingView/viewCampaignMaterial.php',
             'AcceptCampaignMaterial' => 'View/CampaignHandlingView/acceptCampaignMaterial.php',
             'RejectCampaignMaterial' => 'View/CampaignHandlingView/rejectCampaignMaterial.php',
+            'CampaignMaterialListNominee' => 'View/CampaignHandlingView/campaignMaterialListNominee.php',
+            'CreateCampaignMaterialNominee' => 'View/CampaignHandlingView/createCampaignMaterialNominee.php'
         ]);
 
         $scheduleLocationPaths = $this->prefixWithBase([
@@ -91,6 +93,9 @@ class FileHelper
             'ViewScheduleLocation' => 'View/CampaignHandlingView/viewScheduleLocation.php',
             'ScheduleBoard' => 'View/CampaignHandlingView/scheduleLocationBoard.php',
             'ViewCampaignSchedule' => 'View/CampaignHandlingView/viewCampaignSchedule.php',
+            'ScheduleLocationListStudent' => 'View/CampaignHandlingView/scheduleLocationStudent.php',
+            'ViewCampaignScheduleStudent' => 'View/CampaignHandlingView/viewCampaignScheduleStudent.php',
+            'CreateScheduleLocationNominee' => 'View/CampaignHandlingView/createScheduleLocationNominee.php',
         ]);
 
         $loginpaths = $this->prefixWithBase([

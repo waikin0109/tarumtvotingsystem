@@ -14,7 +14,7 @@ function invalid(array $fe, string $key){ return !empty($fe[$key]) ? ' is-invali
     </ul></div>
   <?php endif; ?>
 
-  <form action="/campaign-material/edit/<?= (int)$campaignMaterial['materialsApplicationID'] ?>" method="POST" enctype="multipart/form-data" id="appForm" novalidate>
+  <form action="/admin/campaign-material/edit/<?= (int)$campaignMaterial['materialsApplicationID'] ?>" method="POST" enctype="multipart/form-data" id="appForm" novalidate>
     <!-- Election (display only) -->
     <div class="mb-3">
       <label class="form-label">Election Event</label>
@@ -120,7 +120,7 @@ function invalid(array $fe, string $key){ return !empty($fe[$key]) ? ' is-invali
 
     <div class="d-flex gap-2">
       <button type="submit" class="btn btn-primary">Save changes</button>
-      <a href="/campaign-material" class="btn btn-secondary">Cancel</a>
+      <a href="/admin/campaign-material" class="btn btn-secondary">Cancel</a>
     </div>
   </form>
 </div>

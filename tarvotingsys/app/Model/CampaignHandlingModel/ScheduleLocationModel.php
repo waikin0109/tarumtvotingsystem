@@ -2,6 +2,8 @@
 
 namespace Model\CampaignHandlingModel;
 
+use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeModel; 
 use PDO;
 use PDOException;
 use Database;
@@ -9,10 +11,14 @@ use Database;
 class ScheduleLocationModel
 {
     private PDO $db;
+    private ElectionEventModel $electionEventModel;
+    private NomineeModel $nomineeModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->electionEventModel = new ElectionEventModel();
+        $this->nomineeModel = new NomineeModel();
     }
 
     /** List page */
@@ -24,12 +30,17 @@ class ScheduleLocationModel
                     ea.eventApplicationID,
                     ea.eventName,
                     ea.eventApplicationStatus,
+                    ea.desiredStartDateTime,
                     ee.title AS election_event,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
                     nomAcc.fullName AS nominee_fullName,
                     admAcc.fullName AS admin_fullName,
                     ea.nomineeID,
                     ea.adminID,
-                    ea.electionID
+                    ea.electionID,
+                    ee.title AS event_name
                 FROM eventapplication ea
                 INNER JOIN electionevent ee ON ee.electionID = ea.electionID
                 INNER JOIN nominee n        ON n.nomineeID   = ea.nomineeID
@@ -40,7 +51,37 @@ class ScheduleLocationModel
             ";
             $st = $this->db->prepare($sql);
             $st->execute();
-            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $scheduleLocations =  $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            if (!$scheduleLocations) {
+                return [];
+            }
+
+            $now = date('Y-m-d H:i:s');
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            foreach ($scheduleLocations as &$scheduleLocation) {
+                $currentStatus = $this->electionEventModel->determineStatus($scheduleLocation['electionStartDate'], $scheduleLocation['electionEndDate']);
+
+                if ($currentStatus !== $scheduleLocation['status']) {
+                    // You can wrap these two lines in a transaction if you want atomicity
+                    $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                    $upd->execute([$currentStatus, $campaignMaterial['electionID']]);
+                    $scheduleLocation['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($scheduleLocation['electionID']);
+                    }
+                }
+
+                // Check ScheduleLocation Status
+                if ($scheduleLocation['desiredStartDateTime'] < $now && $scheduleLocation['eventApplicationStatus'] == 'PENDING') {
+                    $this->autoUpdateEventApplicationStatus($scheduleLocation['eventApplicationID']);
+                }
+            }
+
+            return $scheduleLocations;
         } catch (PDOException $e) {
             error_log("getAllScheduleLocations: " . $e->getMessage());
             return [];
@@ -99,7 +140,7 @@ class ScheduleLocationModel
                 INNER JOIN student s ON s.accountID = a.accountID
                 INNER JOIN nomineeapplication na
                     ON na.studentID = s.studentID
-                   AND na.electionID = :eid
+                   AND n.electionID = :eid
                    AND UPPER(na.applicationStatus) = 'PUBLISHED'
                 ORDER BY a.fullName ASC
             ";
@@ -107,6 +148,7 @@ class ScheduleLocationModel
             $st->bindValue(':eid', $electionID, PDO::PARAM_INT);
             $st->execute();
             return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            
         } catch (PDOException $e) {
             error_log("getNomineesByElection: " . $e->getMessage());
             return [];
@@ -151,16 +193,15 @@ class ScheduleLocationModel
         try {
             $st = $this->db->prepare("
                 INSERT INTO eventapplication
-                    (eventName, eventType, desiredStartDateTime, desiredEndDateTime, eventApplicationStatus, adminID, nomineeID, electionID)
+                    (eventName, eventType, desiredStartDateTime, desiredEndDateTime, eventApplicationStatus, nomineeID, electionID)
                 VALUES
-                    (:eventName, :eventType, :desiredStart, :desiredEnd, 'PENDING', :adminID, :nomineeID, :electionID)
+                    (:eventName, :eventType, :desiredStart, :desiredEnd, 'PENDING', :nomineeID, :electionID)
             ");
             return $st->execute([
                 ':eventName'  => $data['eventName'],
                 ':eventType'  => $data['eventType'],
                 ':desiredStart' => $data['desiredStartDateTime'], // 'Y-m-d H:i:s'
                 ':desiredEnd'   => $data['desiredEndDateTime'],   // 'Y-m-d H:i:s'
-                ':adminID'    => $data['adminID'],
                 ':nomineeID'  => $data['nomineeID'],
                 ':electionID' => $data['electionID'],
             ]);
@@ -357,7 +398,7 @@ public function hasLocationConflict(string $start, string $end, int $eventLocati
 }
 
 /** ACCEPT: insert into event, mark application accepted, set admin, propagate to nomineeapplication */
-public function acceptApplicationWithLocation(int $eventApplicationID, int $eventLocationID, int $adminIdHardcoded = 1): bool
+public function acceptApplicationWithLocation(int $eventApplicationID, int $eventLocationID, int $adminId): bool
 {
     try {
         $this->db->beginTransaction();
@@ -417,7 +458,7 @@ public function acceptApplicationWithLocation(int $eventApplicationID, int $even
               AND eventApplicationStatus = 'PENDING'
         ");
         $ok2 = $upd->execute([
-            ':adm' => $adminIdHardcoded,
+            ':adm' => $adminId,
             ':id'  => $eventApplicationID,
         ]);
 
@@ -432,7 +473,7 @@ public function acceptApplicationWithLocation(int $eventApplicationID, int $even
               AND n.nomineeID   = :nid
         ");
         $ok3 = $updNa->execute([
-            ':adm' => $adminIdHardcoded,
+            ':adm' => $adminId,
             ':eid' => $electionId,
             ':nid' => $nomineeId,
         ]);
@@ -452,7 +493,7 @@ public function acceptApplicationWithLocation(int $eventApplicationID, int $even
 
 
 /** REJECT */
-public function rejectApplication(int $eventApplicationID, int $adminIdHardcoded = 1): bool
+public function rejectApplication(int $eventApplicationID, int $adminId = 1): bool
 {
     try {
         $st = $this->db->prepare("
@@ -461,7 +502,7 @@ public function rejectApplication(int $eventApplicationID, int $adminIdHardcoded
                 adminID = :adm
             WHERE eventApplicationID = :id
         ");
-        return $st->execute([':adm' => $adminIdHardcoded, ':id' => $eventApplicationID]);
+        return $st->execute([':adm' => $adminId, ':id' => $eventApplicationID]);
     } catch (PDOException $e) {
         error_log("rejectApplication: " . $e->getMessage());
         return false;
@@ -469,7 +510,7 @@ public function rejectApplication(int $eventApplicationID, int $adminIdHardcoded
 }
 
 /** Calendar feed: all scheduled events */
-public function getCalendarEvents(): array
+public function getCalendarEvents(?int $electionID = null): array
 {
     try {
         $sql = "
@@ -481,21 +522,31 @@ public function getCalendarEvents(): array
                 ea.eventApplicationID,
                 ea.eventName,
                 ea.eventType,
-                ee.title AS electionTitle
+                ee.title AS electionTitle,
+                ee.electionID
             FROM event e
             INNER JOIN eventapplication ea ON ea.eventApplicationID = e.eventApplicationID
             INNER JOIN electionevent ee     ON ee.electionID        = ea.electionID
-            INNER JOIN eventlocation el     ON el.eventLocationID    = e.eventLocationID
-            ORDER BY e.eventStartDateTime ASC, el.eventLocationName ASC
+            INNER JOIN eventlocation el     ON el.eventLocationID   = e.eventLocationID
         ";
+
+        $params = [];
+        if ($electionID !== null && $electionID > 0) {
+            $sql .= " WHERE ee.electionID = :eid";
+            $params[':eid'] = $electionID;
+        }
+
+        $sql .= " ORDER BY e.eventStartDateTime ASC, el.eventLocationName ASC";
+
         $st = $this->db->prepare($sql);
-        $st->execute();
+        $st->execute($params);
         return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
     } catch (PDOException $e) {
         error_log("getCalendarEvents: " . $e->getMessage());
         return [];
     }
 }
+
 
 private function hasEventRow(int $eventApplicationID): bool
 {
@@ -505,7 +556,7 @@ private function hasEventRow(int $eventApplicationID): bool
 }
 
 /** Unschedule only: delete event rows and set application back to PENDING */
-public function unscheduleToPending(int $eventApplicationID, int $adminIdHardcoded = 1): bool
+public function unscheduleToPending(int $eventApplicationID, int $adminId = null): bool
 {
     try {
         $this->db->beginTransaction();
@@ -538,7 +589,7 @@ public function unscheduleToPending(int $eventApplicationID, int $adminIdHardcod
             WHERE eventApplicationID = :id
               AND eventApplicationStatus = 'ACCEPTED'
         ");
-        $okUpd = $upd->execute([':adm' => $adminIdHardcoded, ':id' => $eventApplicationID]);
+        $okUpd = $upd->execute([':adm' => $adminId, ':id' => $eventApplicationID]);
 
         if ($okDel && $okUpd && $upd->rowCount() === 1) { 
             $this->db->commit(); 
@@ -553,7 +604,7 @@ public function unscheduleToPending(int $eventApplicationID, int $adminIdHardcod
     }
 }
 
-public function markPendingIfRejected(int $eventApplicationID, int $adminIdHardcoded = 1): bool
+public function markPendingIfRejected(int $eventApplicationID, int $adminId): bool
 {
     try {
         $st = $this->db->prepare("
@@ -563,7 +614,7 @@ public function markPendingIfRejected(int $eventApplicationID, int $adminIdHardc
             WHERE eventApplicationID = :id
               AND eventApplicationStatus = 'REJECTED'
         ");
-        $st->execute([':adm' => $adminIdHardcoded, ':id' => $eventApplicationID]);
+        $st->execute([':adm' => $adminId, ':id' => $eventApplicationID]);
         return $st->rowCount() === 1; // true only if it was REJECTED and is now PENDING
     } catch (\PDOException $e) {
         error_log("markPendingIfRejected: " . $e->getMessage());
@@ -571,6 +622,90 @@ public function markPendingIfRejected(int $eventApplicationID, int $adminIdHardc
     }
 }
 
+public function autoUpdateEventApplicationStatus(int $eventApplicationID): void
+{
+    try {
+        $sql = "
+            UPDATE eventapplication
+            SET eventApplicationStatus = :status
+            WHERE eventApplicationID = :id AND eventApplicationStatus = 'PENDING'
+        ";
+
+        $st = $this->db->prepare($sql);
+        $st->execute([
+            ':status' => 'REJECTED', 
+            ':id'     => $eventApplicationID,
+        ]);
+    } catch (\PDOException $e) {
+        error_log('autoUpdateEventApplicationStatus: ' . $e->getMessage());
+    }
+}
+
+public function getEligibleElectionsForNominee(int $accountID): array
+{
+    try {
+        $sql = "
+            SELECT ee.electionID, ee.title
+            FROM electionevent ee
+            WHERE ee.electionEndDate > NOW()
+              AND EXISTS (
+                SELECT 1
+                FROM registrationform rf
+                WHERE rf.electionID = ee.electionID
+                GROUP BY rf.electionID
+                HAVING MAX(rf.registerEndDate) < NOW()
+              )
+              AND EXISTS (
+                SELECT 1
+                FROM nomineeapplication na
+                JOIN student s ON s.studentID = na.studentID
+                JOIN account a ON a.accountID = s.accountID
+                WHERE na.electionID = ee.electionID
+                  AND a.accountID  = :acc
+                  AND UPPER(na.applicationStatus) = 'PUBLISHED'
+              )
+            ORDER BY ee.title ASC
+        ";
+        $st = $this->db->prepare($sql);
+        $st->execute([':acc' => $accountID]);
+        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    } catch (PDOException $e) {
+        error_log("getEligibleElectionsForNominee: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get THIS user's nominee record for a given election.
+ */
+public function getNomineeForElectionAndAccount(int $electionID, int $accountID): ?array
+{
+    try {
+        $sql = "
+            SELECT 
+                n.nomineeID,
+                a.fullName,
+                s.studentID
+            FROM nominee n
+            INNER JOIN account a ON a.accountID = n.accountID
+            INNER JOIN student s ON s.accountID = a.accountID
+            INNER JOIN nomineeapplication na
+                    ON na.studentID = s.studentID
+                   AND na.electionID = n.electionID
+            WHERE n.electionID = :eid
+              AND a.accountID  = :acc
+              AND UPPER(na.applicationStatus) = 'PUBLISHED'
+            LIMIT 1
+        ";
+        $st = $this->db->prepare($sql);
+        $st->execute([':eid' => $electionID, ':acc' => $accountID]);
+        $row = $st->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    } catch (PDOException $e) {
+        error_log("getNomineeForElectionAndAccount: " . $e->getMessage());
+        return null;
+    }
+}
 
 
 

@@ -48,6 +48,7 @@ class ElectionEventModel
                     acc.fullName AS creatorName
                 FROM electionevent e
                 LEFT JOIN account acc ON acc.accountID = e.accountID
+                ORDER BY e.electionEndDate DESC
             ");
             $stmt->execute();
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -248,6 +249,33 @@ public function getElectionEventByIdIfEligible($electionID, $allowed = ['Pending
         ? ['electionID' => $ev['electionID'], 'title' => $ev['title'], 'status' => $ev['status']]
         : false;
 }
+
+public function getAllPublishedElectionEvents(): array
+{
+    try {
+        $sql = "
+            SELECT DISTINCT
+                ee.electionID,
+                ee.title AS event_name
+            FROM electionevent ee
+            INNER JOIN nomineeapplication na
+                ON na.electionID = ee.electionID
+            WHERE UPPER(na.applicationStatus) = 'PUBLISHED'
+            AND ee.electionEndDate > NOW()
+            ORDER BY ee.electionEndDate DESC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return $rows;
+    } catch (PDOException $e) {
+        error_log('getAllPublishedElectionEvents: ' . $e->getMessage());
+        return [];
+    }
+}
+
 
 
 
