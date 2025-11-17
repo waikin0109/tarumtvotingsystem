@@ -149,7 +149,7 @@ if (!function_exists('invalid')) {
 
 
     <div class="d-flex justify-content-center gap-3">
-      <a href="/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
+      <a href="/admin/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
       <button type="submit" class="btn btn-primary px-4">Create</button>
     </div>
   </form>

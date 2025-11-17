@@ -21,14 +21,44 @@ class ScheduleLocationController
         $this->fileHelper            = new FileHelper('schedule_location');
     }
 
+    // Role Decision Area
+    private function requireRole(...$allowed)
+    {
+        $role = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($role, $allowed, true)) {
+            \set_flash('fail', 'You do not have permission to access this page.');
+            $this->redirectByRole($role);
+        }
+    }
+
+    private function redirectByRole($role)
+    {
+        switch ($role) {
+            case 'ADMIN':   
+                header('Location: /admin/schedule-location'); 
+                break;
+            case 'STUDENT': 
+                header('Location: /student/schedule-location'); 
+                break;
+            case 'NOMINEE': 
+                header('Location: /nominee/schedule-location'); 
+                break;
+            default:        
+                header('Location: /login'); 
+                break;
+        }
+        exit;
+    }
+
     // ------------------ List ------------------ //
     public function listScheduleLocations(): void
     {
+        $this->requireRole('ADMIN');
         $scheduleLocations = $this->scheduleLocationModel->getAllScheduleLocations();
         $filePath = $this->fileHelper->getFilePath('ScheduleLocationList');
 
         if ($filePath && file_exists($filePath)) {
-            include $filePath; // exposes $scheduleLocations
+            include $filePath; 
         } else {
             echo "View file not found.";
         }
@@ -36,11 +66,25 @@ class ScheduleLocationController
 
     public function listScheduleLocationsStudent(): void
     {
+        $this->requireRole('STUDENT');
         $scheduleLocations = $this->electionEventModel->getAllPublishedElectionEvents();
         $filePath = $this->fileHelper->getFilePath('ScheduleLocationListStudent');
 
         if ($filePath && file_exists($filePath)) {
-            include $filePath; // exposes $scheduleLocations
+            include $filePath; 
+        } else {
+            echo "View file not found.";
+        }
+    }
+
+    public function listScheduleLocationsNominee(): void
+    {
+        $this->requireRole('NOMINEE');
+        $scheduleLocations = $this->electionEventModel->getAllPublishedElectionEvents();
+        $filePath = $this->fileHelper->getFilePath('ScheduleLocationListStudent');
+
+        if ($filePath && file_exists($filePath)) {
+            include $filePath; 
         } else {
             echo "View file not found.";
         }
@@ -49,6 +93,7 @@ class ScheduleLocationController
     // ------------------ Create (GET) ------------------ //
     public function createScheduleLocation(): void
     {
+        $this->requireRole('ADMIN');
         $errors = [];
         $fieldErrors = [];
         $old = [
@@ -77,6 +122,7 @@ class ScheduleLocationController
     // ------------------ Create (POST) ------------------ //
     public function storeCreateScheduleLocation(): void
     {
+        $this->requireRole('ADMIN');
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { $this->createScheduleLocation(); return; }
 
         $old = [
@@ -201,6 +247,7 @@ class ScheduleLocationController
     // ------------------ Edit (GET) ------------------ //
     public function editScheduleLocation($eventApplicationID): void
     {
+        $this->requireRole('ADMIN');
         $row = $this->scheduleLocationModel->getScheduleLocationById((int)$eventApplicationID);
         if (!$row) {
             \set_flash('fail', 'Schedule Location not found.');
@@ -248,6 +295,7 @@ class ScheduleLocationController
     // ------------------ Edit (POST) ------------------ //
     public function storeEditScheduleLocation($eventApplicationID): void
     {
+        $this->requireRole('ADMIN');
         if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { $this->editScheduleLocation($eventApplicationID); return; }
 
         $row = $this->scheduleLocationModel->getScheduleLocationById((int)$eventApplicationID);
@@ -345,6 +393,7 @@ class ScheduleLocationController
     // --------------------------------- View -----------------------------------//
     public function viewScheduleLocation($eventApplicationID): void
     {
+        $this->requireRole('ADMIN');
         $row = $this->scheduleLocationModel->getScheduleLocationDetailsById((int)$eventApplicationID);
         if (!$row) {
             \set_flash('fail', 'Schedule Location not found.');
@@ -402,10 +451,11 @@ class ScheduleLocationController
 
     public function viewScheduleLocationStudent($eventApplicationID): void
     {
+        $this->requireRole('STUDENT');
         $row = $this->scheduleLocationModel->getScheduleLocationDetailsById((int)$eventApplicationID);
         if (!$row) {
             \set_flash('fail', 'Schedule Location not found.');
-            header('Location: /admin/schedule-location'); exit;
+            header('Location: /student/schedule-location'); exit;
         }
 
         $tz = new \DateTimeZone('Asia/Kuala_Lumpur');
@@ -459,10 +509,11 @@ class ScheduleLocationController
 
     public function viewScheduleLocationNominee($eventApplicationID): void
     {
+        $this->requireRole('NOMINEE');
         $row = $this->scheduleLocationModel->getScheduleLocationDetailsById((int)$eventApplicationID);
         if (!$row) {
             \set_flash('fail', 'Schedule Location not found.');
-            header('Location: /admin/schedule-location'); exit;
+            header('Location: /nominee/schedule-location'); exit;
         }
 
         $tz = new \DateTimeZone('Asia/Kuala_Lumpur');
@@ -518,6 +569,7 @@ class ScheduleLocationController
     // ------------------ Schedule Board (GET) ------------------ //
 public function scheduleBoard(): void
 {
+    $this->requireRole('ADMIN');
     // Only PENDING, election not ended, ordered by submittedAt ASC
     $queue = $this->scheduleLocationModel->getPendingEventApplications();
 
@@ -535,6 +587,7 @@ public function scheduleBoard(): void
 // ------------------ Accept (POST) ------------------ //
 public function scheduleAccept(string $eventApplicationID): void
 {
+    $this->requireRole('ADMIN');
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
 
     $eaid = (int)$eventApplicationID;
@@ -560,6 +613,7 @@ public function scheduleAccept(string $eventApplicationID): void
 // ------------------ Reject (POST) ------------------ //
 public function scheduleReject(string $eventApplicationID): void
 {
+    $this->requireRole('ADMIN');
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
 
     $eaid = (int)$eventApplicationID;
@@ -576,6 +630,7 @@ public function scheduleReject(string $eventApplicationID): void
 
 public function scheduleUnschedule(string $eventApplicationID): void
 {
+    $this->requireRole('ADMIN');
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { http_response_code(405); echo 'Method Not Allowed'; return; }
 
     $eaid = (int)$eventApplicationID;
@@ -601,6 +656,7 @@ public function scheduleUnschedule(string $eventApplicationID): void
 /** POST /schedule-location/accept-back/{id} -> accept a REJECTED or PENDING item with chosen location */
 public function scheduleAcceptBack(string $eventApplicationID): void
 {
+    $this->requireRole('ADMIN');
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         header('Location: /schedule-location/schedule'); return;
     }
@@ -670,6 +726,7 @@ public function calendarFeed(): void
 // ------------------ Final Schedule (Calendar-only) ------------------ //
 public function viewCampaignSchedule(): void
 {
+    $this->requireRole('ADMIN');
     $filePath = $this->fileHelper->getFilePath('ViewCampaignSchedule'); 
     if ($filePath && file_exists($filePath)) {
         include $filePath;
@@ -678,8 +735,37 @@ public function viewCampaignSchedule(): void
     echo "View file not found.";
 }
 
-public function viewCampaignScheduleStudent(int $electionID): void
+    public function viewCampaignScheduleStudent(int $electionID): void
     {
+        $this->requireRole('STUDENT');
+        $election = $this->electionEventModel->getElectionEventById($electionID);
+        if (!$election) {
+            \set_flash('fail', 'Election not found.');
+            // back to the list page depending on role
+            $roleUpper = strtoupper($_SESSION['role'] ?? '');
+            $back = ($roleUpper === 'NOMINEE')
+                ? '/nominee/schedule-location'
+                : '/student/schedule-location';
+            header("Location: $back");
+            exit;
+        }
+
+        // expose these variables to the view
+        $electionId    = (int)$election['electionID'];
+        $electionTitle = (string)$election['title'];
+
+        $filePath = $this->fileHelper->getFilePath('ViewCampaignScheduleStudent');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+            return;
+        }
+
+        echo "View file not found.";
+    }
+
+    public function viewCampaignScheduleNominee(int $electionID): void
+    {
+        $this->requireRole('NOMINEE');
         $election = $this->electionEventModel->getElectionEventById($electionID);
         if (!$election) {
             \set_flash('fail', 'Election not found.');
@@ -707,11 +793,7 @@ public function viewCampaignScheduleStudent(int $electionID): void
 
 public function createScheduleLocationNominee(): void
 {
-    if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
-        \set_flash('fail', 'You do not have permission to access this page.');
-        header('Location: /login');
-        exit;
-    }
+    $this->requireRole('NOMINEE');
 
     $accountId = (int)($_SESSION['accountID'] ?? 0);
     if ($accountId <= 0) {
@@ -743,6 +825,7 @@ public function createScheduleLocationNominee(): void
 
 public function storeCreateScheduleLocationNominee(): void
 {
+    $this->requireRole('NOMINEE');
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
         $this->createScheduleLocationNominee();
         return;
@@ -899,9 +982,6 @@ public function storeCreateScheduleLocationNominee(): void
     }
     echo "View file not found.";
 }
-
-
-
-    
+   
 
 }

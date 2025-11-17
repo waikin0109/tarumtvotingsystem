@@ -144,9 +144,8 @@ Route::post('/admin/schedule-location/create', [ScheduleLocationController::clas
 Route::get('/admin/schedule-location/edit/{id}', [ScheduleLocationController::class, 'editScheduleLocation']);
 Route::post('/admin/schedule-location/edit/{id}', [ScheduleLocationController::class, 'storeEditScheduleLocation']);
 Route::get('/admin/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocation']);
-
+// Schedule Part
 Route::get('/admin/schedule-location/schedule', [ScheduleLocationController::class, 'scheduleBoard']);
-Route::get('/admin/schedule-location/locations-at', [ScheduleLocationController::class, 'locationsAt']); 
 Route::post('/admin/schedule-location/accept/{id}', [ScheduleLocationController::class, 'scheduleAccept']);
 Route::post('/admin/schedule-location/reject/{id}', [ScheduleLocationController::class, 'scheduleReject']);
 Route::get('/admin/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
@@ -161,10 +160,9 @@ Route::get('/student/schedule-location/schedule/view/{id}', [ScheduleLocationCon
 Route::get('/student/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
 Route::get('/student/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocationStudent']);
 
-
 // Nominee Sided
-Route::get('/nominee/schedule-location', [ScheduleLocationController::class, 'listScheduleLocationsStudent']);
-Route::get('/nominee/schedule-location/schedule/view/{id}', [ScheduleLocationController::class, 'viewCampaignScheduleStudent']);
+Route::get('/nominee/schedule-location', [ScheduleLocationController::class, 'listScheduleLocationsNominee']);
+Route::get('/nominee/schedule-location/schedule/view/{id}', [ScheduleLocationController::class, 'viewCampaignScheduleNominee']);
 Route::get('/nominee/schedule-location/calendar-feed', [ScheduleLocationController::class, 'calendarFeed']);
 Route::get('/nominee/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocationNominee']);
 Route::get('/nominee/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocationNominee']);

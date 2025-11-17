@@ -62,7 +62,7 @@ $backLink = match ($roleUpper) {
 
   <div class="mt-3 d-flex gap-2">
     <a href="<?= $backLink ?>" class="btn btn-outline-secondary">Back</a>
-    <?php if ($roleUpper == 'NOMINEE'): ?>
+    <?php if ($roleUpper == 'ADMIN'): ?>
       <a href="/admin/schedule-location/edit/<?= (int)$schedule['id'] ?>" class="btn btn-primary">Edit</a>
     <?php endif; ?>
   </div>
