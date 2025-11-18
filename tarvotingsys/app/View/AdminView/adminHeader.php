@@ -4,6 +4,7 @@
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
 $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
+$voteSessionLink = ($role === 'ADMIN') ? '/vote-session' : '/vote-session/public';
 ?>
 
 <!DOCTYPE html>
@@ -100,9 +101,10 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
                         <a href="#" class="list-group-item list-group-item-action">Schedule & Location</a>
                         <!-- <a href="#" class="list-group-item list-group-item-action">Announcement</a> -->
                         <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
-
-                        <a href="#" class="list-group-item list-group-item-action">Cast Voting</a>
-                        <a href="#" class="list-group-item list-group-item-action">Voting Result</a>
+                        
+                        <a href="<?= $voteSessionLink ?>" class="list-group-item list-group-item-action">Voting Session</a>
+                        <!-- <a href="#" class="list-group-item list-group-item-action">Cast Voting</a> -->
+                        <a href="/statistics" class="list-group-item list-group-item-action">Voting Result</a>
                         <a href="#" class="list-group-item list-group-item-action">Report</a>
                     </div>
                 </div>

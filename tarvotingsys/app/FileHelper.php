@@ -59,9 +59,28 @@ class FileHelper
             'CreateAnnouncement' => 'View/VotingView/createAnnouncement.php',
             'EditAnnouncement' => 'View/VotingView/editAnnouncement.php',
             'ViewAnnouncementDetails' => 'View/VotingView/viewAnnouncementDetails.php',
-            'StudentNomineeAnnouncementList'=> 'View/VotingView/studentNomineeAnnouncementList.php',
-            'StudentNomineeAnnouncementDetails'=> 'View/VotingView/studentNomineeAnnouncementDetails.php',
-            
+            'StudentNomineeAnnouncementList' => 'View/VotingView/studentNomineeAnnouncementList.php',
+            'StudentNomineeAnnouncementDetails' => 'View/VotingView/studentNomineeAnnouncementDetails.php',
+
+        ]);
+
+        $voteSessionPaths = $this->prefixWithBase([
+            'VoteSessionList' => 'View/VotingView/voteSessionList.php',
+            'CreateVoteSession' => 'View/VotingView/createVoteSession.php',
+            'EditVoteSession' => 'View/VotingView/editVoteSession.php',
+            'ViewVoteSessionDetails' => 'View/VotingView/viewVoteSessionDetails.php',
+            'StudentNomineeVotingSessionList' => 'View/VotingView/studentNomineeVotingSessionList.php',
+            'VoteSessionResults' => 'View/VotingView/voteSessionResults.php',
+
+        ]);
+
+        $ballotPaths = $this->prefixWithBase([
+            'StartBallot' => 'View/VotingView/startBallot.php',
+            'CastVote' => 'View/VotingView/castVote.php',
+        ]);
+
+        $resultPaths = $this->prefixWithBase([
+            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,
@@ -88,6 +107,15 @@ class FileHelper
                 break;
             case 'announcement':
                 $this->allowedPaths = array_merge($announcementPaths, $assetPaths);
+                break;
+            case 'vote_session':
+                $this->allowedPaths = array_merge($voteSessionPaths, $assetPaths);
+                break;
+            case 'ballot':
+                $this->allowedPaths = array_merge($ballotPaths, $assetPaths);
+                break;
+            case 'result':
+                $this->allowedPaths = array_merge($resultPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

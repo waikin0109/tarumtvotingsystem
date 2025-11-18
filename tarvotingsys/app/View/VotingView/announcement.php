@@ -17,9 +17,8 @@ $isAdmin = strtoupper($_SESSION['role'] ?? '') === 'ADMIN';
             <div class="col-sm-6">
                 <h2>Announcement</h2>
             </div>
-            <div class="col-sm-6">
-                <a href="/announcement/create"><button class="btn btn-primary mx-2 me-5 position-absolute end-0">Create
-                        (+)</button></a>
+            <div class="col-sm-6 text-sm-end mt-2 mt-sm-0">
+                <a href="/announcement/create" class="btn btn-primary">Create (+)</a>
             </div>
         </div>
     </div>
@@ -31,20 +30,22 @@ $isAdmin = strtoupper($_SESSION['role'] ?? '') === 'ADMIN';
                     <thead class="table-light">
                         <tr>
                             <th scope="col-sm-1">No.</th>
-                            <th scope="col-sm-5">Title</th>
+                            <th scope="col-sm-4">Title</th>
                             <th scope="col-sm-2">Sender</th>
                             <th scope="col-sm-2">Date</th>
+                            <th scope="col-sm-1">Status</th>
                             <th scope="col-sm-2">Actions</th>
                         </tr>
+                    </thead>
                     <tbody>
                         <?php if (empty($announcements)): ?>
                             <tr>
-                                <td colspan="5" class="text-center text-muted">No announcements found.</td>
+                                <td colspan="6" class="text-center text-muted">No announcements found.</td>
                             </tr>
                         <?php else: ?>
-                            <?php $no = 1;
-                            foreach ($announcements as $a): ?>
-                                <?php
+                            <?php
+                            $no = 1;
+                            foreach ($announcements as $a):
                                 $id = (int) ($a['announcementID'] ?? 0);
                                 $isOwner = $isAdmin && ((int) ($a['accountID'] ?? 0) === $currentAdminId);
                                 $status = strtoupper($a['announcementStatus'] ?? '');
@@ -54,20 +55,26 @@ $isAdmin = strtoupper($_SESSION['role'] ?? '') === 'ADMIN';
                                 ?>
                                 <tr>
                                     <td><?= $no++ ?></td>
+
                                     <td>
                                         <a href="/announcements/<?= $id ?>">
                                             <?= htmlspecialchars($a['title'] ?? '') ?>
                                         </a>
+                                    </td>
+
+                                    <td><?= htmlspecialchars($a['senderName'] ?? 'Unknown') ?></td>
+
+                                    <td><?= htmlspecialchars($date) ?></td>
+
+                                    <td>
                                         <?php if ($status === 'DRAFT'): ?>
-                                            <span class="badge bg-secondary ms-2">Draft</span>
+                                            <span class="badge bg-secondary">Draft</span>
                                         <?php elseif ($status === 'SCHEDULED'): ?>
-                                            <span class="badge bg-warning text-dark ms-2">Scheduled</span>
+                                            <span class="badge bg-warning text-dark">Scheduled</span>
                                         <?php elseif ($status === 'PUBLISHED'): ?>
-                                            <span class="badge bg-success ms-2">Published</span>
+                                            <span class="badge bg-success">Published</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td><?= htmlspecialchars($a['senderName'] ?? 'Unknown') ?></td>
-                                    <td><?= htmlspecialchars($date) ?></td>
 
                                     <td class="text-nowrap">
                                         <div class="d-flex flex-wrap gap-2 justify-content-start">
