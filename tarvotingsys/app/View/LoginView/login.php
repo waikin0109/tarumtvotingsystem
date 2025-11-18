@@ -39,7 +39,7 @@ function invalidClass(array $errors, string $field): string
         border:1px solid rgba(0,0,0,.05);padding:2rem;">
         <!-- Header -->
         <div class="d-flex justify-content-center mb-4">
-          <img class="tarumt-logo mb-2 img-fluid" src="image/tarumtLogo.jpg" alt="TAR UMT logo">
+          <img class="tarumt-logo mb-2 img-fluid" src="image/tarumtLogo.png" alt="TAR UMT logo">
         </div>
 
         <!-- Title -->

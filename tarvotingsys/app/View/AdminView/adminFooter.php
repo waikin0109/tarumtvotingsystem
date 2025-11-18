@@ -7,8 +7,8 @@
     });
     </script>
 
-    <footer class="mt-auto bg-light py-3">
-      <div class="container text-center">
+    <footer class="mt-auto bg-danger py-3">
+      <div class="container text-center text-light">
         Developed by <strong>Tunku Abdul Rahman University of Management and Technology</strong> &middot;
         Copyright &copy; <?= date('Y') ?>
       </div>
