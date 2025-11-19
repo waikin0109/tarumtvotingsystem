@@ -3,7 +3,7 @@ $_title = 'Election Event Editing';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 ?>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2 class="mb-0">Edit Election Event</h2>
     </div>

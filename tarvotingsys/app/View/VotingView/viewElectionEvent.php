@@ -34,11 +34,15 @@ $title     = $electionEventData['title'] ?? 'Untitled Election Event';
 $desc      = $electionEventData['description'] ?? '';
 ?>
 
-<div class="container mt-4 mb-5">
+<div class="container-fluid mt-4 mb-5">
 
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Election Event Details</h2>
+    </div>
     <!-- Gradient Header -->
     <div class="card border-0 mb-4 shadow-sm"
          style="border-radius: 1.5rem;">
+        
         <div class="card-body d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
 
             <!-- Left side: breadcrumb + title + chips -->

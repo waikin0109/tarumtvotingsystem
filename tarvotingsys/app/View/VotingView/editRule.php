@@ -3,112 +3,140 @@ $_title = 'Rule Editing';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 ?>
 
-<div class="container mt-4">
-  <h2>Edit Rule</h2>
-
-  <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger">
-      <ul class="mb-0">
-        <?php foreach ($errors as $error): ?>
-          <li><?= htmlspecialchars($error) ?></li>
-        <?php endforeach; ?>
-      </ul>
+<div class="container-fluid mt-4 mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Edit Rule</h2>
     </div>
-  <?php endif; ?>
 
-  <form action="/admin/rule/edit/<?= urlencode($ruleData['ruleID'] ?? '') ?>" method="POST" id="ruleForm">
-    <!-- Rule Title -->
-    <div class="mb-3">
-      <label for="ruleTitle" class="form-label">Rule Title</label>
-      <input type="text"
-             class="form-control <?= !empty($fieldErrors['ruleTitle']) ? 'is-invalid' : '' ?>"
-             id="ruleTitle"
-             name="ruleTitle"
-             value="<?= htmlspecialchars($ruleData['ruleTitle'] ?? '') ?>">
-      <?php if (!empty($fieldErrors['ruleTitle'])): ?>
-        <div class="invalid-feedback">
-          <?= htmlspecialchars(implode(' ', $fieldErrors['ruleTitle'])) ?>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?= htmlspecialchars($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
+            <form action="/admin/rule/edit/<?= urlencode($ruleData['ruleID'] ?? '') ?>" method="POST" id="ruleForm">
+                <!-- Rule Title -->
+                <div class="mb-3">
+                    <label for="ruleTitle" class="form-label">
+                        Rule Title <span class="text-danger">*</span>
+                    </label>
+                    <input type="text"
+                           class="form-control <?= !empty($fieldErrors['ruleTitle']) ? 'is-invalid' : '' ?>"
+                           id="ruleTitle"
+                           name="ruleTitle"
+                           placeholder="e.g. Campaigning rules, nomination eligibility..."
+                           value="<?= htmlspecialchars($ruleData['ruleTitle'] ?? '') ?>">
+                    <?php if (!empty($fieldErrors['ruleTitle'])): ?>
+                        <div class="invalid-feedback">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['ruleTitle'])) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Rule Content -->
+                <div class="mb-4">
+                    <label for="content" class="form-label">
+                        Rule Content <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control <?= !empty($fieldErrors['content']) ? 'is-invalid' : '' ?>"
+                              id="content"
+                              name="content"
+                              rows="5"
+                              placeholder="Describe the rule in clear, formal wording."><?= htmlspecialchars($ruleData['content'] ?? '') ?></textarea>
+                    <?php if (!empty($fieldErrors['content'])): ?>
+                        <div class="invalid-feedback">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['content'])) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Associated Election Event -->
+                <h5 class="mb-3">Associated Election Event</h5>
+                <div class="mb-3">
+                    <label class="form-label">
+                        Link to Election Event <span class="text-danger">*</span>
+                    </label>
+                    <div class="position-relative">
+                        <?php
+                          // Prefill visible input from current electionID
+                          $prefillText = '';
+                          $selId = $ruleData['electionID'] ?? 0;
+                          if (!empty($selId) && !empty($electionEvents)) {
+                              foreach ($electionEvents as $ev) {
+                                  if ((int)($ev['electionID'] ?? 0) === (int)$selId) {
+                                      $prefillText = (string)($ev['title'] ?? '');
+                                      break;
+                                  }
+                              }
+                          }
+                        ?>
+                        <input
+                          type="text"
+                          class="form-control<?= !empty($fieldErrors['electionID']) ? ' is-invalid' : '' ?>"
+                          id="ruleElectionSearch"
+                          placeholder="Search election event…"
+                          autocomplete="off"
+                          value="<?= htmlspecialchars($prefillText) ?>"
+                        >
+
+                        <input type="hidden"
+                               name="electionID"
+                               id="electionID"
+                               value="<?= (int)($ruleData['electionID'] ?? 0) ?>">
+
+                        <div id="ruleElectionList"
+                             class="dropdown-menu w-100 p-0"
+                             style="max-height:240px;overflow:auto;">
+                          <?php
+                            $printed = 0;
+                            foreach (($electionEvents ?? []) as $ev):
+                              $status = (string)($ev['status'] ?? '');
+                              if (!in_array(strtolower($status), ['pending','ongoing'], true)) continue;
+                              $printed++;
+                          ?>
+                            <button type="button"
+                                    class="dropdown-item"
+                                    data-id="<?= (int)$ev['electionID'] ?>"
+                                    data-text="<?= htmlspecialchars($ev['title'] ?? '') ?>"
+                                    data-keywords="<?= htmlspecialchars(strtolower(($ev['title'] ?? '').' '.($ev['electionID'] ?? '').' '.$status)) ?>">
+                              <?= htmlspecialchars($ev['title'] ?? '') ?>
+                            </button>
+                          <?php endforeach; ?>
+
+                          <?php if ($printed === 0): ?>
+                            <div class="px-3 py-2 text-muted">No eligible events (Pending/Ongoing) found.</div>
+                          <?php endif; ?>
+                        </div>
+
+                        <?php if (!empty($fieldErrors['electionID'])): ?>
+                          <div class="invalid-feedback d-block">
+                              <?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?>
+                          </div>
+                        <?php endif; ?>
+                    </div>
+                    <small class="text-muted">
+                        Only election events with status <strong>Pending</strong> or <strong>Ongoing</strong> are available.
+                    </small>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-end gap-2 pt-3">
+                    <a href="/admin/rule" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
-      <?php endif; ?>
     </div>
-
-    <!-- Rule Content -->
-    <div class="mb-3">
-      <label for="content" class="form-label">Rule Content</label>
-      <textarea class="form-control <?= !empty($fieldErrors['content']) ? 'is-invalid' : '' ?>"
-                id="content"
-                name="content"
-                rows="5"><?= htmlspecialchars($ruleData['content'] ?? '') ?></textarea>
-      <?php if (!empty($fieldErrors['content'])): ?>
-        <div class="invalid-feedback">
-          <?= htmlspecialchars(implode(' ', $fieldErrors['content'])) ?>
-        </div>
-      <?php endif; ?>
-    </div>
-
-    <!-- Associated Election Event (same UX as Create Rule) -->
-    <div class="mb-3">
-      <label class="form-label">Associated Election Event</label>
-      <div class="position-relative">
-        <?php
-          // Prefill visible input from current electionID
-          $prefillText = '';
-          $selId = $ruleData['electionID'] ?? 0;
-          if (!empty($selId) && !empty($electionEvents)) {
-            foreach ($electionEvents as $ev) {
-              if ((int)($ev['electionID'] ?? 0) === (int)$selId) {
-                $prefillText = (string)($ev['title'] ?? '');
-                break;
-              }
-            }
-          }
-        ?>
-        <input
-          type="text"
-          class="form-control<?= !empty($fieldErrors['electionID']) ? ' is-invalid' : '' ?>"
-          id="ruleElectionSearch"
-          placeholder="Search event…"
-          autocomplete="off"
-          value="<?= htmlspecialchars($prefillText) ?>"
-        >
-
-        <input type="hidden"
-               name="electionID"
-               id="electionID"
-               value="<?= (int)($ruleData['electionID'] ?? 0) ?>">
-
-        <div id="ruleElectionList" class="dropdown-menu w-100 p-0" style="max-height:240px;overflow:auto;">
-          <?php
-            $printed = 0;
-            foreach ($electionEvents as $ev):
-              $status = (string)($ev['status'] ?? '');
-              if (!in_array(strtolower($status), ['pending','ongoing'], true)) continue;
-              $printed++;
-          ?>
-            <button type="button"
-                    class="dropdown-item"
-                    data-id="<?= (int)$ev['electionID'] ?>"
-                    data-text="<?= htmlspecialchars($ev['title'] ?? '') ?>"
-                    data-keywords="<?= htmlspecialchars(strtolower(($ev['title'] ?? '').' '.($ev['electionID'] ?? '').' '.$status)) ?>">
-              <?= htmlspecialchars($ev['title'] ?? '') ?>
-            </button>
-          <?php endforeach; ?>
-
-          <?php if ($printed === 0): ?>
-            <div class="px-3 py-2 text-muted">No eligible events (Pending/Ongoing) found.</div>
-          <?php endif; ?>
-        </div>
-
-        <?php if (!empty($fieldErrors['electionID'])): ?>
-          <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?></div>
-        <?php endif; ?>
-      </div>
-      <small class="text-muted">Only events with status Pending / Ongoing are available.</small>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save Changes</button>
-    <a href="/admin/rule" class="btn btn-outline-secondary ms-2">Cancel</a>
-  </form>
 </div>
 
 <script>
@@ -126,10 +154,15 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
       });
       menu.classList.add('show');
     };
-    input.addEventListener('focus', () => { menu.classList.add('show'); filter(); });
+    input.addEventListener('focus', () => { 
+      menu.classList.add('show'); 
+      filter(); 
+    });
     input.addEventListener('input', filter);
     document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && !input.contains(e.target)) menu.classList.remove('show');
+      if (!menu.contains(e.target) && !input.contains(e.target)) {
+        menu.classList.remove('show');
+      }
     });
   };
 

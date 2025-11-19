@@ -52,9 +52,16 @@ class RuleController
     public function listRules()
     {
         $this->requireRole('ADMIN');
-        $rules = $this->ruleModel->getAllRules();
-        $filePath = $this->fileHelper->getFilePath('RuleList');
+        
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
 
+        $pager          = $this->ruleModel->getPagedRules($page, 10, $search, $filterStatus);
+        $rules = $pager->result;
+
+        $filePath = $this->fileHelper->getFilePath('RuleList');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
         } else {
@@ -66,11 +73,17 @@ class RuleController
     public function listRulesStudent()
     {
         $this->requireRole('STUDENT');
-        $rules = $this->ruleModel->getAllRules();
-        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
 
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager = $this->ruleModel->getPagedRules($page, 10, $search, $filterStatus);
+        $rules = $pager->result ?? [];
+
+        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
         if ($filePath && file_exists($filePath)) {
-            include $filePath;
+            include $filePath; // uses $rules, $pager, $search, $filterStatus
         } else {
             echo "View file not found.";
         }
@@ -80,15 +93,23 @@ class RuleController
     public function listRulesNominee()
     {
         $this->requireRole('NOMINEE');
-        $rules = $this->ruleModel->getAllRules();
-        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
 
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager = $this->ruleModel->getPagedRules($page, 10, $search, $filterStatus);
+        $rules = $pager->result ?? [];
+
+        // Reuse same view as student
+        $filePath = $this->fileHelper->getFilePath('RuleListStudent');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
         } else {
             echo "View file not found.";
         }
     }
+
 
     // ----------------------------------------- Create Rules ----------------------------------------- //
     public function createRule()

@@ -12,7 +12,7 @@ $search       = $search       ?? '';
 $filterStatus = $filterStatus ?? '';
 ?>
 
-<div class="container-fluid">
+<div class="container-fluid mt-4 mb-5">
 
     <!-- Header + Create button -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
@@ -59,7 +59,7 @@ $filterStatus = $filterStatus ?? '';
     </div>
 
     <!-- Table -->
-    <div class="card mb-4">
+    <div class="card mb-4" style="box-shadow:0 0.1rem 1rem rgba(0,0,0,.15);">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-striped align-middle mb-0">

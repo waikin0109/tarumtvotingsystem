@@ -7,6 +7,7 @@ use Model\NomineeModel\NomineeModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class RuleModel
 {
@@ -136,6 +137,38 @@ class RuleModel
             error_log("Error in deleteRule: " . $e->getMessage());
             return false;
         }
+    }
+
+    // Paging
+    public function getPagedRules(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
+    {
+        $sql    = "SELECT 
+            r.ruleID,
+            r.ruleTitle,
+            r.content,
+            r.dateCreated,
+            r.electionID,
+            e.title  AS event_name,
+            e.status AS event_status
+        FROM rule r
+        INNER JOIN electionevent e ON r.electionID = e.electionID
+        WHERE 1";
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= " AND ruleTitle LIKE :q";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING','ONGOING','COMPLETED'], true)) {
+            $sql .= " AND status = :status";
+            $params[':status'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY r.ruleID DESC";
+
+        // SimplePager does the LIMIT/OFFSET and total counting.
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
 }

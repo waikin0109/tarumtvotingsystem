@@ -25,6 +25,7 @@ class ElectionEventController
             exit;
         }
 
+        // Paging Setup
         $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $search       = trim($_GET['q'] ?? '');
         $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
