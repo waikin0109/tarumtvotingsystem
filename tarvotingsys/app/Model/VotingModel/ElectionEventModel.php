@@ -95,7 +95,6 @@ class ElectionEventModel
                 $data['accountID']  
             ]);
         } catch (PDOException $e) {
-            // Handle exception (log it, rethrow it, etc.)
             error_log("Error in createElectionEvent: " . $e->getMessage());
             return false;
         }

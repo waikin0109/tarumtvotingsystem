@@ -29,7 +29,7 @@ class ElectionEventController
         $search       = trim($_GET['q'] ?? '');
         $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
 
-        $pager          = $this->electionEventModel->getPagedElectionEvents($page, 5, $search, $filterStatus);
+        $pager          = $this->electionEventModel->getPagedElectionEvents($page, 10, $search, $filterStatus);
         $electionEvents = $pager->result;
 
         $filePath = $this->fileHelper->getFilePath('ElectionEventList');
