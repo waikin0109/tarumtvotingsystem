@@ -62,13 +62,15 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                      alt="TAR UMT logo"
                      class="d-inline-block align-text-top me-2 img-fluid"
                      style="width: 30px; height:auto;">
-                <div class="d-flex flex-column">
-                    <span class="fw-semibold">TARUMT Voting System</span>
-                    <small class="text-light-50">
-                        <?= htmlspecialchars($role) ?> Portal
-                    </small>
-                </div>
+                <span class="fw-semibold text-light">TARUMT Voting System</span>
             </a>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <small class="text-light"><?= htmlspecialchars($role) ?> Portal</small>
+                    </li>
+                </ul>
+            </div>
 
             <!-- Mobile sidebar toggle -->
             <button class="navbar-toggler" type="button" id="btnSidebarToggle">
