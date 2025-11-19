@@ -25,15 +25,21 @@ class ElectionEventController
             exit;
         }
 
-        $electionEvents = $this->electionEventModel->getAllElectionEvents(); // ensure method name matches your model
-        $filePath = $this->fileHelper->getFilePath('ElectionEventList');
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
 
+        $pager          = $this->electionEventModel->getPagedElectionEvents($page, 5, $search, $filterStatus);
+        $electionEvents = $pager->result;
+
+        $filePath = $this->fileHelper->getFilePath('ElectionEventList');
         if ($filePath && file_exists($filePath)) {
-            include $filePath;
+            include $filePath; // view can use $electionEvents, $pager, $search, $filterStatus
         } else {
             echo "View file not found.";
         }
     }
+
 
     private function mustBePendingOrAbort($electionID)
     {

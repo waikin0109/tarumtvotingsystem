@@ -6,6 +6,7 @@ use Model\NomineeModel\NomineeModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class ElectionEventModel
 {
@@ -80,8 +81,6 @@ class ElectionEventModel
             return false;
         }
     }
-
-
 
     public function createElectionEvent($data)
     {
@@ -186,98 +185,117 @@ class ElectionEventModel
     // --------------------------------------- Other Needed Functions ------------------------------------------------ //
     // Functions Use in Rules
     public function getEligibleElectionEvents($allowed = ['Pending','Ongoing'])
-{
-    $allowed = array_map('strtolower', $allowed);
+    {
+        $allowed = array_map('strtolower', $allowed);
 
-    // We must SELECT start/end to recompute status
-    $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
-            FROM electionevent
-            ORDER BY electionID ASC";
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute();
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-    $eligible = [];
-
-    foreach ($rows as $ev) {
-        $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
-
-        // If status changed, persist it
-        if ($current !== $ev['status']) {
-            $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
-            $upd->execute([$current, $ev['electionID']]);
-            $ev['status'] = $current; // keep local row consistent
-        }
-
-        if (in_array(strtolower($ev['status']), $allowed, true)) {
-            // Return only fields the callers need
-            $eligible[] = [
-                'electionID' => $ev['electionID'],
-                'title'      => $ev['title'],
-                'status'     => $ev['status'],
-            ];
-        }
-    }
-
-    return $eligible;
-}
-
-// --------- Refresh + return single row if eligible ---------
-public function getElectionEventByIdIfEligible($electionID, $allowed = ['Pending','Ongoing'])
-{
-    $allowed = array_map('strtolower', $allowed);
-
-    $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
-            FROM electionevent
-            WHERE electionID = ?
-            LIMIT 1";
-    $stmt = $this->db->prepare($sql);
-    $stmt->execute([$electionID]);
-    $ev = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if (!$ev) return false;
-
-    $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
-
-    if ($current !== $ev['status']) {
-        $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
-        $upd->execute([$current, $ev['electionID']]);
-        $ev['status'] = $current;
-    }
-
-    return in_array(strtolower($ev['status']), $allowed, true)
-        ? ['electionID' => $ev['electionID'], 'title' => $ev['title'], 'status' => $ev['status']]
-        : false;
-}
-
-public function getAllPublishedElectionEvents(): array
-{
-    try {
-        $sql = "
-            SELECT DISTINCT
-                ee.electionID,
-                ee.title AS event_name
-            FROM electionevent ee
-            INNER JOIN nomineeapplication na
-                ON na.electionID = ee.electionID
-            WHERE UPPER(na.applicationStatus) = 'PUBLISHED'
-            AND ee.electionEndDate > NOW()
-            ORDER BY ee.electionEndDate DESC
-        ";
-
+        // We must SELECT start/end to recompute status
+        $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
+                FROM electionevent
+                ORDER BY electionID ASC";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        return $rows;
-    } catch (PDOException $e) {
-        error_log('getAllPublishedElectionEvents: ' . $e->getMessage());
-        return [];
+        $eligible = [];
+
+        foreach ($rows as $ev) {
+            $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
+
+            // If status changed, persist it
+            if ($current !== $ev['status']) {
+                $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $upd->execute([$current, $ev['electionID']]);
+                $ev['status'] = $current; // keep local row consistent
+            }
+
+            if (in_array(strtolower($ev['status']), $allowed, true)) {
+                // Return only fields the callers need
+                $eligible[] = [
+                    'electionID' => $ev['electionID'],
+                    'title'      => $ev['title'],
+                    'status'     => $ev['status'],
+                ];
+            }
+        }
+
+        return $eligible;
     }
-}
 
+    // --------- Refresh + return single row if eligible ---------
+    public function getElectionEventByIdIfEligible($electionID, $allowed = ['Pending','Ongoing'])
+    {
+        $allowed = array_map('strtolower', $allowed);
 
+        $sql = "SELECT electionID, title, status, electionStartDate, electionEndDate
+                FROM electionevent
+                WHERE electionID = ?
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$electionID]);
+        $ev = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if (!$ev) return false;
+
+        $current = $this->determineStatus($ev['electionStartDate'], $ev['electionEndDate']);
+
+        if ($current !== $ev['status']) {
+            $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+            $upd->execute([$current, $ev['electionID']]);
+            $ev['status'] = $current;
+        }
+
+        return in_array(strtolower($ev['status']), $allowed, true)
+            ? ['electionID' => $ev['electionID'], 'title' => $ev['title'], 'status' => $ev['status']]
+            : false;
+    }
+
+    public function getAllPublishedElectionEvents(): array
+    {
+        try {
+            $sql = "
+                SELECT DISTINCT
+                    ee.electionID,
+                    ee.title AS event_name
+                FROM electionevent ee
+                INNER JOIN nomineeapplication na
+                    ON na.electionID = ee.electionID
+                WHERE UPPER(na.applicationStatus) = 'PUBLISHED'
+                AND ee.electionEndDate > NOW()
+                ORDER BY ee.electionEndDate DESC
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            return $rows;
+        } catch (PDOException $e) {
+            error_log('getAllPublishedElectionEvents: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Paging Settings
+    public function getPagedElectionEvents(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
+    {
+        $sql    = "SELECT electionID, title, dateCreated, status FROM electionevent WHERE 1";
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= " AND title LIKE :q";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING','ONGOING','COMPLETED'], true)) {
+            $sql .= " AND status = :status";
+            $params[':status'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY electionID DESC";
+
+        // SimplePager does the LIMIT/OFFSET and total counting.
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
 
 
 }

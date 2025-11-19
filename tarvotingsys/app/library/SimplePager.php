@@ -35,24 +35,50 @@ class SimplePager {
         $this->count = count($this->result);
     }
 
-    public function html($href = '', $attr = '') {
-        if (!$this->result) return;
-
-        // Generate pager (html)
-        $prev = max($this->page - 1, 1);
-        $next = min($this->page + 1, $this->page_count);
-
-        echo "<nav class='pager' $attr>";
-        echo "<a href='?page=1&$href'>First</a>";
-        echo "<a href='?page=$prev&$href'>Previous</a>";
-
-        for ($p = 1; $p <= $this->page_count; $p++) {
-            $c = $p == $this->page ? 'active' : '';
-            echo "<a href='?page=$p&$href' class='$c'>$p</a>";
-        }
-
-        echo "<a href='?page=$next&$href'>Next</a>";
-        echo "<a href='?page=$this->page_count&$href'>Last</a>";
-        echo "</nav>";
+    public function html($href = '', $attr = '')
+{
+    if (!$this->result || $this->page_count < 1) {
+        return;
     }
+
+    // Normalise extra query params (q, status, etc.)
+    $queryBase = '';
+    if ($href !== '') {
+        $queryBase = '&' . ltrim($href, '&?');
+    }
+
+    $prev = max($this->page - 1, 1);
+    $next = min($this->page + 1, $this->page_count);
+
+    echo "<nav $attr>";
+    echo "<ul class=\"pagination pagination-sm mb-0\">";
+
+    // Previous button
+    $disabledPrev = $this->page <= 1 ? ' disabled' : '';
+    echo "<li class=\"page-item{$disabledPrev}\">";
+    echo    "<a class=\"page-link\" href=\"?page={$prev}{$queryBase}\" tabindex=\"-1\" aria-label=\"Previous\">";
+    echo        "&laquo;";
+    echo    "</a>";
+    echo "</li>";
+
+    // Page numbers
+    for ($p = 1; $p <= $this->page_count; $p++) {
+        $active = $p == $this->page ? ' active' : '';
+        echo "<li class=\"page-item{$active}\">";
+        echo    "<a class=\"page-link\" href=\"?page={$p}{$queryBase}\">{$p}</a>";
+        echo "</li>";
+    }
+
+    // Next button
+    $disabledNext = $this->page >= $this->page_count ? ' disabled' : '';
+    echo "<li class=\"page-item{$disabledNext}\">";
+    echo    "<a class=\"page-link\" href=\"?page={$next}{$queryBase}\" aria-label=\"Next\">";
+    echo        "&raquo;";
+    echo    "</a>";
+    echo "</li>";
+
+    echo "</ul>";
+    echo "</nav>";
+}
+
 }
