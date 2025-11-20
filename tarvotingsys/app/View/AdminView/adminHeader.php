@@ -36,7 +36,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     <link rel="stylesheet" type="text/css" href="/css/app.css">
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100">
     <!-- Header -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow-sm">
         <div class="container-fluid">
@@ -104,12 +104,11 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
 
     <!-- Sidebar and Content wrapper -->
-    <div class="d-flex layout-wrapper">
+    <div class="d-flex layout-wrapper flex-grow-1">
         <!-- Sidebar -->
         <div>
             <aside id="sidebar"
-                class="bg-light position-relative start-0 overflow-auto border-end border-white border-1"
-                style="height:calc(100vh - 56px);">
+                    class="bg-light position-relative start-0 overflow-auto border-end border-white border-1 h-100">
                 <div class="position-sticky pb-5">
                     <div class="menu-title">Election Setup</div>
                     <div class="list-group list-group-flush">

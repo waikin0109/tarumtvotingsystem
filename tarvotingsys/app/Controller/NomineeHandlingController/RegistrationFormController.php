@@ -72,7 +72,14 @@ class RegistrationFormController
     {
         $this->requireRole('ADMIN');
 
-        $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager             = $this->registrationFormModel->getPagedRegistrationForms($page, 10, $search, $filterStatus);
+        $registrationForms = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('ElectionRegistrationFormList');
         
         if ($filePath && file_exists($filePath)) {
@@ -87,7 +94,13 @@ class RegistrationFormController
         $this->requireRole('STUDENT');
 
         // 1) Get all forms (your existing line)
-        $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager             = $this->registrationFormModel->getPagedRegistrationForms($page, 10, $search, $filterStatus);
+        $registrationForms = $pager->result;
 
         // 2) Resolve current studentID
         $studentID = (int)($_SESSION['roleID'] ?? 0);
@@ -145,7 +158,13 @@ class RegistrationFormController
         $this->requireRole('NOMINEE');
 
         // 1) Get all forms (your existing line)
-        $registrationForms = $this->registrationFormModel->getAllRegistrationForms();
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager             = $this->registrationFormModel->getPagedRegistrationForms($page, 10, $search, $filterStatus);
+        $registrationForms = $pager->result;
 
         // 2) Resolve current studentID
         $nomineeID = (int)($_SESSION['roleID'] ?? 0);

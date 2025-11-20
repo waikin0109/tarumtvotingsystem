@@ -3,19 +3,23 @@
 namespace Model\NomineeHandlingModel;
 
 use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class RegistrationFormModel
 {
     private $db;
     private ElectionEventModel $electionEventModel;
+    private NomineeModel $nomineeModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
         $this->electionEventModel = new ElectionEventModel();
+        $this->nomineeModel = new NomineeModel();
 
     }
 
@@ -362,7 +366,40 @@ public function isLocked(int $formId): bool {
 
 
     // -----------------------------------------------------------------------------------------------------------------------------------------------//
-    
+    // Paging Settings
+    public function getPagedRegistrationForms(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager {
+        $sql = "
+            SELECT 
+                rf.registrationFormID,
+                rf.registrationFormTitle,
+                rf.registerStartDate,
+                rf.registerEndDate,
+                rf.electionID,
+                e.title  AS event_name,
+                e.status AS election_status
+            FROM registrationform rf
+            LEFT JOIN electionevent e ON rf.electionID = e.electionID
+            WHERE 1
+        ";
+
+        $params = [];
+
+        // Search by form title
+        if ($search !== '') {
+            $sql .= " AND rf.registrationFormTitle LIKE :q";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        $sql .= "
+            ORDER BY 
+                rf.registerEndDate DESC,
+                rf.registrationFormID DESC
+        ";
+
+        // SimplePager will handle LIMIT/OFFSET and total counting
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
+
 
 }
 
