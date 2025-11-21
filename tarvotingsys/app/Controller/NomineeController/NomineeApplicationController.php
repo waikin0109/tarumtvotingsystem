@@ -91,7 +91,15 @@ class NomineeApplicationController
     public function listNomineeApplications()
     {
         $this->requireRole('ADMIN');
-        $nomineeApplications = $this->nomineeApplicationModel->getAllNomineeApplications();
+
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->nomineeApplicationModel->getPagedNomineeApplications($page, 9, $search, $filterStatus);
+        $nomineeApplications = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('NomineeApplicationList');
 
         if ($filePath && file_exists($filePath)) {

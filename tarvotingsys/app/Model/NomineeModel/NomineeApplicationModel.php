@@ -5,6 +5,7 @@ namespace Model\NomineeModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 
 class NomineeApplicationModel
@@ -481,7 +482,46 @@ class NomineeApplicationModel
     }
 
     // ------------------------------------------------------------------------------------------------ //
+    // Paging Settings
+    public function getPagedNomineeApplications(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
+    {
+        $sql    = "
+            SELECT 
+                na.*,
+                ac.fullName,
+                e.title AS event_name,
+                (rf.registerEndDate IS NULL OR rf.registerEndDate > NOW()) AS reg_is_open,
+                EXISTS (
+                    SELECT 1 
+                    FROM nomineeapplication na2
+                    WHERE na2.electionID = na.electionID
+                    AND na2.applicationStatus = 'PUBLISHED'
+                    LIMIT 1
+                ) AS event_has_published
+            FROM nomineeapplication na
+            LEFT JOIN electionevent   e  ON na.electionID        = e.electionID
+            LEFT JOIN registrationform rf ON na.registrationFormID = rf.registrationFormID
+            LEFT JOIN student         s  ON na.studentID         = s.studentID 
+            LEFT JOIN account         ac ON s.accountID          = ac.accountID
+            WHERE 1
+        ";
+        $params = [];
 
+        if ($search !== '') {
+            $sql .= " AND ac.fullName LIKE :q";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING','ACCEPTED','REJECTED','PUBLISHED'], true)) {
+            $sql .= " AND na.applicationStatus = :status";
+            $params[':status'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY na.nomineeApplicationID DESC";
+
+        // SimplePager does the LIMIT/OFFSET and total counting.
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
 
 
 

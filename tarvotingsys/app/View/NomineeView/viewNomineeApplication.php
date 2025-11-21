@@ -22,7 +22,7 @@ $subId = (int)($na['applicationSubmissionID'] ?? 0);
 $docBaseUrl = "/uploads/academic_document/" . $subId . "/";
 ?>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 mb-5">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="mb-0">Nominee Application Details</h2>
     <a href="<?= $backLink ?>" class="btn btn-outline-secondary">Back to List</a>
@@ -102,7 +102,7 @@ $docBaseUrl = "/uploads/academic_document/" . $subId . "/";
                 <th>File</th>
                 <th style="width: 240px;">Category</th>
                 <th style="width: 160px;">Preview</th>
-                <th style="width: 140px;">Download</th>
+                <th style="width: 200px;">Download</th>
               </tr>
             </thead>
             <tbody>
