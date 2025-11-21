@@ -53,6 +53,11 @@ $filterStatus = $filterStatus ?? '';
                     <button type="submit" class="btn btn-outline-primary me-2">
                         Search
                     </button>
+                    <?php if ($search !== '' || $filterStatus !== ''): ?>
+                        <a href="/admin/election-event" class="btn btn-link text-decoration-none">
+                        Reset
+                        </a>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

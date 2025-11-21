@@ -296,5 +296,35 @@ class ElectionEventModel
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
+    public function getPagedPublishedElectionEvents(
+        int $page,
+        int $limit,
+        string $search = '',
+        string $filterStatus = ''
+    ): SimplePager {
+        $sql = "
+            SELECT DISTINCT
+                ee.electionID,
+                ee.title AS event_name
+            FROM electionevent ee
+            INNER JOIN nomineeapplication na
+                ON na.electionID = ee.electionID
+            WHERE UPPER(na.applicationStatus) = 'PUBLISHED'
+            AND ee.electionEndDate > NOW()
+        ";
+
+        $params = [];
+
+        if ($search !== '') {
+            // IMPORTANT: use real column name, not alias
+            $sql .= " AND ee.title LIKE :q";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        $sql .= " ORDER BY ee.electionEndDate DESC, ee.electionID DESC";
+
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
+
 
 }

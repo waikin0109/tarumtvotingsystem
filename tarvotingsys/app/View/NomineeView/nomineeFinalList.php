@@ -110,6 +110,11 @@ $buildPageUrl = function (int $pageNumber) use ($baseUrl, $queryParams): string 
                     <button type="submit" class="btn btn-outline-primary me-2">
                         Search
                     </button>
+                    <?php if ($search !== ''): ?>
+                        <a href="<?= htmlspecialchars($baseUrl) ?>" class="btn btn-link text-decoration-none">
+                        Reset
+                        </a>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

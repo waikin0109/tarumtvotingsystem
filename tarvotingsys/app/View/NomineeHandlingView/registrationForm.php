@@ -47,6 +47,11 @@ $search = $search ?? '';
                     <button type="submit" class="btn btn-outline-primary me-2">
                         Search
                     </button>
+                    <?php if ($search !== ''): ?>
+                        <a href="/admin/election-registration-form" class="btn btn-link text-decoration-none">
+                        Reset
+                        </a>
+                    <?php endif; ?>
                 </div>
             </form>
         </div>

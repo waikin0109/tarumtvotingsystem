@@ -97,7 +97,7 @@ class NomineeApplicationController
         $search       = trim($_GET['q'] ?? '');
         $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
 
-        $pager          = $this->nomineeApplicationModel->getPagedNomineeApplications($page, 9, $search, $filterStatus);
+        $pager          = $this->nomineeApplicationModel->getPagedNomineeApplications($page, 10, $search, $filterStatus);
         $nomineeApplications = $pager->result;
 
         $filePath = $this->fileHelper->getFilePath('NomineeApplicationList');

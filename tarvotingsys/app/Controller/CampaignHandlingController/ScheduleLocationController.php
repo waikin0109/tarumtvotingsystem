@@ -54,7 +54,15 @@ class ScheduleLocationController
     public function listScheduleLocations(): void
     {
         $this->requireRole('ADMIN');
-        $scheduleLocations = $this->scheduleLocationModel->getAllScheduleLocations();
+
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->scheduleLocationModel->getPagedScheduleLocations($page, 10, $search, $filterStatus);
+        $scheduleLocations = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('ScheduleLocationList');
 
         if ($filePath && file_exists($filePath)) {
@@ -67,7 +75,15 @@ class ScheduleLocationController
     public function listScheduleLocationsStudent(): void
     {
         $this->requireRole('STUDENT');
-        $scheduleLocations = $this->electionEventModel->getAllPublishedElectionEvents();
+        
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->electionEventModel->getPagedPublishedElectionEvents($page, 10, $search, $filterStatus);
+        $scheduleLocations = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('ScheduleLocationListStudent');
 
         if ($filePath && file_exists($filePath)) {
@@ -80,7 +96,15 @@ class ScheduleLocationController
     public function listScheduleLocationsNominee(): void
     {
         $this->requireRole('NOMINEE');
-        $scheduleLocations = $this->electionEventModel->getAllPublishedElectionEvents();
+
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->electionEventModel->getPagedPublishedElectionEvents($page, 10, $search, $filterStatus);
+        $scheduleLocations = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('ScheduleLocationListStudent');
 
         if ($filePath && file_exists($filePath)) {

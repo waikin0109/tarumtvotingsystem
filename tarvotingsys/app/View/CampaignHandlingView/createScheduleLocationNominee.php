@@ -3,118 +3,217 @@ $_title = "Apply Campaign Event";
 require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 
 if (!function_exists('invalid')) {
-  function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-invalid' : ''; }
+    function invalid(array $fe, string $code){ return !empty($fe[$code]) ? ' is-invalid' : ''; }
 }
 ?>
 
-<div class="container mt-4 mb-5">
-  <h2>Apply for Campaign Event</h2>
+<div class="container-fluid mt-4 mb-5">
+    <!-- Page header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Apply for Campaign Event</h2>
+    </div>
 
-  <?php if (!empty($errors)): ?>
-    <div class="alert alert-danger"><ul class="mb-0">
-      <?php foreach ($errors as $e): ?><li><?= htmlspecialchars($e) ?></li><?php endforeach; ?>
-    </ul></div>
-  <?php endif; ?>
+    <div class="card shadow-sm">
+        <div class="card-body">
 
-  <form action="/nominee/schedule-location/create" method="POST" id="scheduleForm" novalidate>
-    <!-- Election (searchable) -->
-    <div class="mb-3">
-      <label class="form-label">Election Event <span class="text-danger">*</span></label>
-      <div class="position-relative">
-        <input type="text" class="form-control<?= invalid($fieldErrors,'electionID') ?>"
-               id="electionSearch" placeholder="Search event…"
-               autocomplete="off"
-               value="<?php
-                 if (!empty($old['electionID'])) {
-                   foreach ($elections as $ev) {
-                     if ((int)$ev['electionID'] === (int)$old['electionID']) { echo htmlspecialchars($ev['title']); break; }
-                   }
-                 }
-               ?>">
-        <input type="hidden" name="electionID" id="electionID" value="<?= (int)($old['electionID'] ?? 0) ?>">
+            <?php if (!empty($errors)): ?>
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        <?php foreach ($errors as $e): ?>
+                            <li><?= htmlspecialchars($e) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
 
-        <div id="electionList" class="dropdown-menu w-100 p-0" style="max-height:240px;overflow:auto;">
-          <?php foreach ($elections as $ev): ?>
-            <button type="button" class="dropdown-item"
-                    data-id="<?= (int)$ev['electionID'] ?>"
-                    data-text="<?= htmlspecialchars($ev['title']) ?>"
-                    data-keywords="<?= htmlspecialchars(strtolower($ev['title'])) ?>">
-              <?= htmlspecialchars($ev['title']) ?>
-            </button>
-          <?php endforeach; ?>
+            <form action="/nominee/schedule-location/create"
+                  method="POST"
+                  id="scheduleForm"
+                  novalidate>
+
+                <!-- Section: Election Event -->
+                <h5 class="mb-3">Election Event</h5>
+
+                <!-- Election (searchable) -->
+                <div class="mb-3">
+                    <label class="form-label">
+                        Election Event <span class="text-danger">*</span>
+                    </label>
+                    <div class="position-relative">
+                        <input
+                            type="text"
+                            class="form-control<?= invalid($fieldErrors,'electionID') ?>"
+                            id="electionSearch"
+                            placeholder="Search event…"
+                            autocomplete="off"
+                            value="<?php
+                                if (!empty($old['electionID'])) {
+                                    foreach ($elections as $ev) {
+                                        if ((int)$ev['electionID'] === (int)$old['electionID']) {
+                                            echo htmlspecialchars($ev['title']);
+                                            break;
+                                        }
+                                    }
+                                }
+                            ?>"
+                        >
+                        <input type="hidden"
+                               name="electionID"
+                               id="electionID"
+                               value="<?= (int)($old['electionID'] ?? 0) ?>">
+
+                        <div id="electionList"
+                             class="dropdown-menu w-100 p-0"
+                             style="max-height:240px;overflow:auto;">
+                            <?php foreach ($elections as $ev): ?>
+                                <button type="button"
+                                        class="dropdown-item"
+                                        data-id="<?= (int)$ev['electionID'] ?>"
+                                        data-text="<?= htmlspecialchars($ev['title']) ?>"
+                                        data-keywords="<?= htmlspecialchars(strtolower($ev['title'])) ?>">
+                                    <?= htmlspecialchars($ev['title']) ?>
+                                </button>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (!empty($fieldErrors['electionID'])): ?>
+                            <div class="invalid-feedback d-block">
+                                <?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <div id="electionHelp" class="text-danger small d-none">
+                            The event is not available. Please select from the list.
+                        </div>
+                    </div>
+                    <small class="text-muted">
+                        Only elections where you are a <b>PUBLISHED</b> nominee and registration has closed will appear.
+                    </small>
+                </div>
+
+                <!-- Section: Event Details -->
+                <h5 class="mb-3 mt-4">Event Details</h5>
+
+                <!-- Event Name -->
+                <div class="mb-3">
+                    <label class="form-label" for="eventName">
+                        Event Name <span class="text-danger">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="eventName"
+                        id="eventName"
+                        maxlength="255"
+                        class="form-control<?= invalid($fieldErrors,'eventName') ?>"
+                        value="<?= htmlspecialchars($old['eventName'] ?? '') ?>"
+                        required
+                    >
+                    <?php if (!empty($fieldErrors['eventName'])): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['eventName'])) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Event Type -->
+                <div class="mb-3">
+                    <label class="form-label" for="eventType">
+                        Event Type <span class="text-danger">*</span>
+                    </label>
+                    <select
+                        name="eventType"
+                        id="eventType"
+                        class="form-select<?= invalid($fieldErrors,'eventType') ?>"
+                        required
+                    >
+                        <option value="">-- Select --</option>
+                        <option value="CAMPAIGN" <?= (($old['eventType'] ?? '') === 'CAMPAIGN') ? 'selected' : ''; ?>>
+                            CAMPAIGN
+                        </option>
+                        <option value="DEBATE"   <?= (($old['eventType'] ?? '') === 'DEBATE')   ? 'selected' : ''; ?>>
+                            DEBATE
+                        </option>
+                    </select>
+                    <?php if (!empty($fieldErrors['eventType'])): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['eventType'])) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Desired Start Date & Time -->
+                <div class="mb-3">
+                    <label class="form-label" for="desiredStartDateTime">
+                        Desired Start Date &amp; Time <span class="text-danger">*</span>
+                    </label>
+                    <input
+                        type="datetime-local"
+                        name="desiredStartDateTime"
+                        id="desiredStartDateTime"
+                        class="form-control<?= invalid($fieldErrors,'desiredStartDateTime') ?>"
+                        value="<?= htmlspecialchars($old['desiredStartDateTime'] ?? '') ?>"
+                        required
+                    >
+                    <?php if (!empty($fieldErrors['desiredStartDateTime'])): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['desiredStartDateTime'])) ?>
+                        </div>
+                    <?php endif; ?>
+                    <div class="form-text">
+                        Must be after registration closing and in the future.
+                    </div>
+                </div>
+
+                <!-- Desired End Date & Time -->
+                <div class="mb-3">
+                    <label class="form-label" for="desiredEndDateTime">
+                        Desired End Date &amp; Time <span class="text-danger">*</span>
+                    </label>
+                    <input
+                        type="datetime-local"
+                        name="desiredEndDateTime"
+                        id="desiredEndDateTime"
+                        class="form-control<?= invalid($fieldErrors,'desiredEndDateTime') ?>"
+                        value="<?= htmlspecialchars($old['desiredEndDateTime'] ?? '') ?>"
+                        required
+                    >
+                    <?php if (!empty($fieldErrors['desiredEndDateTime'])): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= htmlspecialchars(implode(' ', $fieldErrors['desiredEndDateTime'])) ?>
+                        </div>
+                    <?php endif; ?>
+                    <div class="form-text">
+                        Must be at least 1 hour after start and not after the election end.
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex justify-content-end gap-2 pt-2">
+                    <a href="/nominee/schedule-location" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Submit Application
+                    </button>
+                </div>
+            </form>
         </div>
-        <?php if (!empty($fieldErrors['electionID'])): ?>
-          <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['electionID'])) ?></div>
-        <?php endif; ?>
-        <div id="electionHelp" class="text-danger small d-none">
-          The event is not available. Please select from the list.
-        </div>
-      </div>
-      <small class="text-muted">
-        Only elections where you are a <b>PUBLISHED</b> nominee and registration has closed will appear.
-      </small>
     </div>
-
-    <!-- Event Name -->
-    <div class="mb-3">
-      <label class="form-label" for="eventName">Event Name <span class="text-danger">*</span></label>
-      <input type="text" name="eventName" id="eventName" maxlength="255"
-             class="form-control<?= invalid($fieldErrors,'eventName') ?>"
-             value="<?= htmlspecialchars($old['eventName'] ?? '') ?>" required>
-      <?php if (!empty($fieldErrors['eventName'])): ?>
-        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['eventName'])) ?></div>
-      <?php endif; ?>
-    </div>
-
-    <!-- Event Type -->
-    <div class="mb-3">
-      <label class="form-label" for="eventType">Event Type <span class="text-danger">*</span></label>
-      <select name="eventType" id="eventType" class="form-select<?= invalid($fieldErrors,'eventType') ?>" required>
-        <option value="">-- Select --</option>
-        <option value="CAMPAIGN" <?= (($old['eventType'] ?? '')==='CAMPAIGN')?'selected':''; ?>>CAMPAIGN</option>
-        <option value="DEBATE"   <?= (($old['eventType'] ?? '')==='DEBATE')  ?'selected':''; ?>>DEBATE</option>
-      </select>
-      <?php if (!empty($fieldErrors['eventType'])): ?>
-        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['eventType'])) ?></div>
-      <?php endif; ?>
-    </div>
-
-    <!-- Desired Start Date & Time -->
-    <div class="mb-3">
-      <label class="form-label" for="desiredStartDateTime">Desired Start Date & Time <span class="text-danger">*</span></label>
-      <input type="datetime-local" name="desiredStartDateTime" id="desiredStartDateTime"
-            class="form-control<?= invalid($fieldErrors,'desiredStartDateTime') ?>"
-            value="<?= htmlspecialchars($old['desiredStartDateTime'] ?? '') ?>" required>
-      <?php if (!empty($fieldErrors['desiredStartDateTime'])): ?>
-        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['desiredStartDateTime'])) ?></div>
-      <?php endif; ?>
-      <div class="form-text">Must be after registration closing and in the future.</div>
-    </div>
-
-    <!-- Desired End Date & Time -->
-    <div class="mb-3">
-      <label class="form-label" for="desiredEndDateTime">Desired End Date & Time <span class="text-danger">*</span></label>
-      <input type="datetime-local" name="desiredEndDateTime" id="desiredEndDateTime"
-            class="form-control<?= invalid($fieldErrors,'desiredEndDateTime') ?>"
-            value="<?= htmlspecialchars($old['desiredEndDateTime'] ?? '') ?>" required>
-      <?php if (!empty($fieldErrors['desiredEndDateTime'])): ?>
-        <div class="invalid-feedback d-block"><?= htmlspecialchars(implode(' ', $fieldErrors['desiredEndDateTime'])) ?></div>
-      <?php endif; ?>
-      <div class="form-text">Must be at least 1 hour after start and not after the election end.</div>
-    </div>
-
-    <div class="d-flex justify-content-center gap-3">
-      <a href="/nominee/schedule-location" class="btn btn-outline-secondary px-4">Cancel</a>
-      <button type="submit" class="btn btn-primary px-4">Submit</button>
-    </div>
-  </form>
 </div>
 
 <script>
 (function(){
   const $ = (id) => document.getElementById(id);
-  const show = (id, msg) => { const el = $(id); if (!el) return; if (msg) el.textContent = msg; el.classList.remove('d-none'); };
-  const hide = (id) => { const el = $(id); if (el) el.classList.add('d-none'); };
+  const show = (id, msg) => {
+    const el = $(id);
+    if (!el) return;
+    if (msg) el.textContent = msg;
+    el.classList.remove('d-none');
+  };
+  const hide = (id) => {
+    const el = $(id);
+    if (el) el.classList.add('d-none');
+  };
 
   const makeDropdown = (input, menu, hiddenId, helpId) => {
     if (!input || !menu) return;
@@ -144,7 +243,9 @@ if (!function_exists('invalid')) {
     });
 
     document.addEventListener('click', (e) => {
-      if (!menu.contains(e.target) && !input.contains(e.target)) menu.classList.remove('show');
+      if (!menu.contains(e.target) && !input.contains(e.target)) {
+        menu.classList.remove('show');
+      }
     });
   };
 
@@ -157,7 +258,8 @@ if (!function_exists('invalid')) {
     makeDropdown(electionInput, electionList, 'electionID', 'electionHelp');
 
     electionList.addEventListener('click', (e) => {
-      const btn = e.target.closest('button.dropdown-item'); if (!btn) return;
+      const btn = e.target.closest('button.dropdown-item');
+      if (!btn) return;
       electionInput.value = btn.dataset.text;
       electionID.value    = btn.dataset.id;
       electionList.classList.remove('show');
@@ -179,6 +281,7 @@ if (!function_exists('invalid')) {
 
       const startEl = $('desiredStartDateTime');
       const endEl   = $('desiredEndDateTime');
+
       const setInlineError = (el, msg) => {
         el.classList.add('is-invalid');
         let fb = el.parentElement.querySelector('.invalid-feedback');
@@ -194,12 +297,17 @@ if (!function_exists('invalid')) {
       };
 
       if (startEl && endEl) {
-        clearInlineError(startEl); clearInlineError(endEl);
-        const sVal = startEl.value, eVal = endEl.value;
+        clearInlineError(startEl);
+        clearInlineError(endEl);
+        const sVal = startEl.value;
+        const eVal = endEl.value;
+
         if (!sVal) { setInlineError(startEl, 'Start is required.'); ok = false; }
-        if (!eVal) { setInlineError(endEl, 'End is required.'); ok = false; }
+        if (!eVal) { setInlineError(endEl, 'End is required.');   ok = false; }
+
         if (sVal && eVal) {
-          const s = new Date(sVal), d = new Date(eVal);
+          const s = new Date(sVal);
+          const d = new Date(eVal);
           const oneHourMs = 60 * 60 * 1000;
           if (d - s < oneHourMs) {
             setInlineError(endEl, 'End time must be at least 1 hour after start.');
