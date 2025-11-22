@@ -17,9 +17,44 @@ class CampaignMaterialController {
         $this->fileHelper            = new FileHelper('campaign_material');
     }
 
+    // Role Decision Area
+    private function requireRole(...$allowed)
+    {
+        $role = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($role, $allowed, true)) {
+            \set_flash('fail', 'You do not have permission to access this page.');
+            $this->redirectByRole($role);
+        }
+    }
+
+    private function redirectByRole($role)
+    {
+        switch ($role) {
+            case 'ADMIN':   
+                header('Location: /admin/campaign-material'); 
+                break;
+            case 'NOMINEE': 
+                header('Location: /nominee/campaign-material'); 
+                break;
+            default:        
+                header('Location: /login'); 
+                break;
+        }
+        exit;
+    }
+
     public function listCampaignMaterials()
     {
-        $campaignMaterials = $this->campaignMaterialModel->getAllCampaignMaterials();
+        $this->requireRole('ADMIN');
+
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->campaignMaterialModel->getPagedCampaignMaterials($page, 10, $search, $filterStatus);
+        $campaignMaterials = $pager->result;
+
         $filePath = $this->fileHelper->getFilePath('CampaignMaterialList');
 
         if ($filePath && file_exists($filePath)) {
@@ -32,11 +67,7 @@ class CampaignMaterialController {
     public function listCampaignMaterialsNominee()
     {
         // Only NOMINEE can access (you can adjust role check if needed)
-        if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
-            \set_flash('fail', 'You do not have permission to access this page.');
-            header('Location: /login');
-            exit;
-        }
+        $this->requireRole('NOMINEE');
 
         $accountID = (int)($_SESSION['accountID'] ?? 0);
         if ($accountID <= 0) {
@@ -45,8 +76,13 @@ class CampaignMaterialController {
             exit;
         }
 
-        // Get ONLY this user's campaign materials
-        $campaignMaterials = $this->campaignMaterialModel->getCampaignMaterialsByAccount($accountID);
+        // Paging Setup
+        $page         = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $search       = trim($_GET['q'] ?? '');
+        $filterStatus = strtoupper(trim($_GET['status'] ?? ''));
+
+        $pager          = $this->campaignMaterialModel->getPagedCampaignMaterialsByAccount($accountID, $page, 10, $search, $filterStatus);
+        $campaignMaterials = $pager->result;
 
         $filePath = $this->fileHelper->getFilePath('CampaignMaterialListNominee');
         if ($filePath && file_exists($filePath)) {

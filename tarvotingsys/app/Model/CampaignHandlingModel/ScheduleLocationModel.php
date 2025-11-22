@@ -760,6 +760,57 @@ public function getNomineeForElectionAndAccount(int $electionID, int $accountID)
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
+    public function getPagedScheduleLocationsByAccount(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
+    {
+        $sql    = "        
+            SELECT
+                ea.eventApplicationID,
+                ea.eventName,
+                ea.eventApplicationStatus,
+                ea.desiredStartDateTime,
+                ee.title AS election_event,
+                ee.electionStartDate,
+                ee.electionEndDate,
+                ee.status,
+                nomAcc.fullName AS nominee_fullName,
+                admAcc.fullName AS admin_fullName,
+                ea.nomineeID,
+                ea.adminID,
+                ea.electionID,
+                ee.title AS event_name
+            FROM eventapplication ea
+            INNER JOIN electionevent ee ON ee.electionID = ea.electionID
+            INNER JOIN nominee n        ON n.nomineeID   = ea.nomineeID
+            INNER JOIN account nomAcc   ON nomAcc.accountID = n.accountID
+            LEFT  JOIN administrator adm ON adm.adminID  = ea.adminID
+            LEFT  JOIN account admAcc    ON admAcc.accountID = adm.accountID
+            WHERE 1";
+
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= "
+                AND (
+                    ea.eventName       LIKE :q
+                    OR ee.title        LIKE :q
+                    OR nomAcc.fullName LIKE :q
+                )
+            ";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING', 'ACCEPTED', 'REJECTED'], true)) {
+            $sql .= " AND ea.eventApplicationStatus = :status";
+            $params[':status'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY ea.eventApplicationID DESC";
+
+        // SimplePager does the LIMIT/OFFSET and total counting.
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
+
 
 
 }

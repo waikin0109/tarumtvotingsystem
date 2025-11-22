@@ -6,6 +6,7 @@ use Model\NomineeModel\NomineeModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class CampaignMaterialModel
 {
@@ -429,24 +430,119 @@ class CampaignMaterialModel
     }
 
     public function getElectionsForNominee(int $accountID): array
-{
-    try {
+    {
+        try {
+            $sql = "
+                SELECT ee.electionID, ee.title
+                FROM electionevent ee
+                INNER JOIN nominee n ON n.electionID = ee.electionID
+                WHERE n.accountID = :accountID
+                ORDER BY ee.electionEndDate DESC
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':accountID' => $accountID]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log("getElectionsForNominee error: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    // Paging Settings
+    public function getPagedCampaignMaterials(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
+    {
+        $sql    = "
+            SELECT
+                    cma.materialsApplicationID,
+                    cma.materialsTitle,
+                    cma.materialsApplicationStatus,
+                    a.fullName,
+                    ee.title AS electionEventTitle,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
+                    cma.electionID         
+            FROM campaignmaterialsapplication AS cma
+            INNER JOIN nominee n ON n.nomineeID = cma.nomineeID
+            INNER JOIN account a ON a.accountID = n.accountID
+            INNER JOIN electionevent ee ON ee.electionID = cma.electionID
+        ";
+        $params = [];
+
+        if ($search !== '') {
+            $sql .= " 
+                AND (
+                    cma.materialsTitle       LIKE :q
+                    OR ee.title              LIKE :q
+                    OR a.fullName            LIKE :q
+                )";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING','REJECTED','APPROVED'], true)) {
+            $sql .= " AND materialsApplicationStatus = :materialsApplicationStatus";
+            $params[':materialsApplicationStatus'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY ee.electionEndDate DESC";
+
+        // SimplePager does the LIMIT/OFFSET and total counting.
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
+    }
+
+    public function getPagedCampaignMaterialsByAccount(
+        int $accountID,
+        int $page,
+        int $limit,
+        string $search = '',
+        string $filterStatus = ''
+    ): SimplePager 
+    {
         $sql = "
-            SELECT ee.electionID, ee.title
-            FROM electionevent ee
-            INNER JOIN nominee n ON n.electionID = ee.electionID
-            WHERE n.accountID = :accountID
-            ORDER BY ee.electionEndDate DESC
+            SELECT
+                cma.materialsApplicationID,
+                cma.materialsTitle,
+                cma.materialsType,
+                cma.materialsApplicationStatus,
+                ee.title AS electionEventTitle,
+                ee.electionStartDate,
+                ee.electionEndDate,
+                ee.status,
+                cma.electionID
+            FROM campaignmaterialsapplication cma
+            INNER JOIN nominee n
+                ON n.nomineeID = cma.nomineeID
+            INNER JOIN account a
+                ON a.accountID = n.accountID
+            INNER JOIN electionevent ee
+                ON ee.electionID = cma.electionID
+            WHERE a.accountID = :aid
         ";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':accountID' => $accountID]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-    } catch (PDOException $e) {
-        error_log("getElectionsForNominee error: " . $e->getMessage());
-        return [];
+        $params = [
+            ':aid' => $accountID,
+        ];
+
+        if ($search !== '') {
+            $sql .= "
+                AND (
+                    cma.materialsTitle LIKE :q
+                    OR ee.title        LIKE :q
+                )
+            ";
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($filterStatus !== '' && in_array($filterStatus, ['PENDING','REJECTED','APPROVED'], true)) {
+            $sql .= " AND cma.materialsApplicationStatus = :status";
+            $params[':status'] = $filterStatus;
+        }
+
+        $sql .= " ORDER BY ee.electionEndDate DESC";
+
+        return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
-}
 
 
 }
