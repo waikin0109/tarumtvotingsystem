@@ -1,0 +1,10 @@
+﻿Race,"Seat Type","Seat Count",Nominee,Faculty,Votes
+FOCS,FACULTY_REP,1,"Chua Teng Hui","Faculty of Computing and Information Technology",3
+FOCS,FACULTY_REP,1,"Wong Wai Kin","Faculty of Computing and Information Technology",0
+FOCS,FACULTY_REP,1,"Yong Vin Sen","Faculty of Computing and Information Technology",0
+"Campus Wide",CAMPUS_WIDE,4,"Chua Shi Ying","Faculty of Accountancy, Finance and Business",2
+"Campus Wide",CAMPUS_WIDE,4,"Sem Hong Fai","Faculty of Engineering and Technology",2
+"Campus Wide",CAMPUS_WIDE,4,"Wong Qing Liang","Faculty of Built Environment",2
+"Campus Wide",CAMPUS_WIDE,4,"Ling Jit Xuan","Faculty of Computing and Information Technology",1
+"Campus Wide",CAMPUS_WIDE,4,"Wong Wai Feng","Faculty of Applied Science",1
+"Campus Wide",CAMPUS_WIDE,4,"Loke Kevin","Faculty of Communication and Creative Industries",0

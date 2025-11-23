@@ -1,78 +1,151 @@
 <?php
 // Title + header according to role
-$_title   = 'View Statistical Data';
-// $roleUpper = strtoupper($_SESSION['role'] ?? '');
+$_title    = 'View Statistical Data';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
 
-// if ($roleUpper === 'ADMIN') {
-//     require_once __DIR__ . '/../AdminView/adminHeader.php';
-// } elseif ($roleUpper === 'NOMINEE') {
-//     require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
-// } elseif ($roleUpper === 'STUDENT') {
-//     require_once __DIR__ . '/../StudentView/studentHeader.php';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
-// }
+
+/* ---------------- Safe totals from controller-provided $turnout ------------ */
+// Totals for this race (all faculties combined)
+$eligibleTotal  = isset($turnout['eligible']) ? (int)$turnout['eligible'] : 0;
+$ballotsCast    = isset($turnout['ballotsSubmitted']) ? (int)$turnout['ballotsSubmitted'] : 0;
+$currentTurnout = isset($turnout['turnoutPercent'])
+    ? (float)$turnout['turnoutPercent']
+    : ($eligibleTotal > 0 ? round(($ballotsCast / $eligibleTotal) * 100, 2) : 0.0);
+
+/* --------------- Chart arrays: faculty % of TOTAL eligible ----------------- */
+$facultyChartLabels   = [];
+$facultyChartPercents = [];
+
+if (!empty($turnoutByFaculty)) {
+    foreach ($turnoutByFaculty as $row) {
+        $facultyChartLabels[] = $row['facultyName'];
+
+        $votes = (int)($row['voted'] ?? 0);
+        // percentage of *total eligible for this race* (same denominator as KPI 16.67%)
+        $facultyChartPercents[] = ($eligibleTotal > 0)
+            ? round(($votes / $eligibleTotal) * 100, 2)
+            : 0.0;
+    }
+}
+
+// Session / selection flags
+$sessionStatus = $selectedSessionStatus ?? '';
+$isLive        = !empty($isLive);
+$isFinal       = !empty($isFinal);
+
+$hasElection = !empty($selectedElectionID);
+$hasSession  = !empty($selectedSessionID);
+$hasRace     = !empty($selectedRaceID);
+
+// For field-level messages (optional; controller can also set $fieldErrors)
+$fieldErrors = $fieldErrors ?? [];
+
+// Derived “no data” flags for dropdowns
+$noSessionAvailable = $hasElection && empty($voteSessions);
+$noRaceAvailable    = $hasSession && empty($races);
+
+// Disable logic for dropdowns
+$disableSessionSelect = !$hasElection || $noSessionAvailable;
+$disableRaceSelect    = !$hasSession || $noRaceAvailable;
 ?>
+
+<?php if ($isLive): ?>
+  <!-- auto-refresh every 15s for LIVE view -->
+  <meta http-equiv="refresh" content="15">
+<?php endif; ?>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
   .stats-layout {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: 0 auto;
   }
+
   .stats-card {
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
   }
+
   .stats-panel-title {
     font-weight: 600;
     font-size: 1.05rem;
   }
-  .stats-panel {
-    min-height: 220px;
-  }
+
   .mini-label {
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: .05em;
     color: #6b7280;
   }
-  .winner-badge {
-    font-size: 0.75rem;
-    border-radius: 999px;
-    padding: 0.1rem 0.6rem;
+
+  .kpi-number {
+    font-size: 1.8rem;
+    font-weight: 600;
   }
-  .winner-row {
-    background: #ecfdf3;
+
+  .badge-pill {
+    border-radius: 999px;
+    padding: 0.2rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .info-banner {
+    border-left: 4px solid #3b82f6;
+    background: #eff6ff;
+  }
+
+  .footer-updated {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: center;
+    margin-top: 1.25rem;
+  }
+
+  .breakdown-table th,
+  .breakdown-table td {
+    border-left: 1px solid #dee2e6;
+  }
+
+  .breakdown-table th:first-child,
+  .breakdown-table td:first-child {
+    border-left: none;
   }
 </style>
 
-<?php if (!empty($isLive) && $isLive): ?>
-  <!-- auto-refresh every 10s for LIVE view -->
-  <meta http-equiv="refresh" content="10">
-<?php endif; ?>
+<div class="container-fluid mt-4 mb-5">
 
-<div class="container my-4 stats-layout">
-
+  <!-- Header row -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h2 class="mb-1">View Statistical Data</h2>
+      <h2 class="mb-1">Real-Time Turnout</h2>
 
-      <?php if (!empty($isLive) && $isLive): ?>
-        <span class="badge bg-danger me-2">[LIVE] Real-Time Result (Unofficial)</span>
-        <small class="text-muted d-block">
-          Numbers may change until the voting session is CLOSED.
-        </small>
-      <?php elseif (!empty($isFinal) && $isFinal): ?>
-        <span class="badge bg-success me-2">[FINAL] Official Result – Certified</span>
-        <small class="text-muted d-block">
-          These results are final for this voting session.
-        </small>
+      <?php if (!empty($selectedElectionTitle) || !empty($sessionName)): ?>
+        <div class="text-muted">
+          <?= htmlspecialchars($selectedElectionTitle ?? '') ?>
+          <?php if (!empty($sessionName)): ?>
+            — <span class="fw-semibold"><?= htmlspecialchars($sessionName) ?></span>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
     </div>
 
     <div class="text-end">
+      <?php if ($sessionStatus === 'OPEN'): ?>
+        <span class="badge bg-primary badge-pill mb-1">SESSION OPEN</span>
+      <?php elseif ($sessionStatus === 'CLOSED'): ?>
+        <span class="badge bg-secondary badge-pill mb-1">SESSION CLOSED</span>
+      <?php endif; ?>
+
+      <?php if ($isLive): ?>
+        <div><span class="badge bg-warning text-dark badge-pill">LIVE / UNOFFICIAL</span></div>
+      <?php endif; ?>
+
       <?php if (!empty($lastUpdated)): ?>
-        <div class="small text-muted">
+        <div class="small text-muted mt-1">
           Last updated:
           <strong><?= htmlspecialchars($lastUpdated) ?></strong>
         </div>
@@ -80,20 +153,34 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
     </div>
   </div>
 
-  <!-- Filters row (same layout as your screenshot) -->
+  <!-- Info banner -->
+  <div class="card mb-4 stats-card info-banner">
+    <div class="card-body py-3 d-flex align-items-center">
+      <div class="me-2">
+        <span class="badge bg-primary rounded-circle" style="width: 10px; height: 10px;">&nbsp;</span>
+      </div>
+      <div>
+        <strong>Live Dashboard (Unofficial).</strong>
+        <span class="text-muted">
+          These numbers show ballots received in real-time. They do not reveal candidate rankings.
+          Turnout figures become final only when the voting session is closed.
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters row -->
   <div class="card mb-4 stats-card">
     <div class="card-body">
-      <form class="row g-3 align-items-end" method="get" action="/statistics">
+      <form id="filterForm" class="row g-3 align-items-end" method="get" action="/statistics">
         <!-- Election -->
         <div class="col-md-4">
-          <label class="form-label mini-label">Election</label>
-          <select name="electionID" class="form-select" onchange="this.form.submit()">
-            <?php if (empty($elections)): ?>
-              <option value="">No elections</option>
-            <?php else: ?>
+          <label class="form-label mini-label" for="electionID">Election</label>
+          <select id="electionID" name="electionID" class="form-select">
+            <option value="">-- Select Election Event --</option>
+            <?php if (!empty($elections)): ?>
               <?php foreach ($elections as $e): ?>
-                <option value="<?= (int) $e['electionID'] ?>"
-                  <?= (isset($selectedElectionID) && (int)$selectedElectionID === (int)$e['electionID']) ? 'selected' : '' ?>>
+                <option value="<?= (int)$e['electionID'] ?>" <?= $hasElection && (int)$selectedElectionID === (int)$e['electionID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($e['title']) ?>
                 </option>
               <?php endforeach; ?>
@@ -103,17 +190,14 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 
         <!-- Vote Session -->
         <div class="col-md-4">
-          <label class="form-label mini-label">Vote Session</label>
-          <select name="voteSessionID" class="form-select" onchange="this.form.submit()">
-            <?php if (empty($voteSessions)): ?>
-              <option value="">No sessions</option>
-            <?php else: ?>
+          <label class="form-label mini-label" for="voteSessionID">Vote Session</label>
+          <select id="voteSessionID" name="voteSessionID" class="form-select" <?= $disableSessionSelect ? 'disabled' : '' ?>>
+            <option value="">-- Select Vote Session --</option>
+
+            <?php if ($hasElection && !empty($voteSessions)): ?>
               <?php foreach ($voteSessions as $vs): ?>
-                <?php
-                  $label = $vs['voteSessionName'] . ' (' . $vs['voteSessionType'] . ')';
-                ?>
-                <option value="<?= (int) $vs['voteSessionID'] ?>"
-                  <?= (isset($selectedSessionID) && (int)$selectedSessionID === (int)$vs['voteSessionID']) ? 'selected' : '' ?>>
+                <?php $label = $vs['voteSessionName'] . ' (' . $vs['voteSessionType'] . ')'; ?>
+                <option value="<?= (int)$vs['voteSessionID'] ?>" <?= $hasSession && (int)$selectedSessionID === (int)$vs['voteSessionID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($label) ?>
                 </option>
               <?php endforeach; ?>
@@ -123,11 +207,11 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 
         <!-- Race -->
         <div class="col-md-4">
-          <label class="form-label mini-label">Race</label>
-          <select name="raceID" class="form-select" onchange="this.form.submit()">
-            <?php if (empty($races)): ?>
-              <option value="">No races</option>
-            <?php else: ?>
+          <label class="form-label mini-label" for="raceID">Race</label>
+          <select id="raceID" name="raceID" class="form-select" <?= $disableRaceSelect ? 'disabled' : '' ?>>
+            <option value="">-- Select Race --</option>
+
+            <?php if ($hasSession && !empty($races)): ?>
               <?php foreach ($races as $r): ?>
                 <?php
                   $raceLabel = $r['raceTitle'];
@@ -135,8 +219,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
                       $raceLabel .= ' - ' . $r['facultyName'];
                   }
                 ?>
-                <option value="<?= (int) $r['raceID'] ?>"
-                  <?= (isset($selectedRaceID) && (int)$selectedRaceID === (int)$r['raceID']) ? 'selected' : '' ?>>
+                <option value="<?= (int)$r['raceID'] ?>" <?= $hasRace && (int)$selectedRaceID === (int)$r['raceID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($raceLabel) ?>
                 </option>
               <?php endforeach; ?>
@@ -144,178 +227,250 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
           </select>
         </div>
       </form>
+
+      <!-- field + availability messages shown BELOW the row of fields -->
+      <?php if (
+        !empty($fieldErrors['electionID']) ||
+        !empty($fieldErrors['voteSessionID']) ||
+        !empty($fieldErrors['raceID']) ||
+        $noSessionAvailable ||
+        ($noRaceAvailable && $hasSession)
+      ): ?>
+        <div class="mt-3">
+          <?php if (!empty($fieldErrors['electionID'])): ?>
+            <div class="text-danger small">
+              <?= htmlspecialchars($fieldErrors['electionID']) ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if ($noSessionAvailable): ?>
+            <div class="text-danger small">
+              No vote session is available for this election event.
+            </div>
+          <?php elseif (!empty($fieldErrors['voteSessionID'])): ?>
+            <div class="text-danger small">
+              <?= htmlspecialchars($fieldErrors['voteSessionID']) ?>
+            </div>
+          <?php endif; ?>
+
+          <?php if ($noRaceAvailable && $hasSession): ?>
+            <div class="text-danger small">
+              No race is available for this vote session.
+            </div>
+          <?php elseif (!empty($fieldErrors['raceID'])): ?>
+            <div class="text-danger small">
+              <?= htmlspecialchars($fieldErrors['raceID']) ?>
+            </div>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
+
     </div>
   </div>
 
-  <!-- 4 panels (2 x 2) -->
-  <div class="row g-4">
+  <?php if ($hasElection && $hasSession && $hasRace && $isLive): ?>
+    <!-- KPI row -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card stats-card h-100">
+          <div class="card-body">
+            <div class="mini-label mb-2">Eligible Voters</div>
+            <div class="kpi-number mb-0"><?= number_format($eligibleTotal) ?></div>
+            <div class="text-muted small">Registered active admin, students & nominees</div>
+          </div>
+        </div>
+      </div>
 
-    <!-- Votes by Nominee -->
-    <div class="col-md-6">
-      <div class="card stats-card stats-panel">
-        <div class="card-body">
-          <div class="stats-panel-title mb-1">Votes by Nominee</div>
-          <small class="text-muted">
-            <?php if (!empty($isLive) && $isLive): ?>
-              Votes so far (unofficial).
-            <?php elseif (!empty($isFinal) && $isFinal): ?>
-              Final, official tally.
-            <?php endif; ?>
-          </small>
-          <hr>
+      <div class="col-md-4">
+        <div class="card stats-card h-100">
+          <div class="card-body">
+            <div class="mini-label mb-2">Ballots Cast</div>
+            <div class="kpi-number mb-0"><?= number_format($ballotsCast) ?></div>
+            <div class="text-muted small">Ballots received by server</div>
+          </div>
+        </div>
+      </div>
 
-          <?php if (empty($votesByNominee)): ?>
-            <p class="text-muted mb-0">No votes recorded for this race yet.</p>
-          <?php else: ?>
-            <?php
-              $totalVotesRace = array_sum(array_map(fn($row) => (int)$row['votes'], $votesByNominee));
-              $maxVotes       = 0;
-              foreach ($votesByNominee as $row) {
-                  $v = (int) $row['votes'];
-                  if ($v > $maxVotes) {
-                      $maxVotes = $v;
-                  }
-              }
-            ?>
-            <div class="table-responsive">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Nominee</th>
-                    <th class="text-end">Votes</th>
-                    <th class="text-end">% in race</th>
-                    <?php if (!empty($isFinal) && $isFinal): ?>
-                      <th class="text-center">Result</th>
-                    <?php endif; ?>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($votesByNominee as $row): ?>
-                    <?php
-                      $votes = (int) $row['votes'];
-                      $pct   = $totalVotesRace > 0 ? round(($votes / $totalVotesRace) * 100, 1) : 0;
-                      $isWinnerRow = (!empty($isFinal) && $isFinal && $votes === $maxVotes && $votes > 0);
-                    ?>
-                    <tr class="<?= $isWinnerRow ? 'winner-row' : '' ?>">
-                      <td><?= htmlspecialchars($row['fullName']) ?></td>
-                      <td class="text-end"><?= $votes ?></td>
-                      <td class="text-end"><?= $pct ?>%</td>
-                      <?php if (!empty($isFinal) && $isFinal): ?>
-                        <td class="text-center">
-                          <?php if ($isWinnerRow): ?>
-                            <span class="badge bg-success winner-badge">Elected</span>
-                          <?php elseif ($votes === 0): ?>
-                            <span class="badge bg-light text-muted winner-badge">0 votes</span>
-                          <?php else: ?>
-                            <span class="badge bg-secondary winner-badge">Not elected</span>
-                          <?php endif; ?>
-                        </td>
-                      <?php endif; ?>
-                    </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          <?php endif; ?>
+      <div class="col-md-4">
+        <div class="card stats-card h-100">
+          <div class="card-body">
+            <div class="mini-label mb-2">Current Turnout</div>
+            <div class="kpi-number mb-0"><?= number_format($currentTurnout, 2) ?>%</div>
+            <div class="text-muted small">Percentage of total eligible for this race</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Turnout -->
-    <div class="col-md-6">
-      <div class="card stats-card stats-panel">
-        <div class="card-body">
-          <div class="stats-panel-title mb-2">Turnout</div>
+    <!-- Main rows: chart on top, breakdown below -->
+    <div class="row g-4">
 
-          <?php if (!empty($selectedRace)): ?>
-            <?php
-              $seatType  = strtoupper($selectedRace['seatType'] ?? '');
-              $facName   = $selectedRace['facultyName'] ?? '';
-            ?>
-            <small class="text-muted d-block mb-2">
-              <?php if ($seatType === 'FACULTY_REP' && $facName): ?>
-                Race type: Faculty Representative – <?= htmlspecialchars($facName) ?> only
-              <?php else: ?>
-                Race type: Campus-wide / non-faculty specific
+      <!-- Turnout by Faculty (Chart) -->
+      <div class="col-12">
+        <div class="card stats-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div class="stats-panel-title">Turnout by Faculty</div>
+              <?php if ($isLive): ?>
+                <span class="badge bg-light text-muted border">Real-time</span>
               <?php endif; ?>
-            </small>
-          <?php endif; ?>
-
-          <?php if (!$turnout): ?>
-            <p class="text-muted mb-0">Turnout data is not available for this session.</p>
-          <?php else: ?>
-            <p>
-              Total eligible voters (admin, students and nominees):
-              <strong><?= (int) $turnout['eligible'] ?></strong>
-            </p>
-            <p>Ballots submitted: <strong><?= (int) $turnout['ballotsSubmitted'] ?></strong></p>
-            <p>Turnout: <strong><?= $turnout['turnoutPercent'] ?>%</strong></p>
-
-            <?php
-              $tp = min(100, max(0, $turnout['turnoutPercent']));
-            ?>
-            <div class="progress" role="progressbar" aria-valuenow="<?= $tp ?>" aria-valuemin="0" aria-valuemax="100">
-              <div class="progress-bar" style="width: <?= $tp ?>%"></div>
             </div>
-          <?php endif; ?>
+
+            <?php if (empty($turnoutByFaculty)): ?>
+              <p class="text-muted mb-0">No turnout data is available for this vote session yet.</p>
+            <?php else: ?>
+              <div style="height: 320px;">
+                <canvas id="turnoutByFacultyChart"></canvas>
+              </div>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Nominee Summary -->
-    <div class="col-md-6">
-      <div class="card stats-card stats-panel">
-        <div class="card-body">
-          <div class="stats-panel-title mb-3">Nominee Summary</div>
+      <!-- Breakdown table (full row under the chart) -->
+      <div class="col-12">
+        <div class="card stats-card h-100">
+          <div class="card-body">
+            <div class="stats-panel-title mb-3">Breakdown</div>
 
-          <?php if (empty($votesByNominee)): ?>
-            <p class="text-muted mb-0">No nominee data for this race yet.</p>
-          <?php else: ?>
-            <ol class="mb-0">
-              <?php foreach ($votesByNominee as $row): ?>
-                <li>
-                  <?= htmlspecialchars($row['fullName']) ?> –
-                  <strong><?= (int) $row['votes'] ?> votes</strong>
-                </li>
-              <?php endforeach; ?>
-            </ol>
-          <?php endif; ?>
-        </div>
-      </div>
-    </div>
-
-    <!-- Ballots Submitted Over Time -->
-    <div class="col-md-6">
-      <div class="card stats-card stats-panel">
-        <div class="card-body">
-          <div class="stats-panel-title mb-3">Ballots Submitted Over Time</div>
-
-          <?php if (empty($ballotsOverTime)): ?>
-            <p class="text-muted mb-0">No ballots submitted yet.</p>
-          <?php else: ?>
-            <div class="table-responsive">
-              <table class="table table-sm align-middle mb-0">
-                <thead class="table-light">
-                  <tr>
-                    <th>Hour</th>
-                    <th class="text-end">Ballots Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php foreach ($ballotsOverTime as $row): ?>
+            <?php if (empty($turnoutByFaculty)): ?>
+              <p class="text-muted mb-0">No faculty breakdown is available.</p>
+            <?php else: ?>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0 breakdown-table">
+                  <thead class="table-light">
                     <tr>
-                      <td><?= htmlspecialchars($row['bucket']) ?></td>
-                      <td class="text-end"><?= (int) $row['count'] ?></td>
+                      <th>Faculty</th>
+                      <th class="text-end">Voted</th>
+                      <th class="text-end">Percentage (%)</th>
                     </tr>
-                  <?php endforeach; ?>
-                </tbody>
-              </table>
-            </div>
-          <?php endif; ?>
+                  </thead>
+                  <tbody>
+                    <?php foreach ($turnoutByFaculty as $row): ?>
+                      <?php
+                        $voted      = (int)$row['voted'];
+                        $pctOfTotal = ($eligibleTotal > 0)
+                            ? round(($voted / $eligibleTotal) * 100, 2)
+                            : 0.0;
+                      ?>
+                      <tr>
+                        <td><?= htmlspecialchars($row['facultyName']) ?></td>
+                        <td class="text-end"><?= number_format($voted) ?></td>
+                        <td class="text-end"><?= number_format($pctOfTotal, 2) ?>%</td>
+                      </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            <?php endif; ?>
+          </div>
         </div>
       </div>
+
     </div>
 
-  </div><!-- /row -->
+  <?php else: ?>
+    <!-- Hint when nothing fully selected OR session not live -->
+    <div class="alert alert-light border text-muted">
+      <?php if ($hasElection && $hasSession && $hasRace && !$isLive): ?>
+        This live turnout dashboard is only available while the vote session is <strong>OPEN</strong>.
+        Please check the Official Final Results page for closed sessions.
+      <?php else: ?>
+        Please select an <strong>Election Event</strong>, then a <strong>Vote Session</strong>,
+        and finally a <strong>Race</strong> to view live turnout statistics.
+      <?php endif; ?>
+    </div>
+  <?php endif; ?>
+
+  <div class="footer-updated">
+    SYSTEM LAST UPDATED: <?= htmlspecialchars($lastUpdated ?? '-') ?>
+  </div>
 
 </div>
+
+<?php if (!empty($turnoutByFaculty) && $hasElection && $hasSession && $hasRace): ?>
+  <script>
+    (function () {
+      const labels = <?= json_encode($facultyChartLabels, JSON_UNESCAPED_UNICODE) ?>;
+      const values = <?= json_encode($facultyChartPercents) ?>;
+
+      if (!labels.length) return;
+
+      const ctx = document.getElementById('turnoutByFacultyChart').getContext('2d');
+
+      const baseColors = [
+        '#4f46e5', '#0ea5e9', '#22c55e', '#f97316',
+        '#e11d48', '#a855f7', '#14b8a6', '#facc15'
+      ];
+      const backgroundColors = labels.map((_, idx) => baseColors[idx % baseColors.length]);
+
+      new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: backgroundColors,
+            borderColor: '#ffffff',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'right'
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const label = context.label || '';
+                  const value = context.parsed !== undefined ? context.parsed : 0;
+                  return label + ': ' + value.toFixed(2) + '% of total eligible';
+                }
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+<?php endif; ?>
+
+<!-- JS to reset dropdowns when changing election / session / race -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form          = document.getElementById('filterForm');
+    const electionInput = document.getElementById('electionID');
+    const sessionInput  = document.getElementById('voteSessionID');
+    const raceInput     = document.getElementById('raceID');
+
+    if (!form) return;
+
+    if (electionInput) {
+      electionInput.addEventListener('change', function () {
+        if (sessionInput) sessionInput.selectedIndex = 0;
+        if (raceInput) raceInput.selectedIndex = 0;
+        form.submit();
+      });
+    }
+
+    if (sessionInput) {
+      sessionInput.addEventListener('change', function () {
+        if (raceInput) raceInput.selectedIndex = 0;
+        form.submit();
+      });
+    }
+
+    if (raceInput) {
+      raceInput.addEventListener('change', function () {
+        form.submit();
+      });
+    }
+  });
+</script>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

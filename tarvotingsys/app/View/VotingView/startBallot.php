@@ -52,7 +52,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
   }
 </style>
 
-<div class="container my-1 ballot-layout">
+<div class="container-fluid mt-4 mb-5">
   <h2 class="mb-2">Ballot Start</h2>
   <p class="text-muted mb-4">
     Please read the information below before you begin voting.

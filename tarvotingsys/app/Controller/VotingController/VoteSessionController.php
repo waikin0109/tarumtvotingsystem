@@ -4,18 +4,21 @@ namespace Controller\VotingController;
 
 use Model\VotingModel\VoteSessionModel;
 use Model\VotingModel\BallotModel;
+use Model\ResultModel\ResultModel;
 use FileHelper;
 
 class VoteSessionController
 {
     private $voteSessionModel;
     private $ballotModel;
+    private $resultModel;
     private $fileHelper;
 
     public function __construct()
     {
         $this->voteSessionModel = new VoteSessionModel();
         $this->ballotModel = new BallotModel();
+        $this->resultModel = new ResultModel();
         $this->fileHelper = new FileHelper("vote_session");
     }
 
@@ -36,6 +39,7 @@ class VoteSessionController
             }
 
             $this->ballotModel->expireUnsubmittedEnvelopesForSession($sid);
+            $this->resultModel->generateFinalResultsForSession($sid);
         }
     }
 

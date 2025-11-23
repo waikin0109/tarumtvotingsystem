@@ -80,7 +80,19 @@ class FileHelper
         ]);
 
         $resultPaths = $this->prefixWithBase([
-            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',
+            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',   // Live turnout dashboard
+            'ViewFinalResultsAdmin' => 'View/ResultView/viewFinalResultsAdmin.php',     // Official admin view
+            'ViewFinalResultsPublic' => 'View/ResultView/viewFinalResultsPublic.php',    // Official public view
+        ]);
+
+
+        $reportPaths = $this->prefixWithBase([
+            'ReportGenerator' => 'View/ResultView/reportGenerator.php',
+            'OverallTurnoutSummary' => 'View/ResultView/overallTurnoutSummary.php',
+            'OfficialResultsAll' => 'View/ResultView/officialResultsAll.php',
+            'ResultsByFaculty' => 'View/ResultView/resultsByFaculty.php',
+            'ReportList' => 'View/ResultView/reportList.php',
+            'EarlyVoteStatus' => 'View/ResultView/earlyVoteStatus.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,
@@ -116,6 +128,9 @@ class FileHelper
                 break;
             case 'result':
                 $this->allowedPaths = array_merge($resultPaths, $assetPaths);
+                break;
+            case 'report':
+                $this->allowedPaths = array_merge($reportPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

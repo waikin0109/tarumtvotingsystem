@@ -6,6 +6,7 @@ use Controller\VotingController\AnnouncementController;
 use Controller\VotingController\VoteSessionController;
 use Controller\VotingController\BallotController;
 use Controller\ResultController\ResultController;
+use Controller\ResultController\ReportController;
 
 
 Route::get('/election-events', [ElectionEventController::class, 'listElectionEvents']);
@@ -48,7 +49,7 @@ Route::post('/vote-session/unschedule', [VoteSessionController::class, 'unschedu
 Route::post('/vote-session/cancel',     [VoteSessionController::class, 'cancelVoteSession']);
 Route::get('/vote-session/public',            [VoteSessionController::class, 'viewVoteSessionForStudentAndNominee']); // STUDENT / NOMINEE
 
-Route::get('/vote-session/results/{id}', [VoteSessionController::class, 'viewResults']);
+// Route::get('/vote-session/results/{id}', [VoteSessionController::class, 'viewResults']);
 
 
 // Ballot routes
@@ -59,3 +60,31 @@ Route::post('/ballot/cast/{id}', [BallotController::class, 'submitBallot']);
 
 // Result routes
 Route::get('/statistics', [ResultController::class, 'viewStatisticalData']);
+
+// // Live turnout (real-time) – shared page for all three roles
+// Route::get('/admin/results/live',   [ResultController::class, 'viewStatisticalData']);
+// Route::get('/student/results/live', [ResultController::class, 'viewStatisticalData']);
+// Route::get('/nominee/results/live', [ResultController::class, 'viewStatisticalData']);
+
+// // OFFICIAL FINAL RESULTS (ADMIN + PUBLIC)
+// Route::get('/results',         [ResultController::class, 'viewFinalResultsAdmin']);
+// Route::get('/results/public',  [ResultController::class, 'viewFinalResultsPublic']);
+
+// Route::get('/vote-session/results/{id}', [ResultController::class, 'redirectFromVoteSession']);
+Route::get('/results', [ResultController::class, 'viewFinalResults']);
+
+
+// Report Routes
+// Route::get('/admin/reports', [ReportController::class, 'reportGenerator']);
+// Route::post('/admin/reports/generate', [ReportController::class, 'generateReport']);
+
+Route::get('/admin/reports/generator',        [ReportController::class, 'showGenerator']);
+Route::post('/admin/reports/generate',        [ReportController::class, 'generate']);
+
+Route::get('/admin/reports/list',  [ReportController::class, 'reportListPage']);
+Route::post('/admin/reports/delete', [ReportController::class, 'deleteReport']);
+
+Route::get('/admin/reports/overall-turnout',  [ReportController::class, 'overallTurnoutPage']);
+Route::get('/admin/reports/official-results', [ReportController::class, 'officialResultsPage']);
+Route::get('/admin/reports/results-by-faculty', [ReportController::class, 'resultsByFacultyPage']);
+Route::get('/admin/reports/early-vote-status', [ReportController::class, 'earlyVoteStatusPage']);

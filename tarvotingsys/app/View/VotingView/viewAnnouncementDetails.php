@@ -23,7 +23,7 @@ foreach ($att as $f) {
 }
 ?>
 
-<div class="container mt-4 mb-5">
+<div class="container-fluid mt-4 mb-5">
   <!-- Title + status badge -->
   <div class="d-flex align-items-center justify-content-between mb-1">
     <h3 class="mb-0"><?= htmlspecialchars($announcement['title'] ?? 'Announcement') ?></h3>

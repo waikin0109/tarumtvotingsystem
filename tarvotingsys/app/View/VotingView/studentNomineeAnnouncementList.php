@@ -5,7 +5,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 $announcements = $announcements ?? [];
 ?>
 
-<div class="container mt-1">
+<div class="container-fluid mt-4 mb-5">
     <h2>Announcement</h2>
 
     <div class="table-responsive mt-3">

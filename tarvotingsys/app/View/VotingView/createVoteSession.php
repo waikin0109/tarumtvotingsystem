@@ -48,7 +48,7 @@ function race_err_msgs(array $errs, int $idx, string $field): string
   }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 mb-5">
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h2 class="mb-0">Create Voting Session</h2>
   </div>

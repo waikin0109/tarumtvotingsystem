@@ -102,7 +102,7 @@ function race_error_text(array $selectionErrors, int $raceId): string
   }
 </style>
 
-<div class="container my-3 cast-layout">
+<div class="container-fluid mt-4 mb-5">
   <h2 class="mb-2">
     Cast Vote – <?= htmlspecialchars($sessionTypeLabel ?? '', ENT_QUOTES, 'UTF-8') ?>
   </h2>

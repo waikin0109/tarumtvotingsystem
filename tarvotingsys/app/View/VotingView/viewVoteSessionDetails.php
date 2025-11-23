@@ -3,7 +3,7 @@ $_title = 'Voting Session Details';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 ?>
 
-<div class="container mt-3">
+<div class="container-fluid mt-4 mb-5">
     <h2>Voting Session Details</h2>
 
     <?php if (isset($voteSession)): ?>

@@ -421,23 +421,11 @@ public function expireUnsubmittedEnvelopesForSession(int $voteSessionID): int
             WHERE ballotEnvelopeID = :id
         ");
 
-        $stInsertBallot = $this->db->prepare("
-            INSERT INTO ballot (ballotID, ballotCreatedAt, ballotStatus, voteSessionID)
-            VALUES (:ballotID, NOW(), 'VOID', :sessionID)
-        ");
-
         $count = 0;
 
         foreach ($envelopeIds as $envId) {
             // Mark envelope as EXPIRED
             $stUpdateEnv->execute([':id' => (int)$envId]);
-
-            // Create a VOID ballot with no selections
-            $ballotID = $this->generateBallotID();
-            $stInsertBallot->execute([
-                ':ballotID'  => $ballotID,
-                ':sessionID' => $voteSessionID,
-            ]);
 
             $count++;
         }

@@ -22,7 +22,7 @@ foreach ($att as $f) {
 }
 ?>
 
-<div class="container mt-4 mb-5">
+<div class="container-fluid mt-4 mb-5">
   <!-- Title + meta -->
   <h3 class="mb-1"><?= htmlspecialchars($announcement['title'] ?? 'Announcement') ?></h3>
   <div class="text-muted mb-4">

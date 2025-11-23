@@ -42,7 +42,7 @@ $publishAtLocal = $_POST['publishAtLocal'] ?? ($announcement['publishAtLocal'] ?
     }
 </style>
 
-<div class="container mt-4 mb-5">
+<div class="container-fluid mt-4 mb-5">
     <div class="d-flex align-items-center justify-content-between">
         <h2 class="mb-3">Edit Announcement</h2>
         <span

@@ -22,7 +22,7 @@ function badge_class(string $status): string
 }
 ?>
 
-<div>
+<div class="container-fluid mt-4 mb-5">
   <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
     <div class="row w-100">
       <div class="col-sm-6">

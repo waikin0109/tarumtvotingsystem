@@ -105,7 +105,13 @@ $voteSessionLink = ($role === 'ADMIN') ? '/vote-session' : '/vote-session/public
                         <a href="<?= $voteSessionLink ?>" class="list-group-item list-group-item-action">Voting Session</a>
                         <!-- <a href="#" class="list-group-item list-group-item-action">Cast Voting</a> -->
                         <a href="/statistics" class="list-group-item list-group-item-action">Voting Result</a>
-                        <a href="#" class="list-group-item list-group-item-action">Report</a>
+                        <a href="/results" class="list-group-item list-group-item-action">Official Final Results</a>
+                        <!-- <a href="/admin/reports/generator" class="list-group-item list-group-item-action">Report</a> -->
+                        <a href="/admin/reports/list" class="list-group-item list-group-item-action">Report</a>
+
+
+
+                        
                     </div>
                 </div>
 
