@@ -206,6 +206,16 @@ class LoginController
     public function studentHome()
     {
         self::requireAuth('STUDENT');
+
+    // Simple stats for student dashboard (campus-wide, not per-student)
+    $studentStats = [
+        'ongoingElectionEvents'   => $this->electionEventModel->countByStatus('ONGOING'),
+        'completedElectionEvents' => $this->electionEventModel->countByStatus('COMPLETED'),
+    ];
+
+    // Latest election events (e.g. 5 most recent)
+    $recentElections = $this->electionEventModel->getRecent(5);
+
         $fileHelper = new FileHelper('student');
         $filePath = $fileHelper->getFilePath('StudentHome');
         if ($filePath && file_exists($filePath)) {
@@ -218,6 +228,55 @@ class LoginController
     public function nomineeHome()
     {
         self::requireAuth('NOMINEE');
+
+        $accountID = (int)($_SESSION['accountID'] ?? 0);
+
+        // ---------- 1) My nominee applications ----------
+        $appsByForm = $this->nomineeApplicationModel->getApplicationsByAccountIndexed($accountID);
+        $nomineeApplicationStats = [
+            'total'     => 0,
+            'pending'   => 0,
+            'accepted'  => 0,
+            'rejected'  => 0,
+            'published' => 0,
+        ];
+
+        foreach ($appsByForm as $row) {
+            $nomineeApplicationStats['total']++;
+            $status = strtoupper((string)($row['applicationStatus'] ?? ''));
+            if (isset($nomineeApplicationStats[strtolower($status)])) {
+                $nomineeApplicationStats[strtolower($status)]++;
+            }
+        }
+
+        // ---------- 2) My campaign materials ----------
+        $myCampaignMaterials = $this->campaignMaterialModel->getCampaignMaterialsByAccount($accountID);
+
+        $campaignMaterialStats = [
+            'total'   => 0,
+            'pending' => 0,
+            'approved'=> 0,
+            'rejected'=> 0,
+        ];
+
+        foreach ($myCampaignMaterials as $cm) {
+            $campaignMaterialStats['total']++;
+            $status = strtoupper((string)($cm['materialsApplicationStatus'] ?? ''));
+            if ($status === 'PENDING') {
+                $campaignMaterialStats['pending']++;
+            } elseif ($status === 'APPROVED') {
+                $campaignMaterialStats['approved']++;
+            } elseif ($status === 'REJECTED') {
+                $campaignMaterialStats['rejected']++;
+            }
+        }
+
+        // ---------- 3) Elections where I am a nominee ----------
+        $myElectionsAsNominee = $this->campaignMaterialModel->getElectionsForNominee($accountID);
+        $electionStats = [
+            'as_nominee' => is_array($myElectionsAsNominee) ? count($myElectionsAsNominee) : 0,
+        ];
+
         $fileHelper = new FileHelper('nominee');
         $filePath = $fileHelper->getFilePath('NomineeHome');
         if ($filePath && file_exists($filePath)) {
