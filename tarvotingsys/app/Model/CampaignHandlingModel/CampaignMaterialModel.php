@@ -613,6 +613,15 @@ class CampaignMaterialModel
         }
     }
 
+    // --------------------------------------------------------------------------
+    // CampaignMaterial HomepageDashboard show out
+    public function countByStatus(string $status): int
+    {
+        $sql = "SELECT COUNT(*) FROM campaignmaterialsapplication WHERE materialsApplicationStatus = :status";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':status' => $status]);
+        return (int) $stmt->fetchColumn();
+    }
 
 
 }

@@ -367,5 +367,35 @@ class ElectionEventModel
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
+    // --------------------------------------------------------------------------
+    // Admin HomepageDashboard show out
+    public function countAll(): int
+    {
+        $sql = "SELECT COUNT(*) FROM electionevent"; // <-- adjust table name if different
+        return (int) $this->db->query($sql)->fetchColumn();
+    }
+
+    public function countByStatus(string $status): int
+    {
+        $sql = "SELECT COUNT(*) FROM electionevent WHERE status = :status";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':status' => $status]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function getRecent(int $limit = 5): array
+    {
+        $sql = "
+            SELECT electionID, title, status, electionStartDate, electionEndDate
+            FROM electionevent
+            ORDER BY dateCreated DESC
+            LIMIT :limit
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
 
 }

@@ -13,6 +13,7 @@ class AdminModel
     public function __construct()
     {
         $this->db = Database::getConnection();
+        
     }
 
     public function getAdminIdByAccId(int $accountID): ?int {

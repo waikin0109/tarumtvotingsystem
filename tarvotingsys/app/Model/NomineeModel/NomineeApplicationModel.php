@@ -527,6 +527,21 @@ class NomineeApplicationModel
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
+    // --------------------------------------------------------------------------
+    // NomineeApplication HomepageDashboard show out
+    public function countAll(): int
+    {
+        $sql = "SELECT COUNT(*) FROM nomineeapplication"; // adjust table name
+        return (int) $this->db->query($sql)->fetchColumn();
+    }
+
+    public function countByStatus(string $status): int
+    {
+        $sql = "SELECT COUNT(*) FROM nomineeapplication WHERE applicationStatus = :status";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':status' => $status]);
+        return (int) $stmt->fetchColumn();
+    }
 
 
 

@@ -8,6 +8,11 @@ use Model\AdminModel\AdminModel;
 use Model\NomineeModel\NomineeModel;
 use Model\StudentModel\StudentModel;
 
+use Model\VotingModel\ElectionEventModel;
+use Model\NomineeModel\NomineeApplicationModel;
+use Model\CampaignHandlingModel\ScheduleLocationModel; 
+use Model\CampaignHandlingModel\CampaignMaterialModel;
+
 use FileHelper;
 use SessionHelper;
 
@@ -17,6 +22,10 @@ class LoginController
     private $adminModel;
     private $nomineeModel;
     private $studentModel;
+    private ElectionEventModel $electionEventModel;
+    private NomineeApplicationModel $nomineeApplicationModel;
+    private ScheduleLocationModel $scheduleLocationModel;
+    private CampaignMaterialModel $campaignMaterialModel;
     private $fileHelper;
 
     public function __construct()
@@ -25,6 +34,10 @@ class LoginController
         $this->adminModel = new AdminModel();
         $this->nomineeModel = new NomineeModel();
         $this->studentModel = new StudentModel();
+        $this->electionEventModel     = new ElectionEventModel();
+        $this->nomineeApplicationModel = new NomineeApplicationModel();
+        $this->scheduleLocationModel  = new ScheduleLocationModel();
+        $this->campaignMaterialModel  = new CampaignMaterialModel();
         $this->fileHelper = new FileHelper("login");
     }
 
@@ -167,6 +180,20 @@ class LoginController
     public function adminHome()
     {
         self::requireAuth('ADMIN');
+
+        // 1) Build dashboard stats here
+        $dashboardStats = [
+            'totalElectionEvents'        => $this->electionEventModel->countAll(),
+            'ongoingElectionEvents'      => $this->electionEventModel->countByStatus('ONGOING'),
+            'totalNomineeApplications'   => $this->nomineeApplicationModel->countAll(),
+            'pendingNomineeApplications' => $this->nomineeApplicationModel->countByStatus('PENDING'),
+            'pendingScheduleLocations'   => $this->scheduleLocationModel->countByStatus('PENDING'),
+            'pendingCampaignMaterials'   => $this->campaignMaterialModel->countByStatus('PENDING'),
+        ];
+
+        // 2) Recent elections (for dashboard list/card)
+        $recentElections = $this->electionEventModel->getRecent(5);
+
         $fileHelper = new FileHelper('admin');
         $filePath = $fileHelper->getFilePath('AdminHome');
         if ($filePath && file_exists($filePath)) {

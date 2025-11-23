@@ -936,6 +936,14 @@ public function getNomineeForElectionAndAccount(int $electionID, int $accountID)
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
-
+    // --------------------------------------------------------------------------
+    // ScheduleLocation HomepageDashboard show out
+    public function countByStatus(string $status): int
+    {
+        $sql = "SELECT COUNT(*) FROM eventapplication WHERE eventApplicationStatus = :status";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':status' => $status]);
+        return (int) $stmt->fetchColumn();
+    }
 
 }
