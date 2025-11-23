@@ -30,7 +30,7 @@ function invalidClass(array $errors, string $field): string
 
 </head>
 
-<body>
+<body style="background-image: url('/image/loginbg.jpeg'); background-repeat: no-repeat; background-size: 100% 100%;">
 
   <div class="container d-flex align-items-center justify-content-center" style="min-height:100vh;padding:2rem 1rem;">
     <div class="w-100" style="max-width: 520px;">
