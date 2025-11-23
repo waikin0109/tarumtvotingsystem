@@ -18,7 +18,14 @@ class LoginModel
     public function findByLoginID(int $loginID): ?array
     {
         try {
-            $sql = "SELECT accountID, role, loginID, passwordHash, status, fullName
+            $sql = "SELECT 
+                        accountID, 
+                        role, 
+                        loginID, 
+                        passwordHash, 
+                        status, 
+                        fullName,
+                        profilePhotoURL
                     FROM account
                     WHERE loginID = :loginID
                     LIMIT 1";
@@ -31,6 +38,7 @@ class LoginModel
             return null;
         }
     }
+
 
     public function updateLastLoginAt(int $accountID): bool
     {

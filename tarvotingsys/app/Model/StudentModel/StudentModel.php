@@ -82,6 +82,66 @@ class StudentModel
         }
     }
 
+    public function getStudentProfileByAccountId(int $accountID): ?array
+    {
+        try {
+            $sql = "
+                SELECT 
+                    s.studentID,
+                    s.program,
+                    s.intakeYear,
+                    acc.accountID,
+                    acc.role,
+                    acc.loginID,
+                    acc.status,
+                    acc.lastLoginAt,
+                    acc.fullName,
+                    acc.gender,
+                    acc.email,
+                    acc.phoneNumber,
+                    acc.profilePhotoURL,
+                    f.facultyCode,
+                    f.facultyName,
+                    acc.passwordHash
+                FROM student s
+                INNER JOIN account acc ON acc.accountID = s.accountID
+                LEFT JOIN faculty f ON acc.facultyID = f.facultyID
+                WHERE acc.accountID = ?
+                LIMIT 1
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$accountID]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('getStudentProfileByAccountId error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updatePassword(int $accountID, string $passwordHash): bool
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE account SET passwordHash = ? WHERE accountID = ?");
+            return $stmt->execute([$passwordHash, $accountID]);
+        } catch (PDOException $e) {
+            error_log('StudentModel updatePassword error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateProfilePhoto(int $accountID, string $photoUrl): bool
+    {
+        try {
+            $stmt = $this->db->prepare("UPDATE account SET profilePhotoURL = ? WHERE accountID = ?");
+            return $stmt->execute([$photoUrl, $accountID]);
+        } catch (PDOException $e) {
+            error_log('StudentModel updateProfilePhoto error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+
 
 
 }

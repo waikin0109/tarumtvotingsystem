@@ -10,6 +10,9 @@ use Controller\NomineeController\NomineeApplicationController;
 use Controller\CampaignHandlingController\CampaignMaterialController;
 use Controller\CampaignHandlingController\ScheduleLocationController;
 
+use Controller\AdminController\AdminController;
+use Controller\StudentController\StudentController;
+
 
 // TH Part Routes
 // Login routes
@@ -24,6 +27,15 @@ Route::get('/student/home', [LoginController::class, 'studentHome']);
 Route::get('/nominee/home', [LoginController::class, 'nomineeHome']);
 
 // Profile
+Route::get('/admin/profile', [AdminController::class, 'profile']);
+Route::post('/admin/profile/update-password', [AdminController::class, 'updatePassword']);
+Route::post('/admin/profile/update-photo', [AdminController::class, 'updatePhoto']);
+
+Route::get('/student/profile', [StudentController::class, 'profile']);
+Route::post('/student/profile/update-password', [StudentController::class, 'updatePassword']);
+Route::post('/student/profile/update-photo', [StudentController::class, 'updatePhoto']);
+
+
 
 // Announcement routes
 Route::get('/announcements', [AnnouncementController::class, 'listAnnouncements']);

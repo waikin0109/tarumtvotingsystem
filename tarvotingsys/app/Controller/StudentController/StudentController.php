@@ -1,26 +1,26 @@
 <?php
 
-namespace Controller\AdminController;
+namespace Controller\StudentController;
 
-use Model\AdminModel\AdminModel;
+use Controller\AdminController\LoginController; // reuse auth guard
+use Model\StudentModel\StudentModel;
 use FileHelper;
 
-class AdminController
+class StudentController
 {
-    private $adminModel;
-    private $fileHelper;
+    private StudentModel $studentModel;
+    private FileHelper $fileHelper;
 
     public function __construct()
     {
-        $this->adminModel = new AdminModel();
-        $this->fileHelper = new FileHelper("admin");
+        $this->studentModel = new StudentModel();
+        $this->fileHelper   = new FileHelper('student');
     }
 
-    // ---------- ADMIN PROFILE (GET) ----------
+    // ---------- VIEW PROFILE ----------
     public function profile(): void
     {
-        // Reuse login auth guard
-        LoginController::requireAuth('ADMIN');
+        LoginController::requireAuth('STUDENT');
 
         $accountID = (int) ($_SESSION['accountID'] ?? 0);
         if ($accountID <= 0) {
@@ -28,26 +28,25 @@ class AdminController
             exit;
         }
 
-        $profile = $this->adminModel->getAdminProfileByAccountId($accountID);
+        $profile = $this->studentModel->getStudentProfileByAccountId($accountID);
         if (!$profile) {
             http_response_code(404);
             echo "Profile not found.";
             return;
         }
 
-        $filePath = $this->fileHelper->getFilePath('AdminProfile');
+        $filePath = $this->fileHelper->getFilePath('StudentProfile');
         if ($filePath && file_exists($filePath)) {
-            // $profile will be available in the view
             include $filePath;
         } else {
-            echo "Admin Profile view not found.";
+            echo "Student Profile view not found.";
         }
     }
 
-    // ---------- UPDATE PASSWORD (POST) ----------
+    // ---------- UPDATE PASSWORD ----------
     public function updatePassword(): void
     {
-        LoginController::requireAuth('ADMIN');
+        LoginController::requireAuth('STUDENT');
 
         $accountID       = (int) ($_SESSION['accountID'] ?? 0);
         $currentPassword = (string) ($_POST['currentPassword'] ?? '');
@@ -64,7 +63,7 @@ class AdminController
             $errors[] = 'New password must be at least 8 characters.';
         }
 
-        $profile = $this->adminModel->getAdminProfileByAccountId($accountID);
+        $profile = $this->studentModel->getStudentProfileByAccountId($accountID);
         if (!$profile) {
             $errors[] = 'Unable to load your profile.';
         } else {
@@ -79,12 +78,12 @@ class AdminController
                     set_flash('fail', $e);
                 }
             }
-            header('Location: /admin/profile');
+            header('Location: /student/profile');
             exit;
         }
 
         $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
-        if ($this->adminModel->updatePassword($accountID, $newHash)) {
+        if ($this->studentModel->updatePassword($accountID, $newHash)) {
             if (function_exists('set_flash')) {
                 set_flash('success', 'Password updated successfully.');
             }
@@ -94,14 +93,14 @@ class AdminController
             }
         }
 
-        header('Location: /admin/profile');
+        header('Location: /student/profile');
         exit;
     }
 
-    // ---------- UPDATE PROFILE PHOTO (POST) ----------
+    // ---------- UPDATE PHOTO ----------
     public function updatePhoto(): void
     {
-        LoginController::requireAuth('ADMIN');
+        LoginController::requireAuth('STUDENT');
 
         $accountID = (int) ($_SESSION['accountID'] ?? 0);
 
@@ -109,31 +108,29 @@ class AdminController
             if (function_exists('set_flash')) {
                 set_flash('fail', 'Please select a valid image file.');
             }
-            header('Location: /admin/profile');
+            header('Location: /student/profile');
             exit;
         }
 
         $file = $_FILES['profilePhoto'];
 
-        // Basic validation
         $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
         if (!in_array($file['type'], $allowedTypes, true)) {
             if (function_exists('set_flash')) {
                 set_flash('fail', 'Only JPG and PNG images are allowed.');
             }
-            header('Location: /admin/profile');
+            header('Location: /student/profile');
             exit;
         }
 
-        if ($file['size'] > 2 * 1024 * 1024) { // 2MB
+        if ($file['size'] > 2 * 1024 * 1024) {
             if (function_exists('set_flash')) {
                 set_flash('fail', 'Image size must not exceed 2 MB.');
             }
-            header('Location: /admin/profile');
+            header('Location: /student/profile');
             exit;
         }
 
-        // Determine upload directory (e.g. /app/public/uploads/profile_photos)
         $publicRoot = dirname(__DIR__, 2) . '/public';
         $uploadDir  = $publicRoot . '/uploads/profile_photos/';
 
@@ -142,22 +139,20 @@ class AdminController
         }
 
         $ext      = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $filename = 'admin_' . $accountID . '_' . time() . '.' . $ext;
+        $filename = 'student_' . $accountID . '_' . time() . '.' . $ext;
         $target   = $uploadDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $target)) {
             if (function_exists('set_flash')) {
                 set_flash('fail', 'Failed to upload image.');
             }
-            header('Location: /admin/profile');
+            header('Location: /student/profile');
             exit;
         }
 
-        // URL that will be stored in DB and used in img src (relative to public root)
         $relativeUrl = '/uploads/profile_photos/' . $filename;
 
-        if ($this->adminModel->updateProfilePhoto($accountID, $relativeUrl)) {
-            // Update session so header shows new photo immediately
+        if ($this->studentModel->updateProfilePhoto($accountID, $relativeUrl)) {
             $_SESSION['profilePhotoURL'] = $relativeUrl;
             if (function_exists('set_flash')) {
                 set_flash('success', 'Profile photo updated successfully.');
@@ -168,7 +163,7 @@ class AdminController
             }
         }
 
-        header('Location: /admin/profile');
+        header('Location: /student/profile');
         exit;
     }
 }

@@ -104,10 +104,12 @@ class FileHelper
 
         $studentPaths = $this->prefixWithBase([
             'StudentHome' => 'View/StudentView/studentHome.php',
+            'StudentProfile' => 'View/StudentView/studentProfile.php',
         ]);
 
         $adminPaths = $this->prefixWithBase([
             'AdminHome' => 'View/AdminView/adminHome.php',
+            'AdminProfile' => 'View/AdminView/adminProfile.php',
         ]);
 
         $nomineePaths = $this->prefixWithBase([

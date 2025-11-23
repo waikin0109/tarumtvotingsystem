@@ -135,9 +135,11 @@ class LoginController
         session_regenerate_id(true);
 
         $_SESSION['accountID'] = (int) $user['accountID'];
-        $_SESSION['loginID'] = (int) $user['loginID'];
-        $_SESSION['role'] = (string) $user['role'];
-        $_SESSION['fullName'] = (string) $user['fullName'];
+        $_SESSION['loginID']   = (int) $user['loginID'];
+        $_SESSION['role']      = (string) $user['role'];
+        $_SESSION['fullName']  = (string) $user['fullName'];
+        $_SESSION['profilePhotoURL'] = (string) ($user['profilePhotoURL'] ?? '');
+
         // admin/student/nominee
         if ($user['role'] === 'ADMIN') {
             $_SESSION['roleID'] = $this->adminModel->getAdminIdByAccId($user['accountID']);
@@ -147,6 +149,7 @@ class LoginController
             $_SESSION['roleID'] = $this->nomineeModel->getNomineeIdByAccId($user['accountID']);
         }
     }
+
 
     public function logout()
     {
@@ -207,14 +210,14 @@ class LoginController
     {
         self::requireAuth('STUDENT');
 
-    // Simple stats for student dashboard (campus-wide, not per-student)
-    $studentStats = [
-        'ongoingElectionEvents'   => $this->electionEventModel->countByStatus('ONGOING'),
-        'completedElectionEvents' => $this->electionEventModel->countByStatus('COMPLETED'),
-    ];
+        // Simple stats for student dashboard (campus-wide, not per-student)
+        $studentStats = [
+            'ongoingElectionEvents'   => $this->electionEventModel->countByStatus('ONGOING'),
+            'completedElectionEvents' => $this->electionEventModel->countByStatus('COMPLETED'),
+        ];
 
-    // Latest election events (e.g. 5 most recent)
-    $recentElections = $this->electionEventModel->getRecent(5);
+        // Latest election events (e.g. 5 most recent)
+        $recentElections = $this->electionEventModel->getRecent(5);
 
         $fileHelper = new FileHelper('student');
         $filePath = $fileHelper->getFilePath('StudentHome');

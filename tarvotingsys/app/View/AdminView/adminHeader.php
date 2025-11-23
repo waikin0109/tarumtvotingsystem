@@ -10,6 +10,9 @@ $annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+$profilePhotoURL = $_SESSION['profilePhotoURL'] ?? '';
+$profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultUserImage.jpg';
+
 ?>
 
 <!DOCTYPE html>
@@ -174,12 +177,10 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                 <div class="position-absolute bottom-0 start-0 end-0 border-top border-black border-1"
                     style="background:#f8f9fa; padding:10px;">
                     <div id="profileToggle" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <img src="/image/defaultUserImage.jpg" alt="avatar"
-                            style="width:40px;height:40px;border-radius:50%;">
+                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar" style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
-
                         </div>
                         <div id="profileCaret" style="transition: transform .2s;">▾</div>
                     </div>
@@ -218,6 +219,13 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                     profileOpen = !profileOpen;
                     $("#profileCaret").css("transform", profileOpen ? "rotate(180deg)" : "rotate(0deg)");
                 });
+
+                // Profile button => go to profile page
+                $("#btnProfile").on("click", function (e) {
+                    e.preventDefault();
+                    window.location.href = "/admin/profile";
+                });
+
 
                 // Close profile actions when clicking outside
                 $(document).on("click", function (e) {

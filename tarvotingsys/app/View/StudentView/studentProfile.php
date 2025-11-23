@@ -2,7 +2,7 @@
 /** @var array $profile */
 
 $_title = 'My Profile';
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+require_once __DIR__ . '/../StudentView/studentHeader.php';
 
 // Decide which picture to show (session > DB > default)
 $profilePhotoURL = $_SESSION['profilePhotoURL'] ?? ($profile['profilePhotoURL'] ?? '');
@@ -14,7 +14,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div>
             <h2 class="mb-1">My Profile</h2>
-            <p class="text-muted mb-0">Manage your account details, administrator info, and security settings.</p>
+            <p class="text-muted mb-0">View your account information, programme details, and manage your password.</p>
         </div>
     </div>
 
@@ -34,12 +34,16 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                         <?= htmlspecialchars($profile['fullName'] ?? '') ?>
                     </h5>
                     <p class="text-muted mb-2 small">
-                        <?= htmlspecialchars($profile['administratorLevel'] ?? 'Administrator') ?>
+                        <?= htmlspecialchars($profile['program'] ?? 'Student') ?>
                     </p>
 
                     <p class="small mb-1">
                         <i class="bi bi-person-badge"></i>
                         <strong>Login ID:</strong> <?= htmlspecialchars($profile['loginID'] ?? '') ?>
+                    </p>
+                    <p class="small mb-1">
+                        <i class="bi bi-card-text"></i>
+                        <strong>Student ID:</strong> <?= htmlspecialchars($profile['studentID'] ?? '') ?>
                     </p>
                     <p class="small mb-3">
                         <i class="bi bi-shield-lock"></i>
@@ -49,7 +53,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     <hr>
 
                     <!-- Change photo form -->
-                    <form action="/admin/profile/update-photo" method="POST" enctype="multipart/form-data" class="text-start">
+                    <form action="/student/profile/update-photo" method="POST" enctype="multipart/form-data" class="text-start">
                         <div class="mb-2">
                             <label for="profilePhoto" class="form-label mb-1">Change profile photo</label>
                             <input type="file"
@@ -142,12 +146,12 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <h6 class="text-muted mb-2">Administrator Information</h6>
-                                    <p class="mb-1 small text-uppercase text-muted">Administrator Level</p>
-                                    <p class="fw-semibold"><?= htmlspecialchars($profile['administratorLevel'] ?? '-') ?></p>
+                                    <h6 class="text-muted mb-2">Student Information</h6>
+                                    <p class="mb-1 small text-uppercase text-muted">Programme</p>
+                                    <p class="fw-semibold"><?= htmlspecialchars($profile['program'] ?? '-') ?></p>
 
-                                    <p class="mb-1 small text-uppercase text-muted">Department</p>
-                                    <p class="fw-semibold"><?= htmlspecialchars($profile['department'] ?? '-') ?></p>
+                                    <p class="mb-1 small text-uppercase text-muted">Intake Year</p>
+                                    <p class="fw-semibold"><?= htmlspecialchars($profile['intakeYear'] ?? '-') ?></p>
 
                                     <p class="mb-1 small text-uppercase text-muted">Faculty</p>
                                     <p class="fw-semibold">
@@ -160,15 +164,14 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
 
                             <div class="alert alert-light border small mb-0">
                                 <i class="bi bi-info-circle"></i>
-                                These details are read-only in this page. Please contact system administrator
-                                if your official information (name, faculty, department) is incorrect.
+                                These details are read-only in this page. If your official information (name, programme, intake year) is incorrect, please contact the administration office.
                             </div>
                         </div>
 
                         <!-- Security tab -->
                         <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
                             <h6 class="mb-3 text-muted">Change Password</h6>
-                            <form action="/admin/profile/update-password" method="POST" autocomplete="off" class="mb-3">
+                            <form action="/student/profile/update-password" method="POST" autocomplete="off" class="mb-3">
                                 <div class="mb-3">
                                     <label for="currentPassword" class="form-label">Current Password</label>
                                     <input type="password"
@@ -186,7 +189,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                                            class="form-control"
                                            required>
                                     <div class="form-text">
-                                        Use at least 8 characters. Avoid sharing your password with others.
+                                        Use at least 8 characters. Do not share your password with anyone.
                                     </div>
                                 </div>
 
@@ -206,7 +209,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
 
                             <div class="alert alert-warning small mb-0">
                                 <i class="bi bi-exclamation-triangle"></i>
-                                After changing your password, make sure you sign out on shared or public computers.
+                                After changing your password, remember to log out from shared or public computers.
                             </div>
                         </div>
                     </div> <!-- tab-content -->
@@ -217,5 +220,5 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
 </div>
 
 <?php
-require_once __DIR__ . '/../AdminView/adminFooter.php';
+require_once __DIR__ . '/../StudentView/studentFooter.php';
 ?>
