@@ -272,11 +272,19 @@ class ScheduleLocationController
     public function editScheduleLocation($eventApplicationID): void
     {
         $this->requireRole('ADMIN');
+        $this->scheduleLocationModel->autoRollScheduleLocationStatuses();
         $row = $this->scheduleLocationModel->getScheduleLocationById((int)$eventApplicationID);
         if (!$row) {
             \set_flash('fail', 'Schedule Location not found.');
             header('Location: /admin/schedule-location'); exit;
         }
+
+        if (strtoupper((string)($row['eventApplicationStatus'] ?? '')) === 'REJECTED') {
+            set_flash('fail', 'This schedule location already over and cannot be edited.');
+            header('Location: /admin/schedule-location'); 
+            exit;
+        }
+
 
         $errors = [];
         $fieldErrors = [];
@@ -591,173 +599,174 @@ class ScheduleLocationController
 
 
     // ------------------ Schedule Board (GET) ------------------ //
-public function scheduleBoard(): void
-{
-    $this->requireRole('ADMIN');
-    // Only PENDING, election not ended, ordered by submittedAt ASC
-    $queue = $this->scheduleLocationModel->getPendingEventApplications();
+    public function scheduleBoard(): void
+    {
+        $this->requireRole('ADMIN');
+        $this->scheduleLocationModel->autoRollScheduleLocationStatuses();
+        // Only PENDING, election not ended, ordered by submittedAt ASC
+        $queue = $this->scheduleLocationModel->getPendingEventApplications();
 
-    // Locations master list (AVAILABLE only)
-    $locations = $this->scheduleLocationModel->getAllEventLocations(true);
+        // Locations master list (AVAILABLE only)
+        $locations = $this->scheduleLocationModel->getAllEventLocations(true);
 
-    $filePath = $this->fileHelper->getFilePath('ScheduleBoard');
-    if ($filePath && file_exists($filePath)) {
-        include $filePath; // exposes $queue, $locations
-        return;
-    }
-    echo "View file not found.";
-}
-
-// ------------------ Accept (POST) ------------------ //
-public function scheduleAccept(string $eventApplicationID): void
-{
-    $this->requireRole('ADMIN');
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
-
-    $eaid = (int)$eventApplicationID;
-    $loc  = (int)($_POST['eventLocationID'] ?? 0);
-    if ($eaid <= 0 || $loc <= 0) {
-        \set_flash('fail', 'Please choose a location.');
-        header('Location: /admin/schedule-location/schedule'); return;
+        $filePath = $this->fileHelper->getFilePath('ScheduleBoard');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath; // exposes $queue, $locations
+            return;
+        }
+        echo "View file not found.";
     }
 
-    // Per your request: hard-code admin ID = 1 for now
-    $adminId = $_SESSION['roleID'];
+    // ------------------ Accept (POST) ------------------ //
+    public function scheduleAccept(string $eventApplicationID): void
+    {
+        $this->requireRole('ADMIN');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
 
-    $ok = $this->scheduleLocationModel->acceptApplicationWithLocation($eaid, $loc, $adminId);
+        $eaid = (int)$eventApplicationID;
+        $loc  = (int)($_POST['eventLocationID'] ?? 0);
+        if ($eaid <= 0 || $loc <= 0) {
+            \set_flash('fail', 'Please choose a location.');
+            header('Location: /admin/schedule-location/schedule'); return;
+        }
 
-    if ($ok) {
-        \set_flash('success', 'Event scheduled and application accepted.');
-    } else {
-        \set_flash('fail', 'Time/location conflict or save failed. Pick another slot/location.');
+        // Per your request: hard-code admin ID = 1 for now
+        $adminId = $_SESSION['roleID'];
+
+        $ok = $this->scheduleLocationModel->acceptApplicationWithLocation($eaid, $loc, $adminId);
+
+        if ($ok) {
+            \set_flash('success', 'Event scheduled and application accepted.');
+        } else {
+            \set_flash('fail', 'Time/location conflict or save failed. Pick another slot/location.');
+        }
+        header('Location: /admin/schedule-location/schedule');
     }
-    header('Location: /admin/schedule-location/schedule');
-}
 
-// ------------------ Reject (POST) ------------------ //
-public function scheduleReject(string $eventApplicationID): void
-{
-    $this->requireRole('ADMIN');
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
+    // ------------------ Reject (POST) ------------------ //
+    public function scheduleReject(string $eventApplicationID): void
+    {
+        $this->requireRole('ADMIN');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { header('Location: /admin/schedule-location/schedule'); return; }
 
-    $eaid = (int)$eventApplicationID;
-    $adminId = $_SESSION['roleID'];
+        $eaid = (int)$eventApplicationID;
+        $adminId = $_SESSION['roleID'];
 
-    $ok = $this->scheduleLocationModel->rejectApplication($eaid, $adminId);
-    if ($ok) {
-        \set_flash('success', 'Application rejected.');
-    } else {
-        \set_flash('fail', 'Failed to reject application.');
+        $ok = $this->scheduleLocationModel->rejectApplication($eaid, $adminId);
+        if ($ok) {
+            \set_flash('success', 'Application rejected.');
+        } else {
+            \set_flash('fail', 'Failed to reject application.');
+        }
+        header('Location: /admin/schedule-location/schedule');
     }
-    header('Location: /admin/schedule-location/schedule');
-}
 
-public function scheduleUnschedule(string $eventApplicationID): void
-{
-    $this->requireRole('ADMIN');
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { http_response_code(405); echo 'Method Not Allowed'; return; }
+    public function scheduleUnschedule(string $eventApplicationID): void
+    {
+        $this->requireRole('ADMIN');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') { http_response_code(405); echo 'Method Not Allowed'; return; }
 
-    $eaid = (int)$eventApplicationID;
-    if ($eaid <= 0) { http_response_code(400); echo 'Bad Request'; return; }
+        $eaid = (int)$eventApplicationID;
+        if ($eaid <= 0) { http_response_code(400); echo 'Bad Request'; return; }
 
-    $ok = $this->scheduleLocationModel->unscheduleToPending($eaid);
-    if ($ok) {
-        // support both form and fetch callers
+        $ok = $this->scheduleLocationModel->unscheduleToPending($eaid);
+        if ($ok) {
+            // support both form and fetch callers
+            if (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
+                header('Content-Type: application/json'); echo json_encode(['ok'=>true]); return;
+            }
+            \set_flash('success','Event unscheduled. Application is back to PENDING.');
+            header('Location: /admin/schedule-location/schedule'); return;
+        }
+
         if (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
-            header('Content-Type: application/json'); echo json_encode(['ok'=>true]); return;
+            http_response_code(409); header('Content-Type: application/json');
+            echo json_encode(['ok'=>false,'error'=>'Failed to unschedule.']); return;
         }
-        \set_flash('success','Event unscheduled. Application is back to PENDING.');
-        header('Location: /admin/schedule-location/schedule'); return;
+        \set_flash('fail','Failed to unschedule.'); header('Location: /admin/schedule-location/schedule');
     }
 
-    if (!empty($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
-        http_response_code(409); header('Content-Type: application/json');
-        echo json_encode(['ok'=>false,'error'=>'Failed to unschedule.']); return;
-    }
-    \set_flash('fail','Failed to unschedule.'); header('Location: /admin/schedule-location/schedule');
-}
+    /** POST /schedule-location/accept-back/{id} -> accept a REJECTED or PENDING item with chosen location */
+    public function scheduleAcceptBack(string $eventApplicationID): void
+    {
+        $this->requireRole('ADMIN');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            header('Location: /schedule-location/schedule'); return;
+        }
 
-/** POST /schedule-location/accept-back/{id} -> accept a REJECTED or PENDING item with chosen location */
-public function scheduleAcceptBack(string $eventApplicationID): void
-{
-    $this->requireRole('ADMIN');
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        header('Location: /schedule-location/schedule'); return;
-    }
-
-    $eaid = (int)$eventApplicationID;
-    $loc  = (int)($_POST['eventLocationID'] ?? 0);
-    if ($eaid <= 0 || $loc <= 0) {
-        \set_flash('fail', 'Pick a location.');
-        header('Location: /admin/schedule-location/schedule'); return;
-    }
-
-    // Load the row to know its status & election window
-    $row = $this->scheduleLocationModel->getScheduleLocationDetailsById($eaid);
-    if (!$row) {
-        \set_flash('fail','Application not found.');
-        header('Location: /admin/schedule-location/schedule'); return;
-    }
-
-    // Election must not be over
-    $endStr = $this->scheduleLocationModel->getElectionEndDate((int)$row['electionID']);
-    if ($endStr) {
-        $tz = new \DateTimeZone('Asia/Kuala_Lumpur');
-        $now = new \DateTime('now', $tz);
-        $electionEnd = new \DateTime($endStr, $tz);
-        if ($now > $electionEnd) {
-            \set_flash('fail','Election ended; cannot accept.');
+        $eaid = (int)$eventApplicationID;
+        $loc  = (int)($_POST['eventLocationID'] ?? 0);
+        if ($eaid <= 0 || $loc <= 0) {
+            \set_flash('fail', 'Pick a location.');
             header('Location: /admin/schedule-location/schedule'); return;
         }
-    }
 
-    // If REJECTED, move back to PENDING first, then accept
-    $status = strtoupper((string)($row['eventApplicationStatus'] ?? ''));
-    if ($status === 'REJECTED') {
-        $okPending = $this->scheduleLocationModel->markPendingIfRejected($eaid, $_SESSION['roleID']);
-        if (!$okPending) {
-            \set_flash('fail','Could not re-open the application.'); 
+        // Load the row to know its status & election window
+        $row = $this->scheduleLocationModel->getScheduleLocationDetailsById($eaid);
+        if (!$row) {
+            \set_flash('fail','Application not found.');
             header('Location: /admin/schedule-location/schedule'); return;
         }
-    } elseif ($status !== 'PENDING') {
-        \set_flash('fail','Only PENDING or REJECTED applications can be accepted.');
-        header('Location: /admin/schedule-location/schedule'); return;
+
+        // Election must not be over
+        $endStr = $this->scheduleLocationModel->getElectionEndDate((int)$row['electionID']);
+        if ($endStr) {
+            $tz = new \DateTimeZone('Asia/Kuala_Lumpur');
+            $now = new \DateTime('now', $tz);
+            $electionEnd = new \DateTime($endStr, $tz);
+            if ($now > $electionEnd) {
+                \set_flash('fail','Election ended; cannot accept.');
+                header('Location: /admin/schedule-location/schedule'); return;
+            }
+        }
+
+        // If REJECTED, move back to PENDING first, then accept
+        $status = strtoupper((string)($row['eventApplicationStatus'] ?? ''));
+        if ($status === 'REJECTED') {
+            $okPending = $this->scheduleLocationModel->markPendingIfRejected($eaid, $_SESSION['roleID']);
+            if (!$okPending) {
+                \set_flash('fail','Could not re-open the application.'); 
+                header('Location: /admin/schedule-location/schedule'); return;
+            }
+        } elseif ($status !== 'PENDING') {
+            \set_flash('fail','Only PENDING or REJECTED applications can be accepted.');
+            header('Location: /admin/schedule-location/schedule'); return;
+        }
+
+        // Try to accept + schedule (conflict-checked in the model)
+        $ok = $this->scheduleLocationModel->acceptApplicationWithLocation($eaid, $loc, $_SESSION['roleID']);
+
+        if ($ok) { \set_flash('success','Application accepted and scheduled.'); }
+        else     { \set_flash('fail','Conflict or save failed. Pick another slot/location.'); }
+
+        header('Location: /admin/schedule-location/schedule');
     }
 
-    // Try to accept + schedule (conflict-checked in the model)
-    $ok = $this->scheduleLocationModel->acceptApplicationWithLocation($eaid, $loc, $_SESSION['roleID']);
-
-    if ($ok) { \set_flash('success','Application accepted and scheduled.'); }
-    else     { \set_flash('fail','Conflict or save failed. Pick another slot/location.'); }
-
-    header('Location: /admin/schedule-location/schedule');
-}
 
 
+    // ------------------ Calendar feed (JSON) ------------------ //
+    public function calendarFeed(): void
+    {
+        $eid = isset($_GET['electionID']) ? (int)$_GET['electionID'] : 0;
 
-// ------------------ Calendar feed (JSON) ------------------ //
-public function calendarFeed(): void
-{
-    $eid = isset($_GET['electionID']) ? (int)$_GET['electionID'] : 0;
+        $rows = $this->scheduleLocationModel->getCalendarEvents($eid ?: null);
 
-    $rows = $this->scheduleLocationModel->getCalendarEvents($eid ?: null);
-
-    header('Content-Type: application/json');
-    echo json_encode($rows);
-}
-
-
-// ------------------ Final Schedule (Calendar-only) ------------------ //
-public function viewCampaignSchedule(): void
-{
-    $this->requireRole('ADMIN');
-    $filePath = $this->fileHelper->getFilePath('ViewCampaignSchedule'); 
-    if ($filePath && file_exists($filePath)) {
-        include $filePath;
-        return;
+        header('Content-Type: application/json');
+        echo json_encode($rows);
     }
-    echo "View file not found.";
-}
+
+
+    // ------------------ Final Schedule (Calendar-only) ------------------ //
+    public function viewCampaignSchedule(): void
+    {
+        $this->requireRole('ADMIN');
+        $filePath = $this->fileHelper->getFilePath('ViewCampaignSchedule'); 
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+            return;
+        }
+        echo "View file not found.";
+    }
 
     public function viewCampaignScheduleStudent(int $electionID): void
     {
@@ -815,197 +824,197 @@ public function viewCampaignSchedule(): void
         echo "View file not found.";
     }
 
-public function createScheduleLocationNominee(): void
-{
-    $this->requireRole('NOMINEE');
+    public function createScheduleLocationNominee(): void
+    {
+        $this->requireRole('NOMINEE');
 
-    $accountId = (int)($_SESSION['accountID'] ?? 0);
-    if ($accountId <= 0) {
-        \set_flash('fail', 'Account not found in session.');
-        header('Location: /login');
-        exit;
-    }
-
-    $errors = [];
-    $fieldErrors = [];
-    $old = [
-        'electionID'           => $_GET['electionID']           ?? '',
-        'eventName'            => $_GET['eventName']            ?? '',
-        'eventType'            => $_GET['eventType']            ?? '',
-        'desiredStartDateTime' => $_GET['desiredStartDateTime'] ?? '',
-        'desiredEndDateTime'   => $_GET['desiredEndDateTime']   ?? ''
-    ];
-
-    // Only elections where THIS user is PUBLISHED nominee
-    $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
-
-    $filePath = $this->fileHelper->getFilePath('CreateScheduleLocationNominee');
-    if ($filePath && file_exists($filePath)) {
-        include $filePath; // exposes $elections, $errors, $fieldErrors, $old
-        return;
-    }
-    echo "View file not found.";
-}
-
-public function storeCreateScheduleLocationNominee(): void
-{
-    $this->requireRole('NOMINEE');
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-        $this->createScheduleLocationNominee();
-        return;
-    }
-
-    if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
-        \set_flash('fail', 'You do not have permission to perform this action.');
-        header('Location: /login');
-        exit;
-    }
-
-    $accountId = (int)($_SESSION['accountID'] ?? 0);
-    if ($accountId <= 0) {
-        \set_flash('fail', 'Account not found in session.');
-        header('Location: /login');
-        exit;
-    }
-
-    $old = [
-        'electionID'           => trim((string)($_POST['electionID'] ?? '')),
-        'eventName'            => trim((string)($_POST['eventName'] ?? '')),
-        'eventType'            => trim((string)($_POST['eventType'] ?? '')),
-        'desiredStartDateTime' => trim((string)($_POST['desiredStartDateTime'] ?? '')),
-        'desiredEndDateTime'   => trim((string)($_POST['desiredEndDateTime'] ?? '')),
-    ];
-
-    $errors = [];
-    $fieldErrors = [
-        'electionID'=>[], 'eventName'=>[], 'eventType'=>[],
-        'desiredStartDateTime'=>[], 'desiredEndDateTime'=>[]
-    ];
-
-    foreach (['electionID','eventName','eventType','desiredStartDateTime','desiredEndDateTime'] as $k) {
-        if ($old[$k] === '') $fieldErrors[$k][] = 'This field is required.';
-    }
-
-    // Elections limited to THIS nominee
-    $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
-    $eligibleElectionIds = array_map('intval', array_column($elections, 'electionID'));
-
-    $electionId = ctype_digit((string)$old['electionID']) ? (int)$old['electionID'] : 0;
-    if (!$electionId || !in_array($electionId, $eligibleElectionIds, true)) {
-        $fieldErrors['electionID'][] = 'Please select a valid election where you are a published nominee.';
-    }
-
-    $tz  = new DateTimeZone('Asia/Kuala_Lumpur');
-    $now = new DateTime('now', $tz);
-
-    // Election must not have ended
-    if ($electionId) {
-        $endStr = $this->scheduleLocationModel->getElectionEndDate($electionId);
-        if ($endStr) {
-            $electionEnd = new DateTime($endStr, $tz);
-            if ($now > $electionEnd) {
-                $fieldErrors['electionID'][] = 'This election has ended and cannot accept schedule locations.';
-            }
-        } else {
-            $errors[] = 'Election end date not found for the selected election.';
+        $accountId = (int)($_SESSION['accountID'] ?? 0);
+        if ($accountId <= 0) {
+            \set_flash('fail', 'Account not found in session.');
+            header('Location: /login');
+            exit;
         }
-    }
 
-    // Resolve nomineeID from session + election
-    $nomineeRow = null;
-    $nomineeId  = 0;
-    if ($electionId) {
-        $nomineeRow = $this->scheduleLocationModel->getNomineeForElectionAndAccount($electionId, $accountId);
-        if (!$nomineeRow) {
-            $errors[] = 'Your nominee record for this election could not be found or is not PUBLISHED.';
-        } else {
-            $nomineeId = (int)$nomineeRow['nomineeID'];
-        }
-    }
+        $errors = [];
+        $fieldErrors = [];
+        $old = [
+            'electionID'           => $_GET['electionID']           ?? '',
+            'eventName'            => $_GET['eventName']            ?? '',
+            'eventType'            => $_GET['eventType']            ?? '',
+            'desiredStartDateTime' => $_GET['desiredStartDateTime'] ?? '',
+            'desiredEndDateTime'   => $_GET['desiredEndDateTime']   ?? ''
+        ];
 
-    if (!in_array($old['eventType'], ['CAMPAIGN','DEBATE'], true)) {
-        $fieldErrors['eventType'][] = 'Invalid event type.';
-    }
-
-    // Parse datetimes
-    $start = null; $end = null;
-    if ($old['desiredStartDateTime'] !== '') {
-        $start = DateTime::createFromFormat('Y-m-d\TH:i', $old['desiredStartDateTime'], $tz)
-            ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $old['desiredStartDateTime'], $tz);
-        if (!$start) $fieldErrors['desiredStartDateTime'][] = 'Invalid date/time format.';
-    }
-    if ($old['desiredEndDateTime'] !== '') {
-        $end = DateTime::createFromFormat('Y-m-d\TH:i', $old['desiredEndDateTime'], $tz)
-            ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $old['desiredEndDateTime'], $tz);
-        if (!$end) $fieldErrors['desiredEndDateTime'][] = 'Invalid date/time format.';
-    }
-
-    // Business rules: start/end window
-    if ($start && $electionId) {
-        $win = $this->scheduleLocationModel->getRegistrationWindow($electionId);
-        if (!$win || empty($win['endAt'])) {
-            $errors[] = 'Registration window not found for the selected election.';
-        } else {
-            $regEnd = new DateTime($win['endAt'], $tz);
-            if ($start <= $regEnd) $fieldErrors['desiredStartDateTime'][] = 'Start must be after registration closing.';
-            if ($start <= $now)    $fieldErrors['desiredStartDateTime'][] = 'Start must be in the future.';
-        }
-    }
-
-    if ($start && $end) {
-        $minEnd = (clone $start)->modify('+1 hour');
-        if ($end < $minEnd) {
-            $fieldErrors['desiredEndDateTime'][] = 'End time must be at least 1 hour after start.';
-        }
-    }
-
-    if (($start || $end) && $electionId) {
-        $endStr = $this->scheduleLocationModel->getElectionEndDate($electionId);
-        if ($endStr) {
-            $electionEnd = new DateTime($endStr, $tz);
-            if ($start && $start > $electionEnd) $fieldErrors['desiredStartDateTime'][] = 'Start must be on or before the election end.';
-            if ($end   && $end   > $electionEnd) $fieldErrors['desiredEndDateTime'][]   = 'End must be on or before the election end.';
-        }
-    }
-
-    $hasErrors = !empty($errors) || array_reduce($fieldErrors, fn($c,$a)=>$c||!empty($a), false);
-    if ($hasErrors) {
-        // Reload elections for this nominee
+        // Only elections where THIS user is PUBLISHED nominee
         $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
 
+        $filePath = $this->fileHelper->getFilePath('CreateScheduleLocationNominee');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath; // exposes $elections, $errors, $fieldErrors, $old
+            return;
+        }
+        echo "View file not found.";
+    }
+
+    public function storeCreateScheduleLocationNominee(): void
+    {
+        $this->requireRole('NOMINEE');
+        if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+            $this->createScheduleLocationNominee();
+            return;
+        }
+
+        if (strtoupper($_SESSION['role'] ?? '') !== 'NOMINEE') {
+            \set_flash('fail', 'You do not have permission to perform this action.');
+            header('Location: /login');
+            exit;
+        }
+
+        $accountId = (int)($_SESSION['accountID'] ?? 0);
+        if ($accountId <= 0) {
+            \set_flash('fail', 'Account not found in session.');
+            header('Location: /login');
+            exit;
+        }
+
+        $old = [
+            'electionID'           => trim((string)($_POST['electionID'] ?? '')),
+            'eventName'            => trim((string)($_POST['eventName'] ?? '')),
+            'eventType'            => trim((string)($_POST['eventType'] ?? '')),
+            'desiredStartDateTime' => trim((string)($_POST['desiredStartDateTime'] ?? '')),
+            'desiredEndDateTime'   => trim((string)($_POST['desiredEndDateTime'] ?? '')),
+        ];
+
+        $errors = [];
+        $fieldErrors = [
+            'electionID'=>[], 'eventName'=>[], 'eventType'=>[],
+            'desiredStartDateTime'=>[], 'desiredEndDateTime'=>[]
+        ];
+
+        foreach (['electionID','eventName','eventType','desiredStartDateTime','desiredEndDateTime'] as $k) {
+            if ($old[$k] === '') $fieldErrors[$k][] = 'This field is required.';
+        }
+
+        // Elections limited to THIS nominee
+        $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
+        $eligibleElectionIds = array_map('intval', array_column($elections, 'electionID'));
+
+        $electionId = ctype_digit((string)$old['electionID']) ? (int)$old['electionID'] : 0;
+        if (!$electionId || !in_array($electionId, $eligibleElectionIds, true)) {
+            $fieldErrors['electionID'][] = 'Please select a valid election where you are a published nominee.';
+        }
+
+        $tz  = new DateTimeZone('Asia/Kuala_Lumpur');
+        $now = new DateTime('now', $tz);
+
+        // Election must not have ended
+        if ($electionId) {
+            $endStr = $this->scheduleLocationModel->getElectionEndDate($electionId);
+            if ($endStr) {
+                $electionEnd = new DateTime($endStr, $tz);
+                if ($now > $electionEnd) {
+                    $fieldErrors['electionID'][] = 'This election has ended and cannot accept schedule locations.';
+                }
+            } else {
+                $errors[] = 'Election end date not found for the selected election.';
+            }
+        }
+
+        // Resolve nomineeID from session + election
+        $nomineeRow = null;
+        $nomineeId  = 0;
+        if ($electionId) {
+            $nomineeRow = $this->scheduleLocationModel->getNomineeForElectionAndAccount($electionId, $accountId);
+            if (!$nomineeRow) {
+                $errors[] = 'Your nominee record for this election could not be found or is not PUBLISHED.';
+            } else {
+                $nomineeId = (int)$nomineeRow['nomineeID'];
+            }
+        }
+
+        if (!in_array($old['eventType'], ['CAMPAIGN','DEBATE'], true)) {
+            $fieldErrors['eventType'][] = 'Invalid event type.';
+        }
+
+        // Parse datetimes
+        $start = null; $end = null;
+        if ($old['desiredStartDateTime'] !== '') {
+            $start = DateTime::createFromFormat('Y-m-d\TH:i', $old['desiredStartDateTime'], $tz)
+                ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $old['desiredStartDateTime'], $tz);
+            if (!$start) $fieldErrors['desiredStartDateTime'][] = 'Invalid date/time format.';
+        }
+        if ($old['desiredEndDateTime'] !== '') {
+            $end = DateTime::createFromFormat('Y-m-d\TH:i', $old['desiredEndDateTime'], $tz)
+                ?: DateTime::createFromFormat('Y-m-d\TH:i:s', $old['desiredEndDateTime'], $tz);
+            if (!$end) $fieldErrors['desiredEndDateTime'][] = 'Invalid date/time format.';
+        }
+
+        // Business rules: start/end window
+        if ($start && $electionId) {
+            $win = $this->scheduleLocationModel->getRegistrationWindow($electionId);
+            if (!$win || empty($win['endAt'])) {
+                $errors[] = 'Registration window not found for the selected election.';
+            } else {
+                $regEnd = new DateTime($win['endAt'], $tz);
+                if ($start <= $regEnd) $fieldErrors['desiredStartDateTime'][] = 'Start must be after registration closing.';
+                if ($start <= $now)    $fieldErrors['desiredStartDateTime'][] = 'Start must be in the future.';
+            }
+        }
+
+        if ($start && $end) {
+            $minEnd = (clone $start)->modify('+1 hour');
+            if ($end < $minEnd) {
+                $fieldErrors['desiredEndDateTime'][] = 'End time must be at least 1 hour after start.';
+            }
+        }
+
+        if (($start || $end) && $electionId) {
+            $endStr = $this->scheduleLocationModel->getElectionEndDate($electionId);
+            if ($endStr) {
+                $electionEnd = new DateTime($endStr, $tz);
+                if ($start && $start > $electionEnd) $fieldErrors['desiredStartDateTime'][] = 'Start must be on or before the election end.';
+                if ($end   && $end   > $electionEnd) $fieldErrors['desiredEndDateTime'][]   = 'End must be on or before the election end.';
+            }
+        }
+
+        $hasErrors = !empty($errors) || array_reduce($fieldErrors, fn($c,$a)=>$c||!empty($a), false);
+        if ($hasErrors) {
+            // Reload elections for this nominee
+            $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
+
+            $filePath = $this->fileHelper->getFilePath('CreateScheduleLocationNominee');
+            if ($filePath && file_exists($filePath)) {
+                include $filePath;
+                return;
+            }
+            echo "View file not found.";
+            return;
+        }
+
+        $ok = $this->scheduleLocationModel->createScheduleLocation([
+            'eventName'            => $old['eventName'],
+            'eventType'            => $old['eventType'],
+            'desiredStartDateTime' => $start->format('Y-m-d H:i:00'),
+            'desiredEndDateTime'   => $end->format('Y-m-d H:i:00'),
+            'nomineeID'            => $nomineeId,
+            'electionID'           => $electionId,
+        ]);
+
+        if ($ok) {
+            \set_flash('success', 'Schedule Location application submitted successfully.');
+            header('Location: /nominee/schedule-location');
+            exit;
+        }
+
+        \set_flash('fail', 'Failed to create Schedule Location.');
+        $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
         $filePath = $this->fileHelper->getFilePath('CreateScheduleLocationNominee');
         if ($filePath && file_exists($filePath)) {
             include $filePath;
             return;
         }
         echo "View file not found.";
-        return;
     }
-
-    $ok = $this->scheduleLocationModel->createScheduleLocation([
-        'eventName'            => $old['eventName'],
-        'eventType'            => $old['eventType'],
-        'desiredStartDateTime' => $start->format('Y-m-d H:i:00'),
-        'desiredEndDateTime'   => $end->format('Y-m-d H:i:00'),
-        'nomineeID'            => $nomineeId,
-        'electionID'           => $electionId,
-    ]);
-
-    if ($ok) {
-        \set_flash('success', 'Schedule Location application submitted successfully.');
-        header('Location: /nominee/schedule-location');
-        exit;
-    }
-
-    \set_flash('fail', 'Failed to create Schedule Location.');
-    $elections = $this->scheduleLocationModel->getEligibleElectionsForNominee($accountId);
-    $filePath = $this->fileHelper->getFilePath('CreateScheduleLocationNominee');
-    if ($filePath && file_exists($filePath)) {
-        include $filePath;
-        return;
-    }
-    echo "View file not found.";
-}
    
 
 }

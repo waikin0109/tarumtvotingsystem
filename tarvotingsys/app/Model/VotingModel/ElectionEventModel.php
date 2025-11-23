@@ -39,6 +39,42 @@ class ElectionEventModel
         $update->execute([$currentStatus, $electionID]);
     }
 
+    public function autoRollElectionStatuses(): void
+    {
+        try {
+            $stmt = $this->db->query("
+                SELECT electionID, electionStartDate, electionEndDate, status
+                FROM electionevent
+            ");
+            $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (!$events) {
+                return;
+            }
+
+            foreach ($events as $event) {
+                $currentStatus = $this->determineStatus(
+                    $event['electionStartDate'],
+                    $event['electionEndDate']
+                );
+
+                if ($currentStatus !== $event['status']) {
+                    // Update election status
+                    $this->updateElectionStatus($currentStatus, $event['electionID']);
+
+                    // If just moved into COMPLETED, reset nominee roles
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel
+                             ->resetNomineeRolesToStudentByElection($event['electionID']);
+                    }
+                }
+            }
+        } catch (PDOException $e) {
+            error_log("autoRollElectionStatuses error: " . $e->getMessage());
+        }
+    }
+
+
 
     public function getAllElectionEvents()
     {
@@ -277,6 +313,8 @@ class ElectionEventModel
     // Paging Settings
     public function getPagedElectionEvents(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->autoRollElectionStatuses();
+
         $sql    = "SELECT electionID, title, dateCreated, status FROM electionevent WHERE 1";
         $params = [];
 
@@ -302,6 +340,9 @@ class ElectionEventModel
         string $search = '',
         string $filterStatus = ''
     ): SimplePager {
+
+        $this->autoRollElectionStatuses();
+        
         $sql = "
             SELECT DISTINCT
                 ee.electionID,

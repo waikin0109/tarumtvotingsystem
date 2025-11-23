@@ -142,6 +142,7 @@ class RuleModel
     // Paging
     public function getPagedRules(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
         $sql    = "SELECT 
             r.ruleID,
             r.ruleTitle,

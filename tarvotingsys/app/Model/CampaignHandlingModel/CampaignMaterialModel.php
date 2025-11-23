@@ -50,6 +50,8 @@ class CampaignMaterialModel
                 return false;
             }
 
+            $now = date('Y-m-d H:i:s');
+
             // Check Election Event Status + Nominee Role (After Completed)
             foreach ($campaignMaterials as &$campaignMaterial) {
                 $currentStatus = $this->electionEventModel->determineStatus($campaignMaterial['electionStartDate'], $campaignMaterial['electionEndDate']);
@@ -64,6 +66,11 @@ class CampaignMaterialModel
                     if ($currentStatus === 'COMPLETED') {
                         $this->nomineeModel->resetNomineeRolesToStudentByElection($campaignMaterial['electionID']);
                     }
+                }
+
+                // Check CampaignMaterial Status
+                if ($campaignMaterial['electionEndDate'] < $now && $campaignMaterial['materialsApplicationStatus'] == 'PENDING') {
+                    $this->autoUpdateCampaignMaterialStatus($campaignMaterial['materialsApplicationID']);
                 }
             }
 
@@ -179,6 +186,7 @@ class CampaignMaterialModel
     // Header + joined names for display
     public function getCampaignMaterialById(int $id): ?array
     {
+        $this->autoRollCampaignMaterialStatuses();
         try {
             $sql = "
                 SELECT
@@ -212,6 +220,8 @@ class CampaignMaterialModel
                 return false;
             }
 
+            $now = date('Y-m-d H:i:s');
+
             // Check Election Event Status + Nominee Role (After Completed)
             $currentStatus = $this->electionEventModel->determineStatus($campaignMaterial['electionStartDate'], $campaignMaterial['electionEndDate']);
 
@@ -224,6 +234,11 @@ class CampaignMaterialModel
                 if ($currentStatus === 'COMPLETED') {
                     $this->nomineeModel->resetNomineeRolesToStudentByElection($campaignMaterial['electionID']);
                 }
+            }
+
+            // Check CampaignMaterial Status
+            if ($campaignMaterial['electionEndDate'] < $now && $campaignMaterial['materialsApplicationStatus'] == 'PENDING') {
+                $this->autoUpdateCampaignMaterialStatus($campaignMaterial['materialsApplicationID']);
             }
 
             return $campaignMaterial;
@@ -452,6 +467,8 @@ class CampaignMaterialModel
     // Paging Settings
     public function getPagedCampaignMaterials(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
+        $this->autoRollCampaignMaterialStatuses();
         $sql    = "
             SELECT
                     cma.materialsApplicationID,
@@ -499,6 +516,8 @@ class CampaignMaterialModel
         string $filterStatus = ''
     ): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
+        $this->autoRollCampaignMaterialStatuses();
         $sql = "
             SELECT
                 cma.materialsApplicationID,
@@ -543,6 +562,57 @@ class CampaignMaterialModel
 
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
+
+    public function autoUpdateCampaignMaterialStatus(int $materialsApplicationID): void
+    {
+        try {
+            $sql = "
+                UPDATE campaignmaterialsapplication
+                SET materialsApplicationStatus = :status
+                WHERE materialsApplicationID = :id AND materialsApplicationStatus = 'PENDING'
+            ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute([
+                ':status' => 'REJECTED', 
+                ':id'     => $materialsApplicationID,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('autoUpdateCampaignMaterialStatus: ' . $e->getMessage());
+        }
+    }
+
+    public function autoRollCampaignMaterialStatuses(): void
+    {
+        try {
+            $now = date('Y-m-d H:i:s');
+
+            $sql = "
+                SELECT 
+                    cma.materialsApplicationID,
+                    cma.materialsApplicationStatus,
+                    ee.electionEndDate
+                FROM campaignmaterialsapplication cma
+                INNER JOIN electionevent ee 
+                    ON ee.electionID = cma.electionID
+                WHERE cma.materialsApplicationStatus = 'PENDING'
+                AND ee.electionEndDate < :now
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':now' => $now]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            foreach ($rows as $row) {
+                $this->autoUpdateCampaignMaterialStatus(
+                    (int)$row['materialsApplicationID']
+                );
+            }
+        } catch (\PDOException $e) {
+            error_log('autoRollCampaignMaterialStatuses: ' . $e->getMessage());
+        }
+    }
+
 
 
 }

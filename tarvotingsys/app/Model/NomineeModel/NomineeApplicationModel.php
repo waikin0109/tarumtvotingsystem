@@ -2,6 +2,7 @@
 
 namespace Model\NomineeModel;
 
+use Model\VotingModel\ElectionEventModel;
 use PDO;
 use PDOException;
 use Database;
@@ -12,10 +13,12 @@ class NomineeApplicationModel
 {
     /** @var PDO */
     private PDO $db;
+    private ElectionEventModel $electionEventModel;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
+        $this->electionEventModel = new ElectionEventModel();
     }
 
     /**
@@ -485,6 +488,7 @@ class NomineeApplicationModel
     // Paging Settings
     public function getPagedNomineeApplications(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
         $sql    = "
             SELECT 
                 na.*,

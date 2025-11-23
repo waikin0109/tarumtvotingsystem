@@ -22,6 +22,32 @@ class ScheduleLocationModel
         $this->nomineeModel = new NomineeModel();
     }
 
+    public function autoRollScheduleLocationStatuses()
+    {
+        try {
+            
+            $now = date('Y-m-d H:i:s');
+
+            $sql = "
+                SELECT eventApplicationID, desiredStartDateTime, eventApplicationStatus
+                FROM eventapplication
+                WHERE eventApplicationStatus = 'PENDING'
+                AND desiredStartDateTime < :now
+            ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([':now' => $now]);
+
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            foreach ($rows as $scheduleLocation) {
+                $this->autoUpdateEventApplicationStatus($scheduleLocation['eventApplicationID']);
+            }
+        } catch (\PDOException $e) {
+            error_log('autoRollScheduleLocationStatuses: ' . $e->getMessage());
+        }
+    }
+
+
     /** List page */
     public function getAllScheduleLocations(): array
     {
@@ -240,11 +266,15 @@ class ScheduleLocationModel
                     ea.eventApplicationID,
                     ea.eventName,
                     ea.eventType,
+                    ea.eventApplicationStatus,
                     ea.desiredStartDateTime,
                     ea.desiredEndDateTime,
                     ea.electionID,
                     ea.nomineeID,
                     ee.title AS electionTitle,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
                     a.fullName AS nomineeFullName,
                     s.studentID
                 FROM eventapplication ea
@@ -257,8 +287,34 @@ class ScheduleLocationModel
             ";
             $st = $this->db->prepare($sql);
             $st->execute([':id' => $eventApplicationID]);
-            $row = $st->fetch(PDO::FETCH_ASSOC);
-            return $row ?: null;
+            $scheduleLocation = $st->fetch(PDO::FETCH_ASSOC);
+
+            if (!$scheduleLocation) {
+                return false;
+            }
+
+            $now = date('Y-m-d H:i:s');
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            $currentStatus = $this->electionEventModel->determineStatus($scheduleLocation['electionStartDate'], $scheduleLocation['electionEndDate']);
+
+            if ($currentStatus !== $scheduleLocation['status']) {
+                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $update->execute([$currentStatus, $scheduleLocation['electionID']]);
+                $scheduleLocation['status'] = $currentStatus;
+
+                // Update Nominee Role (when event just became COMPLETED) 
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($scheduleLocation['electionID']);
+                }
+            }
+            // Check ScheduleLocation Status
+            if ($scheduleLocation['desiredStartDateTime'] < $now && $scheduleLocation['eventApplicationStatus'] == 'PENDING') {
+                $this->autoUpdateEventApplicationStatus($scheduleLocation['eventApplicationID']);
+            }
+            
+
+            return $scheduleLocation;
         } catch (PDOException $e) {
             error_log("getScheduleLocationById: " . $e->getMessage());
             return null;
@@ -299,12 +355,16 @@ class ScheduleLocationModel
                     ea.eventApplicationID,
                     ea.eventName,
                     ea.eventType,
+                    ea.eventApplicationStatus,
                     ea.desiredStartDateTime,
                     ea.desiredEndDateTime,
                     ea.eventApplicationSubmittedAt,
                     ea.eventApplicationStatus,
                     ea.electionID,
                     ee.title AS electionTitle,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
                     ea.nomineeID,
                     nomAcc.fullName AS nomineeFullName,
                     ea.adminID,
@@ -320,8 +380,34 @@ class ScheduleLocationModel
             ";
             $st = $this->db->prepare($sql);
             $st->execute([':id' => $eventApplicationID]);
-            $row = $st->fetch(PDO::FETCH_ASSOC);
-            return $row ?: null;
+            $scheduleLocation = $st->fetch(PDO::FETCH_ASSOC);
+
+            if (!$scheduleLocation) {
+                return false;
+            }
+
+            $now = date('Y-m-d H:i:s');
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            $currentStatus = $this->electionEventModel->determineStatus($scheduleLocation['electionStartDate'], $scheduleLocation['electionEndDate']);
+
+            if ($currentStatus !== $scheduleLocation['status']) {
+                $update = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                $update->execute([$currentStatus, $scheduleLocation['electionID']]);
+                $scheduleLocation['status'] = $currentStatus;
+
+                // Update Nominee Role (when event just became COMPLETED) 
+                if ($currentStatus === 'COMPLETED') {
+                    $this->nomineeModel->resetNomineeRolesToStudentByElection($scheduleLocation['electionID']);
+                }
+            }
+            // Check ScheduleLocation Status
+            if ($scheduleLocation['desiredStartDateTime'] < $now && $scheduleLocation['eventApplicationStatus'] == 'PENDING') {
+                $this->autoUpdateEventApplicationStatus($scheduleLocation['eventApplicationID']);
+            }
+            
+
+            return $scheduleLocation;
         } catch (PDOException $e) {
             error_log("getScheduleLocationDetailsById: " . $e->getMessage());
             return null;
@@ -330,35 +416,69 @@ class ScheduleLocationModel
 
 
     /** Pending queue for scheduling (oldest submitted first, election not ended) */
-public function getPendingEventApplications(): array
-{
-    try {
-        $sql = "
-            SELECT 
-                ea.eventApplicationID,
-                ea.eventName,
-                ea.eventType,
-                ea.desiredStartDateTime,
-                ea.desiredEndDateTime,
-                ea.eventApplicationSubmittedAt,
-                ee.title AS electionTitle,
-                acc.fullName AS nomineeName
-            FROM eventapplication ea
-            INNER JOIN electionevent ee ON ee.electionID = ea.electionID
-            INNER JOIN nominee nom      ON nom.nomineeID = ea.nomineeID
-            INNER JOIN account acc      ON acc.accountID = nom.accountID
-            WHERE ea.eventApplicationStatus = 'PENDING'
-              AND ee.electionEndDate > NOW()
-            ORDER BY ea.eventApplicationSubmittedAt ASC
-        ";
-        $st = $this->db->prepare($sql);
-        $st->execute();
-        return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-    } catch (PDOException $e) {
-        error_log("getPendingEventApplications: " . $e->getMessage());
-        return [];
+    public function getPendingEventApplications(): array
+    {
+        try {
+            $sql = "
+                SELECT 
+                    ea.eventApplicationID,
+                    ea.eventName,
+                    ea.eventType,
+                    ea.eventApplicationStatus,
+                    ea.desiredStartDateTime,
+                    ea.desiredEndDateTime,
+                    ea.eventApplicationSubmittedAt,
+                    ee.title AS electionTitle,
+                    ee.electionStartDate,
+                    ee.electionEndDate,
+                    ee.status,
+                    acc.fullName AS nomineeName
+                FROM eventapplication ea
+                INNER JOIN electionevent ee ON ee.electionID = ea.electionID
+                INNER JOIN nominee nom      ON nom.nomineeID = ea.nomineeID
+                INNER JOIN account acc      ON acc.accountID = nom.accountID
+                WHERE ea.eventApplicationStatus = 'PENDING'
+                AND ee.electionEndDate > NOW()
+                ORDER BY ea.eventApplicationSubmittedAt ASC
+            ";
+            $st = $this->db->prepare($sql);
+            $st->execute();
+            $scheduleLocations =  $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            if (!$scheduleLocations) {
+                return [];
+            }
+
+            $now = date('Y-m-d H:i:s');
+
+            // Check Election Event Status + Nominee Role (After Completed)
+            foreach ($scheduleLocations as &$scheduleLocation) {
+                $currentStatus = $this->electionEventModel->determineStatus($scheduleLocation['electionStartDate'], $scheduleLocation['electionEndDate']);
+
+                if ($currentStatus !== $scheduleLocation['status']) {
+                    // You can wrap these two lines in a transaction if you want atomicity
+                    $upd = $this->db->prepare("UPDATE electionevent SET status = ? WHERE electionID = ?");
+                    $upd->execute([$currentStatus, $campaignMaterial['electionID']]);
+                    $scheduleLocation['status'] = $currentStatus;
+
+                    // Update Nominee Role (when event just became COMPLETED) 
+                    if ($currentStatus === 'COMPLETED') {
+                        $this->nomineeModel->resetNomineeRolesToStudentByElection($scheduleLocation['electionID']);
+                    }
+                }
+
+                // Check ScheduleLocation Status
+                if ($scheduleLocation['desiredStartDateTime'] < $now && $scheduleLocation['eventApplicationStatus'] == 'PENDING') {
+                    $this->autoUpdateEventApplicationStatus($scheduleLocation['eventApplicationID']);
+                }
+            }
+
+            return $scheduleLocations;
+        } catch (PDOException $e) {
+            error_log("getPendingEventApplications: " . $e->getMessage());
+            return [];
+        }
     }
-}
 
 /** All (or only AVAILABLE) event locations */
 public function getAllEventLocations(bool $onlyAvailable = true): array
@@ -711,6 +831,8 @@ public function getNomineeForElectionAndAccount(int $electionID, int $accountID)
     // Paging 
     public function getPagedScheduleLocations(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
+        $this->autoRollScheduleLocationStatuses();
         $sql    = "        
             SELECT
                 ea.eventApplicationID,
@@ -760,8 +882,11 @@ public function getNomineeForElectionAndAccount(int $electionID, int $accountID)
         return new SimplePager($this->db, $sql, $params, $limit, $page);
     }
 
+    // Looks like no use
     public function getPagedScheduleLocationsByAccount(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager 
     {
+        $this->electionEventModel->autoRollElectionStatuses();
+        $this->autoRollScheduleLocationStatuses();
         $sql    = "        
             SELECT
                 ea.eventApplicationID,

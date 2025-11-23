@@ -368,6 +368,7 @@ public function isLocked(int $formId): bool {
     // -----------------------------------------------------------------------------------------------------------------------------------------------//
     // Paging Settings
     public function getPagedRegistrationForms(int $page, int $limit, string $search = '', string $filterStatus = ''): SimplePager {
+        $this->electionEventModel->autoRollElectionStatuses();
         $sql = "
             SELECT 
                 rf.registrationFormID,
