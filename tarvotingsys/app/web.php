@@ -23,6 +23,8 @@ Route::get('/admin/home',   [LoginController::class, 'adminHome']);
 Route::get('/student/home', [LoginController::class, 'studentHome']);
 Route::get('/nominee/home', [LoginController::class, 'nomineeHome']);
 
+// Profile
+
 // Announcement routes
 Route::get('/announcements', [AnnouncementController::class, 'listAnnouncements']);
 Route::get('/announcement/create', [AnnouncementController::class,'createAnnouncement']);
