@@ -1,7 +1,13 @@
 <?php
 $_title = 'Voting Sessions';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
 
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+// Header / footer includes based on role
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+}
 
 // safety guard
 if (!isset($voteSessions) || !is_array($voteSessions)) {
@@ -131,5 +137,9 @@ function badge_class(string $status): string
 </div>
 
 <?php
-require_once __DIR__ . '/../AdminView/adminFooter.php';
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+}
 ?>

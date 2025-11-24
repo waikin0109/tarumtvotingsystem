@@ -1,6 +1,13 @@
 <?php
 $_title = 'Announcements';
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+// Header / footer includes based on role
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentHeader.php';
+}
 
 $announcements = $announcements ?? [];
 ?>
@@ -41,4 +48,10 @@ $announcements = $announcements ?? [];
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php 
+if ($roleUpper === 'NOMINEE') {
+    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+    require_once __DIR__ . '/../StudentView/studentFooter.php';
+}
+?>

@@ -196,6 +196,7 @@ class FileHelper
                 break;
             case 'schedule_location':
                 $this->allowedPaths = array_merge($scheduleLocationPaths, $assetPaths);
+                break;
             case 'vote_session':
                 $this->allowedPaths = array_merge($voteSessionPaths, $assetPaths);
                 break;

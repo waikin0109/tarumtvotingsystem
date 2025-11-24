@@ -6,7 +6,6 @@ $roleId              = $_SESSION['roleID'] ?? null;
 $nommineeLoggedInId  = is_scalar($roleId) ? (string)$roleId : ''; 
 $fullName            = $_SESSION['fullName'] ?? 'Guest';
 $role                = $_SESSION['role'] ?? 'User';
-$annLink             = ($role === 'NOMINEE') ? '/announcements' : '/announcements/public';
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
@@ -156,8 +155,8 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                             <i class="bi bi-megaphone"></i>
                             <span>Campaign Materials</span>
                         </a>
-                        <a href="<?= htmlspecialchars($annLink) ?>"
-                           class="list-group-item list-group-item-action <?= $currentPath === $annLink ? 'active-menu' : '' ?>">
+                        <a href="/announcements/public"
+                           class="list-group-item list-group-item-action <?= $currentPath === '/announcements/public' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bell"></i>
                             <span>Announcement</span>
                         </a>
@@ -165,15 +164,20 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
                     <div class="menu-title mt-3">Voting &amp; Results</div>
                     <div class="list-group list-group-flush">
-                        <a href="/nominee/cast-vote"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/nominee/cast-vote' ? 'active-menu' : '' ?>">
+                        <a href="/vote-session/public"
+                           class="list-group-item list-group-item-action <?= $currentPath === '/vote-session/public' ? 'active-menu' : '' ?>">
                             <i class="bi bi-box-arrow-in-right"></i>
-                            <span>Cast Voting</span>
+                            <span>Voting Session</span>
                         </a>
-                        <a href="/nominee/voting-result"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/nominee/voting-result' ? 'active-menu' : '' ?>">
+                        <a href="/statistics"
+                           class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bar-chart-line"></i>
-                            <span>Voting Result</span>
+                            <span>Current Statistics</span>
+                        </a>
+                        <a href="/results"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
+                            <i class="bi bi-trophy"></i>
+                            <span>Official Final Results</span>
                         </a>
                     </div>
                 </div>

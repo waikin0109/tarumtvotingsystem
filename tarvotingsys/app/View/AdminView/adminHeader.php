@@ -6,7 +6,6 @@ $roleId = $_SESSION['roleID'] ?? null;
 $adminLoggedInId = is_scalar($roleId) ? (string)$roleId : ''; 
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
-$annLink = ($role === 'ADMIN') ? '/announcements' : '/announcements/public';
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
@@ -145,8 +144,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                             <i class="bi bi-megaphone"></i>
                             <span>Campaign Materials</span>
                         </a>
-                        <a href="<?= $annLink ?>"
-                        class="list-group-item list-group-item-action <?= $currentPath === $annLink ? 'active-menu' : '' ?>">
+                        <a href="/announcements"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/announcements' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bell"></i>
                             <span>Announcement</span>
                         </a>
@@ -154,35 +153,26 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
 
                     <div class="menu-title mt-3">Voting &amp; Results</div>
                     <div class="list-group list-group-flush">
-                        <a href="/admin/vote-session"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/vote-session' ? 'active-menu' : '' ?>">
+                        <a href="/vote-session"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/vote-session' ? 'active-menu' : '' ?>">
                             <i class="bi bi-box-arrow-in-right"></i>
-                            <span>Cast Voting</span>
+                            <span>Voting Session</span>
                         </a>
-                        <a href="/admin/voting-result"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/voting-result' ? 'active-menu' : '' ?>">
+                        <a href="/statistics"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bar-chart-line"></i>
-                            <span>Voting Result</span>
+                            <span>Current Statistics</span>
                         </a>
-                        <a href="/admin/report"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/report' ? 'active-menu' : '' ?>">
+                        <a href="/results"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
+                            <i class="bi bi-trophy"></i>
+                            <span>Official Final Results</span>
+                        </a>
+                        <a href="/admin/reports/list"
+                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/reports/list' ? 'active-menu' : '' ?>">
                             <i class="bi bi-file-earmark-text"></i>
                             <span>Report</span>
                         </a>
-
-                        <!-- th part belum edit after merge -->
-                        <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
-                        
-                        <a href="<?= $voteSessionLink ?>" class="list-group-item list-group-item-action">Voting Session</a>
-                        <!-- <a href="#" class="list-group-item list-group-item-action">Cast Voting</a> -->
-                        <a href="/statistics" class="list-group-item list-group-item-action">Voting Result</a>
-                        <a href="/results" class="list-group-item list-group-item-action">Official Final Results</a>
-                        <!-- <a href="/admin/reports/generator" class="list-group-item list-group-item-action">Report</a> -->
-                        <a href="/admin/reports/list" class="list-group-item list-group-item-action">Report</a>
-
-
-
-                        
                     </div>
                 </div>
 
