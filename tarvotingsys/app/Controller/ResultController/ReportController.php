@@ -73,7 +73,7 @@ class ReportController
             'results_by_faculty',
             'early_vote_status',
         ];
-        $allowedFormats = ['PDF', 'CSV', 'XLSX'];
+        $allowedFormats = ['PDF', 'CSV'];
 
         $errors = [];
 
@@ -106,7 +106,7 @@ class ReportController
 
         if (in_array($reportType, ['results_by_faculty'], true)) {
             if ($raceID <= 0) {
-                $errors[] = 'Please select a Race / Contest for the Results by Faculty report.';
+                $errors[] = 'Please select a race for the results by faculty report.';
             } elseif (
                 !$this->reportModel->isRaceInElectionAndSession(
                     $raceID,
@@ -300,7 +300,7 @@ class ReportController
         );
 
         // if generator requested a file, export instead of HTML
-        if ($download && in_array($format, ['CSV', 'XLSX', 'PDF'], true)) {
+        if ($download && in_array($format, ['CSV', 'PDF'], true)) {
             $rows = [
                 [
                     'Election Title'  => $summary['electionTitle'],
@@ -332,7 +332,7 @@ class ReportController
         $selectedSessionID = $voteSessionID ?: null;
 
         // buttons: Back + Download
-        $currentFormat = in_array($format, ['CSV', 'XLSX', 'PDF'], true) ? $format : 'PDF';
+        $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
             'format'     => $currentFormat,
@@ -380,7 +380,7 @@ class ReportController
             $voteSessionID ?: null
         );
 
-        if ($download && in_array($format, ['CSV', 'XLSX', 'PDF'], true)) {
+        if ($download && in_array($format, ['CSV','PDF'], true)) {
             $rows = [];
             foreach ($racesResults as $race) {
                 foreach ($race['candidates'] as $cand) {
@@ -414,7 +414,7 @@ class ReportController
         }
 
         // Back + Download buttons
-        $currentFormat = in_array($format, ['CSV', 'XLSX', 'PDF'], true) ? $format : 'PDF';
+        $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
             'format'     => $currentFormat,
@@ -454,7 +454,7 @@ class ReportController
 
         $rows = $this->reportModel->getResultsByFaculty($electionID, $raceID);
 
-        if ($download && in_array($format, ['CSV', 'XLSX', 'PDF'], true)) {
+        if ($download && in_array($format, ['CSV', 'PDF'], true)) {
             $this->exportTabular('results_by_faculty', $rows, $format);
             return;
         }
@@ -469,7 +469,7 @@ class ReportController
         }
 
         // Back + Download buttons
-        $currentFormat = in_array($format, ['CSV', 'XLSX', 'PDF'], true) ? $format : 'PDF';
+        $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
             'raceID'     => $raceID,
@@ -525,7 +525,7 @@ class ReportController
             ? round(($totalMain / $totalEligible) * 100, 2)
             : 0.0;
 
-        if ($download && in_array($format, ['CSV', 'XLSX', 'PDF'], true)) {
+        if ($download && in_array($format, ['CSV','PDF'], true)) {
             $rows = [];
             foreach ($byFaculty as $row) {
                 $eligible     = (int) $row['eligible'];
@@ -573,7 +573,7 @@ class ReportController
         }
 
         // Back + Download buttons
-        $currentFormat = in_array($format, ['CSV', 'XLSX', 'PDF'], true) ? $format : 'PDF';
+        $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
             'format'     => $currentFormat,
@@ -597,7 +597,7 @@ class ReportController
     private function exportTabular(string $baseFilename, array $rows, string $format): void
     {
         $format = strtoupper($format);
-        if (!in_array($format, ['CSV', 'XLSX', 'PDF'], true)) {
+        if (!in_array($format, ['CSV', 'PDF'], true)) {
             $format = 'CSV'; // safe default
         }
 
@@ -608,21 +608,44 @@ class ReportController
 
         $headers = array_keys($rows[0]);
 
-        // ---------- CSV: keep simple ----------
+        // --------- common: build storage path in app/public/reports ----------
+        // __DIR__ = app/Controller/ResultController
+        $reportsDir = realpath(__DIR__ . '/../../public');
+        if ($reportsDir === false) {
+            // fallback: try to create the directory
+            $reportsDir = __DIR__ . '/../../public';
+        }
+        $reportsDir .= '/reports';
+
+        if (!is_dir($reportsDir)) {
+            mkdir($reportsDir, 0777, true);
+        }
+
+        $timestamp = date('Ymd_His');
+        $fileName  = $baseFilename . '_' . $timestamp . '.' . strtolower($format);
+        $filePath  = $reportsDir . DIRECTORY_SEPARATOR . $fileName;
+
+        // ---------- CSV: write to disk, then stream ----------
         if ($format === 'CSV') {
-            $fileName = $baseFilename . '.csv';
+            // 1) write CSV to file
+            $fp = fopen($filePath, 'w');
+            if ($fp === false) {
+                die('Unable to create CSV file at ' . $filePath);
+            }
+            fputcsv($fp, $headers);
+            foreach ($rows as $row) {
+                fputcsv($fp, array_values($row));
+            }
+            fclose($fp);
+
+            // 2) stream to browser
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="' . $fileName . '"');
-            $out = fopen('php://output', 'w');
-            fputcsv($out, $headers);
-            foreach ($rows as $row) {
-                fputcsv($out, array_values($row));
-            }
-            fclose($out);
+            readfile($filePath);
             exit;
         }
 
-        // ---------- XLSX / PDF: use Spreadsheet ----------
+        // ---------- PDF: use Spreadsheet + mPDF, save to disk, then stream ----------
         $spreadsheet = new Spreadsheet();
         $sheet       = $spreadsheet->getActiveSheet();
 
@@ -654,7 +677,6 @@ class ReportController
             foreach ($headers as $head) {
                 $colLetter = Coordinate::stringFromColumnIndex($colIndex);
                 $value     = $row[$head] ?? '';
-
                 $sheet->setCellValue($colLetter . $rowIndex, $value);
                 $colIndex++;
             }
@@ -667,30 +689,20 @@ class ReportController
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
 
-        // Optional: wrap text for all cells so long text doesn't overflow
+        // Optional: wrap text
         $sheet->getStyle(
             'A1:' . $lastCol . ($rowIndex - 1)
         )->getAlignment()->setWrapText(true);
 
-        if ($format === 'XLSX') {
-            $fileName = $baseFilename . '.xlsx';
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment; filename="' . $fileName . '"');
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-            exit;
-        }
+        // 1) save PDF to disk
+        $writer = new PdfWriter($spreadsheet);
+        $writer->save($filePath);
 
-        // PDF export using PhpSpreadsheet + mPDF
-        if ($format === 'PDF') {
-            $fileName = $baseFilename . '.pdf';
-            header('Content-Type: application/pdf');
-            header('Content-Disposition: attachment; filename="' . $fileName . '"');
-
-            $writer = new PdfWriter($spreadsheet);
-            $writer->save('php://output');
-            exit;
-        }
+        // 2) stream the saved PDF to browser
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $fileName . '"');
+        readfile($filePath);
+        exit;
     }
 
     /**

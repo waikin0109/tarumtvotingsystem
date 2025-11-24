@@ -291,33 +291,21 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
                     <select name="outputFormat" id="outputFormat" class="form-select">
                         <option value="PDF" <?= selectedOpt($outputFormat, 'PDF') ?>>PDF</option>
                         <option value="CSV" <?= selectedOpt($outputFormat, 'CSV') ?>>CSV</option>
-                        <option value="XLSX" <?= selectedOpt($outputFormat, 'XLSX') ?>>Excel (XLSX)</option>
                     </select>
                     <div class="form-text">
-                        All reports can be exported to PDF, CSV, or Excel.
+                        All reports can be exported to PDF and CSV.
                     </div>
                 </div>
-
-                <!-- <div class="col-md-8 text-md-end">
-                    <small class="text-muted d-block mb-2">
-                        When you generate an on-screen report, you will be redirected
-                        to the corresponding summary/details page. For download-only reports,
-                        a file download will start automatically.
-                    </small>
-                    <button type="submit" class="btn btn-primary px-4">
-                        <i class="bi bi-file-earmark-bar-graph me-1"></i> Generate Report
-                    </button>
-                </div> -->
             </div>
 
-        </div><!-- /card-body -->
-    </form>
-
-            <div class="d-flex justify-content-center gap-3 mt-4">
+        </div><!-- /card-body -->            <div class="d-flex justify-content-center gap-3 mb-4">
             <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
                 class="btn btn-outline-secondary px-4">Back</a>
             <button type="submit" class="btn btn-primary px-4">Generate Report</button>
         </div>
+    </form>
+
+
 </div>
 
 <script>
@@ -325,8 +313,14 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
         const electionSelect = document.getElementById('electionID');
         const voteSessionSelect = document.getElementById('voteSessionID');
         const raceSelect = document.getElementById('raceID');
+        const reportTypeRadios = document.querySelectorAll('input[name="reportType"]');
 
         if (!electionSelect || !voteSessionSelect || !raceSelect) return;
+
+        function getSelectedReportType() {
+            const checked = document.querySelector('input[name="reportType"]:checked');
+            return checked ? checked.value : '';
+        }
 
         function filterVoteSessions() {
             const eid = electionSelect.value;
@@ -377,24 +371,52 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
         function updateDisabledStates() {
             const eid = electionSelect.value;
             const vsid = voteSessionSelect.value;
+            const rt = getSelectedReportType();
 
             const hasElection = !!eid;
             const hasSession = !!vsid;
 
+            // ---------- Report-type specific behaviour ----------
+
+            // 1) Early Vote Status: only election is used
+            if (rt === 'early_vote_status') {
+                voteSessionSelect.disabled = true;
+                raceSelect.disabled = true;
+                voteSessionSelect.value = '';
+                raceSelect.value = '';
+                return; // skip normal logic
+            }
+
+            // ---------- Normal availability checks ----------
+
+            // Check if any visible vote session
             let anyVsVisible = false;
             Array.from(voteSessionSelect.options).forEach(opt => {
                 if (opt.value && !opt.hidden) anyVsVisible = true;
             });
 
+            // Vote session enabled only if we have election + at least one visible session
             voteSessionSelect.disabled = !hasElection || !anyVsVisible;
 
+            // Check if any visible race
             let anyRaceVisible = false;
             Array.from(raceSelect.options).forEach(opt => {
                 if (opt.value && !opt.hidden) anyRaceVisible = true;
             });
 
-            raceSelect.disabled = !hasSession || !anyRaceVisible;
+            // Base race enable logic (can be overridden by reportType below)
+            let raceDisabledBase = !hasSession || !anyRaceVisible;
 
+            // 2) Overall Turnout / Official Results All: race is not used
+            if (rt === 'overall_turnout' || rt === 'official_results_all') {
+                raceSelect.disabled = true;
+                raceSelect.value = '';
+            } else {
+                // e.g. results_by_faculty -> use normal rule
+                raceSelect.disabled = raceDisabledBase;
+            }
+
+            // Clear dependent fields when parent is empty
             if (!hasElection) {
                 voteSessionSelect.value = '';
                 raceSelect.value = '';
@@ -415,11 +437,22 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
             updateDisabledStates();
         });
 
+        // React when report type changes
+        reportTypeRadios.forEach(r => {
+            r.addEventListener('change', function () {
+                // When switching type, we still want correct filtering + disabling
+                filterVoteSessions();
+                filterRaces();
+                updateDisabledStates();
+            });
+        });
+
         // initial state on page load
         filterVoteSessions();
         filterRaces();
         updateDisabledStates();
     })();
 </script>
+
 
 <?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>

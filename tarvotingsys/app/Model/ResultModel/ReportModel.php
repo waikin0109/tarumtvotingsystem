@@ -75,7 +75,7 @@ class ReportModel
                 r.voteSessionID
             FROM race r
             INNER JOIN electionevent ee ON ee.electionID = r.electionID
-            WHERE ee.status IN ('COMPLETED','CLOSED')
+            WHERE ee.status = 'COMPLETED'
             ORDER BY r.electionID, r.raceTitle
         ";
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -518,70 +518,70 @@ class ReportModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /* =========================================================
-     *  VOTER PARTICIPATION / NON-VOTER LIST
-     * ======================================================= */
+    // /* =========================================================
+    //  *  VOTER PARTICIPATION / NON-VOTER LIST
+    //  * ======================================================= */
 
-    public function getVoterParticipationList(
-        int $electionID,
-        ?int $voteSessionID = null,
-        bool $onlyVoters = false,
-        bool $onlyNonVoters = false
-    ): array {
-        $params = [':electionID' => $electionID];
+    // public function getVoterParticipationList(
+    //     int $electionID,
+    //     ?int $voteSessionID = null,
+    //     bool $onlyVoters = false,
+    //     bool $onlyNonVoters = false
+    // ): array {
+    //     $params = [':electionID' => $electionID];
 
-        $subSql = "
-            SELECT
-                be.accountID,
-                MIN(be.ballotEnvelopeSubmittedAt) AS votedAt
-            FROM ballotenvelope be
-            INNER JOIN votesession vs ON vs.voteSessionID = be.voteSessionID
-            WHERE vs.electionID = :electionID
-              AND be.ballotEnvelopeStatus = 'SUBMITTED'
-        ";
-        if (!empty($voteSessionID)) {
-            $subSql .= " AND vs.voteSessionID = :voteSessionID";
-            $params[':voteSessionID'] = $voteSessionID;
-        }
-        $subSql .= " GROUP BY be.accountID";
+    //     $subSql = "
+    //         SELECT
+    //             be.accountID,
+    //             MIN(be.ballotEnvelopeSubmittedAt) AS votedAt
+    //         FROM ballotenvelope be
+    //         INNER JOIN votesession vs ON vs.voteSessionID = be.voteSessionID
+    //         WHERE vs.electionID = :electionID
+    //           AND be.ballotEnvelopeStatus = 'SUBMITTED'
+    //     ";
+    //     if (!empty($voteSessionID)) {
+    //         $subSql .= " AND vs.voteSessionID = :voteSessionID";
+    //         $params[':voteSessionID'] = $voteSessionID;
+    //     }
+    //     $subSql .= " GROUP BY be.accountID";
 
-        $sql = "
-            SELECT
-                s.studentID,
-                a.loginID,
-                a.fullName,
-                f.facultyCode,
-                f.facultyName,
-                s.program,
-                s.intakeYear,
-                vp.votedAt
-            FROM student s
-            INNER JOIN account a ON a.accountID = s.accountID
-            INNER JOIN faculty f ON f.facultyID = a.facultyID
-            LEFT JOIN ($subSql) vp ON vp.accountID = a.accountID
-            WHERE a.status = 'ACTIVE'
-              AND a.role   = 'STUDENT'
-        ";
+    //     $sql = "
+    //         SELECT
+    //             s.studentID,
+    //             a.loginID,
+    //             a.fullName,
+    //             f.facultyCode,
+    //             f.facultyName,
+    //             s.program,
+    //             s.intakeYear,
+    //             vp.votedAt
+    //         FROM student s
+    //         INNER JOIN account a ON a.accountID = s.accountID
+    //         INNER JOIN faculty f ON f.facultyID = a.facultyID
+    //         LEFT JOIN ($subSql) vp ON vp.accountID = a.accountID
+    //         WHERE a.status = 'ACTIVE'
+    //           AND a.role   = 'STUDENT'
+    //     ";
 
-        if ($onlyVoters) {
-            $sql .= " AND vp.votedAt IS NOT NULL";
-        } elseif ($onlyNonVoters) {
-            $sql .= " AND vp.votedAt IS NULL";
-        }
+    //     if ($onlyVoters) {
+    //         $sql .= " AND vp.votedAt IS NOT NULL";
+    //     } elseif ($onlyNonVoters) {
+    //         $sql .= " AND vp.votedAt IS NULL";
+    //     }
 
-        $sql .= " ORDER BY f.facultyCode, s.program, a.fullName";
+    //     $sql .= " ORDER BY f.facultyCode, s.program, a.fullName";
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    //     $stmt = $this->db->prepare($sql);
+    //     $stmt->execute($params);
+    //     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        foreach ($rows as &$r) {
-            $r['hasVoted'] = !empty($r['votedAt']);
-        }
-        unset($r);
+    //     foreach ($rows as &$r) {
+    //         $r['hasVoted'] = !empty($r['votedAt']);
+    //     }
+    //     unset($r);
 
-        return $rows;
-    }
+    //     return $rows;
+    // }
 
     /* =========================================================
      *  REPORT LOGGING (table `report`)

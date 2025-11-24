@@ -29,6 +29,70 @@ $facultyTurnout = array_map(fn($r) => $r['turnoutPercent'], $byFaculty);
 $timeLabels = array_map(fn($r) => $r['timeSlot'], $timeline);
 $timeVotes = array_map(fn($r) => (int) $r['ballotsCast'], $timeline);
 ?>
+
+
+<style>
+@media print {
+
+  /* Hide admin header stuff */
+  .navbar,
+  #sidebar,
+  #profileToggle,
+  #profileActions {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove flex so the main content is not squeezed, but
+     keep a reasonable max width so graphs don't stretch */
+  .d-flex {
+    display: block !important;
+  }
+
+  #content {
+    margin: 0 auto !important;          /* center on page */
+    max-width: 1200px !important;       /* similar to your screen width */
+    width: auto !important;             /* do NOT force full page width */
+  }
+
+  /* Optional: keep charts from growing too tall */
+  .card .chartjs-render-monitor,
+  .card canvas {
+    max-height: 420px !important;
+  }
+
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  .card,
+  .table-responsive {
+    page-break-inside: avoid;
+  }
+
+    /* Center the chart cards on the page and keep them a bit narrower */
+  .chart-card {
+    max-width: 900px;          /* adjust if you want wider/narrower */
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* Center the canvas itself inside the card */
+  .chart-card canvas {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+</style>
+
+
 <div class="container-fluid mt-4 mb-5">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div>
@@ -91,7 +155,7 @@ $timeVotes = array_map(fn($r) => (int) $r['ballotsCast'], $timeline);
     <div class="row mb-4">
         <!-- Turnout by faculty -->
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm h-100 chart-card">
                 <div class="card-header bg-white">
                     <strong>Turnout by Faculty (%)</strong>
                 </div>
@@ -103,7 +167,7 @@ $timeVotes = array_map(fn($r) => (int) $r['ballotsCast'], $timeline);
 
         <!-- Turnout over time -->
         <div class="col-lg-6 mb-4">
-            <div class="card shadow-sm h-100">
+            <div class="card shadow-sm h-100 chart-card">
                 <div class="card-header bg-white">
                     <strong>Turnout Over Time</strong>
                 </div>
@@ -165,9 +229,13 @@ $timeVotes = array_map(fn($r) => (int) $r['ballotsCast'], $timeline);
 
     <div class="d-flex justify-content-center gap-3 mt-4">
         <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
-            class="btn btn-outline-secondary px-4">Back</a>
-        <a href="<?= htmlspecialchars($downloadUrl ?? '#') ?>" class="btn btn-primary px-4">Download
-            (<?= htmlspecialchars($currentFormat ?? 'PDF') ?>)</a>
+            class="btn btn-outline-secondary px-4 d-print-none">Back</a>
+<a href="<?= htmlspecialchars($downloadUrl) ?>"
+   class="btn btn-primary px-4 d-print-none"
+   onclick="window.print(); window.open(this.href, '_blank'); return false;">
+    <i class="bi bi-printer"></i> Print & Download PDF
+</a>
+
     </div>
 </div>
 

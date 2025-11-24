@@ -35,6 +35,67 @@ foreach ($racesResults as $race) {
 
 $initialRaceID = $racesResults[0]['raceID'] ?? null;
 ?>
+
+<style>
+@media print {
+
+  /* Hide admin header stuff */
+  .navbar,
+  #sidebar,
+  #profileToggle,
+  #profileActions {
+    display: none !important;
+  }
+
+  body {
+    margin: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove flex so the main content is not squeezed, but
+     keep a reasonable max width so graphs don't stretch */
+  .d-flex {
+    display: block !important;
+  }
+
+  #content {
+    margin: 0 auto !important;          /* center on page */
+    max-width: 1200px !important;       /* similar to your screen width */
+    width: auto !important;             /* do NOT force full page width */
+  }
+
+    @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  .card,
+  .table-responsive {
+    page-break-inside: avoid;
+  }
+
+  /* Center chart cards and limit width */
+  .chart-card {
+    max-width: 900px;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  /* FORCE the chart to stay inside the card when printing */
+  .chart-card canvas,
+  #raceChart {
+    display: block;
+    width: 100% !important;      /* override big inline width from Chart.js */
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 260px !important;
+    box-sizing: border-box;
+  }
+
+}
+</style>
+
 <div class="container-fluid mt-4 mb-5">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div>
@@ -79,10 +140,11 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
         </div>
     </div>
 
-    <!-- Main content: left table + right chart -->
+       <!-- Main content -->
+
+    <!-- Row 1: Race overview table (full width) -->
     <div class="row">
-        <!-- Left: Race overview table -->
-        <div class="col-lg-7 mb-4">
+        <div class="col-12 mb-4">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-white">
                     <strong>Race Overview</strong>
@@ -141,10 +203,12 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Right: candidate breakdown for selected race -->
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow-sm h-100">
+    <!-- Row 2: candidate breakdown for selected race (full width) -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow-sm h-100 chart-card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <strong>Selected Race – Candidate Breakdown</strong>
                     <div class="ms-2">
@@ -165,11 +229,15 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
         </div>
     </div>
 
-        <div class="d-flex justify-content-center gap-3 mt-4">
+
+    <div class="d-flex justify-content-center gap-3 mt-4">
         <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
-            class="btn btn-outline-secondary px-4">Back</a>
-        <a href="<?= htmlspecialchars($downloadUrl ?? '#') ?>" class="btn btn-primary px-4">Download
-            (<?= htmlspecialchars($currentFormat ?? 'PDF') ?>)</a>
+            class="btn btn-outline-secondary px-4 d-print-none">Back</a>
+    <button type="button"
+            class="btn btn-primary px-4 d-print-none"
+            onclick="window.print()">
+        <i class="bi bi-printer"></i> Print / Save as PDF
+    </button>
     </div>
 </div>
 
