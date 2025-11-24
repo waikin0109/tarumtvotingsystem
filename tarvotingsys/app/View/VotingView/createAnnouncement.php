@@ -40,7 +40,7 @@ $fieldErrors = $fieldErrors ?? [];
   }
 </style>
 
-<div class="container mt-4">
+<div class="container-fluid mt-4 mb-5">
   <h2>Create Announcement</h2>
 
   <form action="/announcement/store" method="POST" enctype="multipart/form-data" id="annForm" class="mt-3" novalidate>

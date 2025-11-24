@@ -121,9 +121,40 @@ class FileHelper
             'CreateAnnouncement' => 'View/VotingView/createAnnouncement.php',
             'EditAnnouncement' => 'View/VotingView/editAnnouncement.php',
             'ViewAnnouncementDetails' => 'View/VotingView/viewAnnouncementDetails.php',
-            'StudentNomineeAnnouncementList'=> 'View/VotingView/studentNomineeAnnouncementList.php',
-            'StudentNomineeAnnouncementDetails'=> 'View/VotingView/studentNomineeAnnouncementDetails.php',
-            
+            'StudentNomineeAnnouncementList' => 'View/VotingView/studentNomineeAnnouncementList.php',
+            'StudentNomineeAnnouncementDetails' => 'View/VotingView/studentNomineeAnnouncementDetails.php',
+
+        ]);
+
+        $voteSessionPaths = $this->prefixWithBase([
+            'VoteSessionList' => 'View/VotingView/voteSessionList.php',
+            'CreateVoteSession' => 'View/VotingView/createVoteSession.php',
+            'EditVoteSession' => 'View/VotingView/editVoteSession.php',
+            'ViewVoteSessionDetails' => 'View/VotingView/viewVoteSessionDetails.php',
+            'StudentNomineeVotingSessionList' => 'View/VotingView/studentNomineeVotingSessionList.php',
+            'VoteSessionResults' => 'View/VotingView/voteSessionResults.php',
+
+        ]);
+
+        $ballotPaths = $this->prefixWithBase([
+            'StartBallot' => 'View/VotingView/startBallot.php',
+            'CastVote' => 'View/VotingView/castVote.php',
+        ]);
+
+        $resultPaths = $this->prefixWithBase([
+            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',   // Live turnout dashboard
+            'ViewFinalResultsAdmin' => 'View/ResultView/viewFinalResultsAdmin.php',     // Official admin view
+            'ViewFinalResultsPublic' => 'View/ResultView/viewFinalResultsPublic.php',    // Official public view
+        ]);
+
+
+        $reportPaths = $this->prefixWithBase([
+            'ReportGenerator' => 'View/ResultView/reportGenerator.php',
+            'OverallTurnoutSummary' => 'View/ResultView/overallTurnoutSummary.php',
+            'OfficialResultsAll' => 'View/ResultView/officialResultsAll.php',
+            'ResultsByFaculty' => 'View/ResultView/resultsByFaculty.php',
+            'ReportList' => 'View/ResultView/reportList.php',
+            'EarlyVoteStatus' => 'View/ResultView/earlyVoteStatus.php',
         ]);
 
         // If your CSS is under /public/css, and FileHelper sits in /app,
@@ -165,6 +196,17 @@ class FileHelper
                 break;
             case 'schedule_location':
                 $this->allowedPaths = array_merge($scheduleLocationPaths, $assetPaths);
+            case 'vote_session':
+                $this->allowedPaths = array_merge($voteSessionPaths, $assetPaths);
+                break;
+            case 'ballot':
+                $this->allowedPaths = array_merge($ballotPaths, $assetPaths);
+                break;
+            case 'result':
+                $this->allowedPaths = array_merge($resultPaths, $assetPaths);
+                break;
+            case 'report':
+                $this->allowedPaths = array_merge($reportPaths, $assetPaths);
                 break;
             case 'asset':
                 $this->allowedPaths = $assetPaths;

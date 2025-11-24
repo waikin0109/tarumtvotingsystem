@@ -145,7 +145,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                             <i class="bi bi-megaphone"></i>
                             <span>Campaign Materials</span>
                         </a>
-                        <a href="<?= htmlspecialchars($annLink) ?>"
+                        <a href="<?= $annLink ?>"
                         class="list-group-item list-group-item-action <?= $currentPath === $annLink ? 'active-menu' : '' ?>">
                             <i class="bi bi-bell"></i>
                             <span>Announcement</span>
@@ -169,6 +169,20 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                             <i class="bi bi-file-earmark-text"></i>
                             <span>Report</span>
                         </a>
+
+                        <!-- th part belum edit after merge -->
+                        <a href="<?= $annLink ?>" class="list-group-item list-group-item-action">Announcement</a>
+                        
+                        <a href="<?= $voteSessionLink ?>" class="list-group-item list-group-item-action">Voting Session</a>
+                        <!-- <a href="#" class="list-group-item list-group-item-action">Cast Voting</a> -->
+                        <a href="/statistics" class="list-group-item list-group-item-action">Voting Result</a>
+                        <a href="/results" class="list-group-item list-group-item-action">Official Final Results</a>
+                        <!-- <a href="/admin/reports/generator" class="list-group-item list-group-item-action">Report</a> -->
+                        <a href="/admin/reports/list" class="list-group-item list-group-item-action">Report</a>
+
+
+
+                        
                     </div>
                 </div>
 

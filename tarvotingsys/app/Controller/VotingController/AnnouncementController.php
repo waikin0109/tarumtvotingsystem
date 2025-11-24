@@ -242,7 +242,8 @@ class AnnouncementController
     public function viewAnnouncementDetails(string $id): void
     {
         if (empty($_SESSION['accountID'])) {
-            set_flash('fail', 'Please log in to view announcements.');
+            //--- IGNORE ---
+            // set_flash('fail', 'Please log in to view announcements.');
             header('Location: /login');
             exit;
         }
