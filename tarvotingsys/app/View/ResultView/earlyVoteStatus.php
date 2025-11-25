@@ -7,78 +7,82 @@ $_title = 'Early Vote Status';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 
 $totalEligible = (int) $summary['totalEligible'];
-$totalEarly    = (int) $summary['totalEarly'];
-$totalMain     = (int) $summary['totalMain'];
+$totalEarly = (int) $summary['totalEarly'];
+$totalMain = (int) $summary['totalMain'];
 
 $overallEarlyPercent = (float) $summary['overallEarlyPercent'];
-$overallMainPercent  = (float) $summary['overallMainPercent'];
+$overallMainPercent = (float) $summary['overallMainPercent'];
 
 // Chart data
-$facLabels       = array_map(fn($r) => $r['facultyCode'], $byFaculty);
-$earlySeries     = array_map(fn($r) => (float) $r['earlyPercent'], $byFaculty);
-$mainSeries      = array_map(fn($r) => (float) $r['mainPercent'], $byFaculty);
+$facLabels = array_map(fn($r) => $r['facultyCode'], $byFaculty);
+$earlySeries = array_map(fn($r) => (float) $r['earlyPercent'], $byFaculty);
+$mainSeries = array_map(fn($r) => (float) $r['mainPercent'], $byFaculty);
 $totalTurnoutPct = array_map(fn($r) => (float) $r['turnoutPercent'], $byFaculty);
 ?>
 
 <style>
-@media print {
+    @media print {
 
-  /* Hide admin header stuff */
-  .navbar,
-  #sidebar,
-  #profileToggle,
-  #profileActions {
-    display: none !important;
-  }
+        /* Hide admin header stuff */
+        .navbar,
+        #sidebar,
+        #profileToggle,
+        #profileActions {
+            display: none !important;
+        }
 
-  body {
-    margin: 0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+        body {
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
 
-  /* Remove flex so the main content is not squeezed, but
+        /* Remove flex so the main content is not squeezed, but
      keep a reasonable max width so graphs don't stretch */
-  .d-flex {
-    display: block !important;
-  }
+        .d-flex {
+            display: block !important;
+        }
 
-  #content {
-    margin: 0 auto !important;          /* center on page */
-    max-width: 1200px !important;       /* similar to your screen width */
-    width: auto !important;             /* do NOT force full page width */
-  }
+        #content {
+            margin: 0 auto !important;
+            /* center on page */
+            max-width: 1200px !important;
+            /* similar to your screen width */
+            width: auto !important;
+            /* do NOT force full page width */
+        }
 
-  /* Optional: keep charts from growing too tall */
-  .card .chartjs-render-monitor,
-  .card canvas {
-    max-height: 420px !important;
-  }
+        /* Optional: keep charts from growing too tall */
+        .card .chartjs-render-monitor,
+        .card canvas {
+            max-height: 420px !important;
+        }
 
-  @page {
-    size: A4 landscape;
-    margin: 10mm;
-  }
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
 
-  .card,
-  .table-responsive {
-    page-break-inside: avoid;
-  }
+        .card,
+        .table-responsive {
+            page-break-inside: avoid;
+        }
 
-    /* Center the chart cards on the page and keep them a bit narrower */
-  .chart-card {
-    max-width: 900px;          /* adjust if you want wider/narrower */
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
+        /* Center the chart cards on the page and keep them a bit narrower */
+        .chart-card {
+            max-width: 900px;
+            /* adjust if you want wider/narrower */
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
 
-  /* Center the canvas itself inside the card */
-  .chart-card canvas {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-  }
-}
+        /* Center the canvas itself inside the card */
+        .chart-card canvas {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
 </style>
 
 
@@ -162,51 +166,51 @@ $totalTurnoutPct = array_map(fn($r) => (float) $r['turnoutPercent'], $byFaculty)
             <div class="table-responsive">
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
-                    <tr>
-                        <th>Faculty</th>
-                        <th class="text-end">Eligible</th>
-                        <th class="text-end">Early Cast</th>
-                        <th class="text-end">Early %</th>
-                        <th class="text-end">Main Cast</th>
-                        <th class="text-end">Main %</th>
-                        <th class="text-end">Total Turnout %</th>
-                    </tr>
+                        <tr>
+                            <th>Faculty</th>
+                            <th class="text-end">Eligible</th>
+                            <th class="text-end">Early Cast</th>
+                            <th class="text-end">Early %</th>
+                            <th class="text-end">Main Cast</th>
+                            <th class="text-end">Main %</th>
+                            <th class="text-end">Total Turnout %</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    <?php if (empty($byFaculty)): ?>
-                        <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                No data available.
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php foreach ($byFaculty as $row): ?>
-                            <?php
-                            $eligible    = (int) $row['eligible'];
-                            $earlyCast   = (int) $row['earlyCast'];
-                            $mainCast    = (int) $row['mainCast'];
-                            $earlyPct    = (float) $row['earlyPercent'];
-                            $mainPct     = (float) $row['mainPercent'];
-                            $totalPct    = (float) $row['turnoutPercent'];
-
-                            $lowEarly    = $earlyPct < 30 && $eligible > 0;
-                            ?>
-                            <tr class="<?= $lowEarly ? 'table-warning' : '' ?>">
-                                <td>
-                                    <?= htmlspecialchars($row['facultyCode']) ?>
-                                    <small class="d-block text-muted">
-                                        <?= htmlspecialchars($row['facultyName']) ?>
-                                    </small>
+                        <?php if (empty($byFaculty)): ?>
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    No data available.
                                 </td>
-                                <td class="text-end"><?= $eligible ?></td>
-                                <td class="text-end"><?= $earlyCast ?></td>
-                                <td class="text-end"><?= number_format($earlyPct, 2) ?>%</td>
-                                <td class="text-end"><?= $mainCast ?></td>
-                                <td class="text-end"><?= number_format($mainPct, 2) ?>%</td>
-                                <td class="text-end"><?= number_format($totalPct, 2) ?>%</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php else: ?>
+                            <?php foreach ($byFaculty as $row): ?>
+                                <?php
+                                $eligible = (int) $row['eligible'];
+                                $earlyCast = (int) $row['earlyCast'];
+                                $mainCast = (int) $row['mainCast'];
+                                $earlyPct = (float) $row['earlyPercent'];
+                                $mainPct = (float) $row['mainPercent'];
+                                $totalPct = (float) $row['turnoutPercent'];
+
+                                $lowEarly = $earlyPct < 30 && $eligible > 0;
+                                ?>
+                                <tr class="<?= $lowEarly ? 'table-warning' : '' ?>">
+                                    <td>
+                                        <?= htmlspecialchars($row['facultyCode']) ?>
+                                        <small class="d-block text-muted">
+                                            <?= htmlspecialchars($row['facultyName']) ?>
+                                        </small>
+                                    </td>
+                                    <td class="text-end"><?= $eligible ?></td>
+                                    <td class="text-end"><?= $earlyCast ?></td>
+                                    <td class="text-end"><?= number_format($earlyPct, 2) ?>%</td>
+                                    <td class="text-end"><?= $mainCast ?></td>
+                                    <td class="text-end"><?= number_format($mainPct, 2) ?>%</td>
+                                    <td class="text-end"><?= number_format($totalPct, 2) ?>%</td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -216,20 +220,18 @@ $totalTurnoutPct = array_map(fn($r) => (float) $r['turnoutPercent'], $byFaculty)
     <div class="d-flex justify-content-center gap-3 mt-4">
         <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
             class="btn btn-outline-secondary px-4 d-print-none">Back</a>
-    <button type="button"
-            class="btn btn-primary px-4 d-print-none"
-            onclick="window.print()">
-        <i class="bi bi-printer"></i> Print / Save as PDF
-    </button>
+        <button type="button" class="btn btn-primary px-4 d-print-none" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print / Save as PDF
+        </button>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     (function () {
-        const facLabels   = <?= json_encode($facLabels) ?>;
+        const facLabels = <?= json_encode($facLabels) ?>;
         const earlySeries = <?= json_encode($earlySeries) ?>;
-        const mainSeries  = <?= json_encode($mainSeries) ?>;
+        const mainSeries = <?= json_encode($mainSeries) ?>;
 
         const barCtx = document.getElementById('earlyMainBar').getContext('2d');
         new Chart(barCtx, {

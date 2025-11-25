@@ -16,7 +16,7 @@ use Controller\CampaignHandlingController\ScheduleLocationController;
 
 use Controller\AdminController\AdminController;
 use Controller\StudentController\StudentController;
-
+use Controller\NomineeController\NomineeController;
 
 // TH Part Routes
 // Login routes
@@ -26,7 +26,7 @@ Route::get('/logout', [LoginController::class, 'logout']);
 
 
 // Example protected dashboards
-Route::get('/admin/home',   [LoginController::class, 'adminHome']);
+Route::get('/admin/home', [LoginController::class, 'adminHome']);
 Route::get('/student/home', [LoginController::class, 'studentHome']);
 Route::get('/nominee/home', [LoginController::class, 'nomineeHome']);
 
@@ -39,21 +39,27 @@ Route::get('/student/profile', [StudentController::class, 'profile']);
 Route::post('/student/profile/update-password', [StudentController::class, 'updatePassword']);
 Route::post('/student/profile/update-photo', [StudentController::class, 'updatePhoto']);
 
+Route::get('/nominee/profile', [NomineeController::class, 'profile']);
+Route::post('/nominee/profile/update-password', [NomineeController::class, 'updatePassword']);
+Route::post('/nominee/profile/update-photo', [NomineeController::class, 'updatePhoto']);
+Route::get('/nominee/select-race', [NomineeController::class, 'selectRace']);
+Route::post('/nominee/select-race', [NomineeController::class, 'saveRaceSelection']);
+Route::post('/nominee/profile/update-manifesto', [NomineeController::class, 'updateManifesto']);
 
 
 // Announcement routes
 Route::get('/announcements', [AnnouncementController::class, 'listAnnouncements']);
-Route::get('/announcement/create', [AnnouncementController::class,'createAnnouncement']);
-Route::post('/announcement/store',           [AnnouncementController::class, 'storeAnnouncement']); // save draft
-Route::post('/announcement/revert/{id}',           [AnnouncementController::class, 'revertAnnouncementToDraft']);
-Route::post('/announcement/publish/{id}',           [AnnouncementController::class, 'publishAnnouncement']);
-Route::get ('/announcement/edit/{id}',        [AnnouncementController::class, 'editAnnouncement']);
-Route::post('/announcement/edit/{id}',        [AnnouncementController::class, 'editAnnouncement']); // update draft
+Route::get('/announcement/create', [AnnouncementController::class, 'createAnnouncement']);
+Route::post('/announcement/store', [AnnouncementController::class, 'storeAnnouncement']); // save draft
+Route::post('/announcement/revert/{id}', [AnnouncementController::class, 'revertAnnouncementToDraft']);
+Route::post('/announcement/publish/{id}', [AnnouncementController::class, 'publishAnnouncement']);
+Route::get('/announcement/edit/{id}', [AnnouncementController::class, 'editAnnouncement']);
+Route::post('/announcement/edit/{id}', [AnnouncementController::class, 'editAnnouncement']); // update draft
 Route::post('/announcement/attachment/delete', [AnnouncementController::class, 'deleteAttachment']);
 Route::post('/announcement/delete', [AnnouncementController::class, 'deleteAnnouncement']);
-Route::get('/announcements/public',            [AnnouncementController::class, 'viewAnnouncementForStudentAndNominee']); // STUDENT / NOMINEE
-Route::get('/announcements/public/{id}',       [AnnouncementController::class, 'viewAnnouncementDetailsForStudentAndNominee']); // STUDENT / NOMINEE
-Route::get ('/announcements/{id}',            [AnnouncementController::class, 'viewAnnouncementDetails']);
+Route::get('/announcements/public', [AnnouncementController::class, 'viewAnnouncementForStudentAndNominee']); // STUDENT / NOMINEE
+Route::get('/announcements/public/{id}', [AnnouncementController::class, 'viewAnnouncementDetailsForStudentAndNominee']); // STUDENT / NOMINEE
+Route::get('/announcements/{id}', [AnnouncementController::class, 'viewAnnouncementDetails']);
 
 // Vote Session routes
 Route::get('/vote-session', [VoteSessionController::class, 'listVoteSessions']);
@@ -61,14 +67,32 @@ Route::get('/vote-session/create', [VoteSessionController::class, 'createVoteSes
 Route::post('/vote-session/store', [VoteSessionController::class, 'storeVoteSession']);
 Route::get('/vote-session/edit/{id}', [VoteSessionController::class, 'editVoteSession']);
 Route::post('/vote-session/edit/{id}', [VoteSessionController::class, 'updateVoteSession']);
-Route::get ('/vote-session/details/{id}',            [VoteSessionController::class, 'viewVoteSessionDetails']);
+Route::get('/vote-session/details/{id}', [VoteSessionController::class, 'viewVoteSessionDetails']);
 Route::post('/vote-session/delete', [VoteSessionController::class, 'deleteVoteSession']);
 Route::post('/vote-session/schedule', [VoteSessionController::class, 'scheduleVoteSession']);
 Route::post('/vote-session/unschedule', [VoteSessionController::class, 'unscheduleVoteSession']);
-Route::post('/vote-session/cancel',     [VoteSessionController::class, 'cancelVoteSession']);
-Route::get('/vote-session/public',            [VoteSessionController::class, 'viewVoteSessionForStudentAndNominee']); // STUDENT / NOMINEE
+Route::post('/vote-session/cancel', [VoteSessionController::class, 'cancelVoteSession']);
+Route::get('/vote-session/public', [VoteSessionController::class, 'viewVoteSessionForStudentAndNominee']); // STUDENT / NOMINEE
 
+// Ballot routes
+Route::get('/ballot/start/{id}', [BallotController::class, 'startBallot']);
+Route::post('/ballot/start', [BallotController::class, 'clickStartBallot']);
+Route::get('/ballot/cast/{id}', [BallotController::class, 'showCastPage']);
+Route::post('/ballot/cast/{id}', [BallotController::class, 'submitBallot']);
 
+// Result routes
+Route::get('/statistics', [ResultController::class, 'viewStatisticalData']);
+Route::get('/results', [ResultController::class, 'viewFinalResults']);
+
+// Report Routes
+Route::get('/admin/reports/generator', [ReportController::class, 'showGenerator']);
+Route::post('/admin/reports/generate', [ReportController::class, 'generate']);
+Route::get('/admin/reports/list', [ReportController::class, 'reportListPage']);
+Route::post('/admin/reports/delete', [ReportController::class, 'deleteReport']);
+Route::get('/admin/reports/overall-turnout', [ReportController::class, 'overallTurnoutPage']);
+Route::get('/admin/reports/official-results', [ReportController::class, 'officialResultsPage']);
+Route::get('/admin/reports/results-by-faculty', [ReportController::class, 'resultsByFacultyPage']);
+Route::get('/admin/reports/early-vote-status', [ReportController::class, 'earlyVoteStatusPage']);
 
 
 // WK Part Routes
@@ -101,7 +125,6 @@ Route::get('/nominee/rule/view/{id}', [RuleController::class, 'viewRuleNominee']
 
 
 
-
 // Election Registration Form Routes
 // Admin Sided
 Route::get('/admin/election-registration-form', [RegistrationFormController::class, 'listRegistrationForms']);
@@ -124,6 +147,7 @@ Route::get('/nominee/election-registration-form', [RegistrationFormController::c
 Route::get('/nominee/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyFormNominee']);
 Route::post('/nominee/election-registration-form/register/{id}', [NomineeApplicationController::class, 'applyStoreNominee']);
 Route::get('/nominee/election-registration-form/view/{id}', [NomineeApplicationController::class, 'viewNomineeApplicationNominee']);
+
 
 
 // Nominee Application Routes
@@ -197,43 +221,3 @@ Route::get('/nominee/schedule-location/calendar-feed', [ScheduleLocationControll
 Route::get('/nominee/schedule-location/view/{id}', [ScheduleLocationController::class, 'viewScheduleLocationNominee']);
 Route::get('/nominee/schedule-location/create', [ScheduleLocationController::class, 'createScheduleLocationNominee']);
 Route::post('/nominee/schedule-location/create', [ScheduleLocationController::class, 'storeCreateScheduleLocationNominee']);
-
-// Route::get('/vote-session/results/{id}', [VoteSessionController::class, 'viewResults']);
-
-
-// Ballot routes
-Route::get('/ballot/start/{id}', [BallotController::class, 'startBallot']); 
-Route::post('/ballot/start',  [BallotController::class, 'clickStartBallot']);
-Route::get('/ballot/cast/{id}', [BallotController::class, 'showCastPage']);
-Route::post('/ballot/cast/{id}', [BallotController::class, 'submitBallot']); 
-
-// Result routes
-Route::get('/statistics', [ResultController::class, 'viewStatisticalData']);
-
-// // Live turnout (real-time) – shared page for all three roles
-// Route::get('/admin/results/live',   [ResultController::class, 'viewStatisticalData']);
-// Route::get('/student/results/live', [ResultController::class, 'viewStatisticalData']);
-// Route::get('/nominee/results/live', [ResultController::class, 'viewStatisticalData']);
-
-// // OFFICIAL FINAL RESULTS (ADMIN + PUBLIC)
-// Route::get('/results',         [ResultController::class, 'viewFinalResultsAdmin']);
-// Route::get('/results/public',  [ResultController::class, 'viewFinalResultsPublic']);
-
-// Route::get('/vote-session/results/{id}', [ResultController::class, 'redirectFromVoteSession']);
-Route::get('/results', [ResultController::class, 'viewFinalResults']);
-
-
-// Report Routes
-// Route::get('/admin/reports', [ReportController::class, 'reportGenerator']);
-// Route::post('/admin/reports/generate', [ReportController::class, 'generateReport']);
-
-Route::get('/admin/reports/generator',        [ReportController::class, 'showGenerator']);
-Route::post('/admin/reports/generate',        [ReportController::class, 'generate']);
-
-Route::get('/admin/reports/list',  [ReportController::class, 'reportListPage']);
-Route::post('/admin/reports/delete', [ReportController::class, 'deleteReport']);
-
-Route::get('/admin/reports/overall-turnout',  [ReportController::class, 'overallTurnoutPage']);
-Route::get('/admin/reports/official-results', [ReportController::class, 'officialResultsPage']);
-Route::get('/admin/reports/results-by-faculty', [ReportController::class, 'resultsByFacultyPage']);
-Route::get('/admin/reports/early-vote-status', [ReportController::class, 'earlyVoteStatusPage']);

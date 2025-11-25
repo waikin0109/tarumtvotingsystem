@@ -1,25 +1,23 @@
 <?php
 $_title = 'Cast Vote';
-// Reuse adminHeader which adapts to role
-require_once __DIR__ . '/../AdminView/adminHeader.php';
 
-/**
- * Variables expected from controller:
- * $electionTitle, $sessionName, $sessionTypeLabel, $sessionId
- * $races (with nested 'nominees')
- * $oldSelections (raceID => [nomineeID,...])
- * $selectionErrors (raceID => [messages])
- */
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
 
-$oldSelections = $oldSelections ?? [];
-$selectionErrors = $selectionErrors ?? [];
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+  require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
+
+$oldSelections    = $oldSelections ?? [];
+$selectionErrors  = $selectionErrors ?? [];
 
 // Split races into Faculty Rep and Campus Wide buckets
-$facultyRepRaces = [];
-$campusWideRaces = [];
-$roleUpper = strtoupper($_SESSION['role'] ?? '');
-$backUrl = ($roleUpper === 'ADMIN') ? '/vote-session' : '/vote-session/public';
-
+$facultyRepRaces  = [];
+$campusWideRaces  = [];
+$backUrl          = ($roleUpper === 'ADMIN') ? '/vote-session' : '/vote-session/public';
 
 foreach ($races as $race) {
   if (strtoupper($race['seatType']) === 'FACULTY_REP') {
@@ -45,42 +43,23 @@ function race_error_text(array $selectionErrors, int $raceId): string
 
 <style>
   .cast-layout {
-    max-width: 1300px;
-  }
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+}
 
   .race-card {
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
   }
 
-  .candidate-card {
-    border-radius: 10px;
-    border: 1px solid #e5e7eb;
-    padding: 0.75rem;
-    cursor: pointer;
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
-    height: 100%;
+  .race-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .75rem;
   }
-
-  .candidate-card:hover {
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
-    border-color: #4f46e5;
-  }
-
-  .candidate-selected {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 1px #2563eb;
-  }
-
-.candidate-photo {
-  width: 90px;
-  height: 90px;
-  border-radius: 8px;
-  background-color: #e5e7eb;
-  object-fit: cover;
-  border: 1px solid #d1d5db;
-}
 
   .race-header-title {
     font-weight: 600;
@@ -100,22 +79,161 @@ function race_error_text(array $selectionErrors, int $raceId): string
   .race-error {
     font-size: 0.85rem;
   }
+
+  .candidate-card {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 0.85rem 0.85rem 0.85rem 2.6rem;
+    cursor: pointer;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    height: 100%;
+    background-color: #ffffff;
+  }
+
+  .candidate-card:hover {
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+    border-color: #4f46e5;
+    transform: translateY(-1px);
+  }
+
+  .candidate-selected {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1px #2563eb;
+  }
+
+  /* exact same size for all nominee images / no-photo boxes */
+  .candidate-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 10px;
+    background-color: #e5e7eb;
+    object-fit: cover;
+    border: 1px solid #d1d5db;
+  }
+
+  .candidate-photo.flex-shrink-0 {
+    flex-shrink: 0;
+  }
+
+  .candidate-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .candidate-check {
+    position: absolute;
+    top: 0.9rem;
+    left: 0.9rem;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    border: 2px solid #d1d5db;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: #2563eb;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .candidate-card.candidate-selected .candidate-check {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+    transform: scale(1.05);
+  }
+
+  .candidate-name {
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+  }
+
+  .candidate-meta {
+    font-size: 0.8rem;
+    color: #9ca3af;
+  }
+
+  /* show FULL manifesto text – no truncation */
+  .candidate-manifesto {
+    font-size: 0.9rem;
+    color: #4b5563;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 576px) {
+    .candidate-card {
+      padding-left: 2.4rem;
+    }
+    .candidate-photo {
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+   .preview-race-card {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.75rem;
+    background-color: #ffffff;
+  }
+
+  .preview-race-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .preview-race-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .preview-seat-pill {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.55rem;
+    border-radius: 999px;
+  }
+
+  .preview-seat-pill.faculty {
+    background-color: #dbeafe;
+    color: #1d4ed8;
+  }
+
+  .preview-seat-pill.campus {
+    background-color: #dcfce7;
+    color: #15803d;
+  }
+
+  .preview-race-footer {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 0.3rem;
+  }
 </style>
 
-<div class="container-fluid mt-4 mb-5">
-  <h2 class="mb-2">
-    Cast Vote – <?= htmlspecialchars($sessionTypeLabel ?? '', ENT_QUOTES, 'UTF-8') ?>
-  </h2>
-  <p class="text-muted mb-3">
-    <?= htmlspecialchars($electionTitle ?? '', ENT_QUOTES, 'UTF-8') ?> —
-    <?= htmlspecialchars($sessionName ?? '', ENT_QUOTES, 'UTF-8') ?>
-  </p>
+<div class="container-fluid mt-4 mb-5 cast-layout">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+    <div>
+      <h2 class="mb-1">
+        Cast Vote – <?= htmlspecialchars($sessionTypeLabel ?? '', ENT_QUOTES, 'UTF-8') ?>
+      </h2>
+      <p class="text-muted mb-0">
+        <?= htmlspecialchars($electionTitle ?? '', ENT_QUOTES, 'UTF-8') ?> —
+        <?= htmlspecialchars($sessionName ?? '', ENT_QUOTES, 'UTF-8') ?>
+      </p>
+    </div>
+  </div>
 
   <form method="post" action="/ballot/cast/<?= (int) $sessionId ?>" id="castVoteForm">
     <?php if (!empty($facultyRepRaces)): ?>
       <div class="card race-card mb-4">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="race-header-bar">
             <div>
               <div class="race-header-title">Faculty Representative – Choose up to 1</div>
               <div class="race-subtitle">
@@ -126,51 +244,62 @@ function race_error_text(array $selectionErrors, int $raceId): string
 
           <?php foreach ($facultyRepRaces as $race): ?>
             <?php
-            $rid = (int) $race['raceID'];
+            $rid       = (int) $race['raceID'];
             $raceTitle = $race['raceTitle'] ?? 'Faculty Representative';
             ?>
-            <div class="mb-2">
-              <div class="fw-semibold mb-1">
+            <div class="mb-3">
+              <div class="fw-semibold mb-2">
                 <?= htmlspecialchars($raceTitle, ENT_QUOTES, 'UTF-8') ?>
                 <?php if (!empty($race['facultyName'])): ?>
-                  (<?= htmlspecialchars($race['facultyName'], ENT_QUOTES, 'UTF-8') ?>)
+                  <span class="text-muted">
+                    (<?= htmlspecialchars($race['facultyName'], ENT_QUOTES, 'UTF-8') ?>)
+                  </span>
                 <?php endif; ?>
               </div>
 
               <?php if (empty($race['nominees'])): ?>
                 <p class="text-muted fst-italic mb-3">No nominees have been published for this race yet.</p>
               <?php else: ?>
-                <div class="row g-3 mb-1">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-1">
                   <?php foreach ($race['nominees'] as $nominee): ?>
                     <?php
-                    $nid = (int) $nominee['nomineeID'];
+                    $nid       = (int) $nominee['nomineeID'];
                     $isChecked = in_array($nid, $oldSelections[$rid] ?? [], true);
+                    $photo     = trim($nominee['profilePhotoURL'] ?? '');
                     ?>
-                    <div class="col-md-4">
-                      <label
-                        class="candidate-card d-flex gap-3 align-items-start <?= $isChecked ? 'candidate-selected' : '' ?>">
-                        <input type="radio" class="form-check-input mt-2 candidate-input" name="selections[<?= $rid ?>][]"
-                          value="<?= $nid ?>" data-race-title="<?= htmlspecialchars($raceTitle, ENT_QUOTES, 'UTF-8') ?>"
+                    <div class="col">
+                      <label class="candidate-card d-flex gap-3 align-items-start <?= $isChecked ? 'candidate-selected' : '' ?>">
+                        <input
+                          type="radio"
+                          class="candidate-input candidate-input-radio"
+                          name="selections[<?= $rid ?>][]"
+                          value="<?= $nid ?>"
+                          data-race-title="<?= htmlspecialchars($raceTitle, ENT_QUOTES, 'UTF-8') ?>"
                           data-seat-type="FACULTY_REP"
                           data-candidate-name="<?= htmlspecialchars($nominee['fullName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                          style="margin-right: .5rem;" <?= $isChecked ? 'checked' : '' ?>>
-                        <?php if (!empty($nominee['profilePhotoURL'])): ?>
-                          <img src="/uploads/profile/<?= htmlspecialchars($nominee['profilePhotoURL'], ENT_QUOTES, 'UTF-8') ?>"
-                            alt="Photo" class="candidate-photo mt-1">
+                          <?= $isChecked ? 'checked' : '' ?>
+                        >
+                        <span class="candidate-check"><?= $isChecked ? '✓' : '' ?></span>
+
+                        <?php if ($photo !== ''): ?>
+                          <img src="<?= htmlspecialchars($photo, ENT_QUOTES, 'UTF-8') ?>" alt="Photo" class="candidate-photo mt-1 flex-shrink-0">
                         <?php else: ?>
-                          <div class="candidate-photo mt-1 d-flex align-items-center justify-content-center">
+                          <div class="candidate-photo mt-1 d-flex align-items-center justify-content-center flex-shrink-0">
                             <span class="text-muted small">No Photo</span>
                           </div>
                         <?php endif; ?>
+
                         <div>
-                          <div class="fw-semibold">
+                          <div class="candidate-name">
                             <?= htmlspecialchars($nominee['fullName'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                           </div>
-                          <?php if (!empty($nominee['manifesto'])): ?>
-                            <div class="small text-muted mt-1" style="max-height: 4.5rem; overflow: hidden;">
+                          <div class="candidate-manifesto mt-1">
+                            <?php if (!empty($nominee['manifesto'])): ?>
                               <?= nl2br(htmlspecialchars($nominee['manifesto'], ENT_QUOTES, 'UTF-8')) ?>
-                            </div>
-                          <?php endif; ?>
+                            <?php else: ?>
+                              <span class="candidate-meta">No manifesto provided.</span>
+                            <?php endif; ?>
+                          </div>
                         </div>
                       </label>
                     </div>
@@ -186,7 +315,7 @@ function race_error_text(array $selectionErrors, int $raceId): string
             </div>
           <?php endforeach; ?>
 
-          <div class="selection-hint mt-2">
+          <div class="selection-hint mt-1">
             You must select <strong>zero or one</strong> Faculty Representative.
           </div>
         </div>
@@ -196,7 +325,7 @@ function race_error_text(array $selectionErrors, int $raceId): string
     <?php if (!empty($campusWideRaces)): ?>
       <div class="card race-card mb-4">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="race-header-bar">
             <div>
               <div class="race-header-title">Campus Wide Representative – Choose up to 4</div>
               <div class="race-subtitle">
@@ -207,51 +336,60 @@ function race_error_text(array $selectionErrors, int $raceId): string
 
           <?php foreach ($campusWideRaces as $race): ?>
             <?php
-            $rid = (int) $race['raceID'];
+            $rid       = (int) $race['raceID'];
             $raceTitle = $race['raceTitle'] ?? 'Campus Wide Representative';
-            $maxSel = (int) $race['maxSelectable'];
+            $maxSel    = (int) $race['maxSelectable'];
             ?>
-            <div class="mb-2">
-              <div class="fw-semibold mb-1">
+            <div class="mb-3">
+              <div class="fw-semibold mb-2">
                 <?= htmlspecialchars($raceTitle, ENT_QUOTES, 'UTF-8') ?>
               </div>
 
               <?php if (empty($race['nominees'])): ?>
                 <p class="text-muted fst-italic mb-3">No nominees have been published for this race yet.</p>
               <?php else: ?>
-                <div class="row g-3 mb-1">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-1">
                   <?php foreach ($race['nominees'] as $nominee): ?>
                     <?php
-                    $nid = (int) $nominee['nomineeID'];
+                    $nid       = (int) $nominee['nomineeID'];
                     $isChecked = in_array($nid, $oldSelections[$rid] ?? [], true);
+                    $photo     = trim($nominee['profilePhotoURL'] ?? '');
                     ?>
-                    <div class="col-md-4">
-                      <label
-                        class="candidate-card d-flex gap-3 align-items-start <?= $isChecked ? 'candidate-selected' : '' ?>">
-                        <input type="checkbox" class="form-check-input mt-2 candidate-input campus-wide-input"
-                          name="selections[<?= $rid ?>][]" value="<?= $nid ?>" data-race-id="<?= $rid ?>"
+                    <div class="col">
+                      <label class="candidate-card d-flex gap-3 align-items-start <?= $isChecked ? 'candidate-selected' : '' ?>">
+                        <input
+                          type="checkbox"
+                          class="candidate-input campus-wide-input candidate-input-checkbox"
+                          name="selections[<?= $rid ?>][]"
+                          value="<?= $nid ?>"
+                          data-race-id="<?= $rid ?>"
                           data-max-select="<?= $maxSel ?>"
                           data-race-title="<?= htmlspecialchars($raceTitle, ENT_QUOTES, 'UTF-8') ?>"
                           data-seat-type="CAMPUS_WIDE"
                           data-candidate-name="<?= htmlspecialchars($nominee['fullName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                          style="margin-right: .5rem;" <?= $isChecked ? 'checked' : '' ?>>
-                        <?php if (!empty($nominee['profilePhotoURL'])): ?>
-                          <img src="/uploads/profile/<?= htmlspecialchars($nominee['profilePhotoURL'], ENT_QUOTES, 'UTF-8') ?>"
-                            alt="Photo" class="candidate-photo mt-1">
+                          <?= $isChecked ? 'checked' : '' ?>
+                        >
+                        <span class="candidate-check"><?= $isChecked ? '✓' : '' ?></span>
+
+                        <?php if ($photo !== ''): ?>
+                          <img src="<?= htmlspecialchars($photo, ENT_QUOTES, 'UTF-8') ?>" alt="Photo" class="candidate-photo mt-1 flex-shrink-0">
                         <?php else: ?>
-                          <div class="candidate-photo mt-1 d-flex align-items-center justify-content-center">
+                          <div class="candidate-photo mt-1 d-flex align-items-center justify-content-center flex-shrink-0">
                             <span class="text-muted small">No Photo</span>
                           </div>
                         <?php endif; ?>
+
                         <div>
-                          <div class="fw-semibold">
+                          <div class="candidate-name">
                             <?= htmlspecialchars($nominee['fullName'] ?? '', ENT_QUOTES, 'UTF-8') ?>
                           </div>
-                          <?php if (!empty($nominee['manifesto'])): ?>
-                            <div class="small text-muted mt-1" style="max-height: 4.5rem; overflow: hidden;">
+                          <div class="candidate-manifesto mt-1">
+                            <?php if (!empty($nominee['manifesto'])): ?>
                               <?= nl2br(htmlspecialchars($nominee['manifesto'], ENT_QUOTES, 'UTF-8')) ?>
-                            </div>
-                          <?php endif; ?>
+                            <?php else: ?>
+                              <span class="candidate-meta">No manifesto provided.</span>
+                            <?php endif; ?>
+                          </div>
                         </div>
                       </label>
                     </div>
@@ -267,14 +405,13 @@ function race_error_text(array $selectionErrors, int $raceId): string
             </div>
           <?php endforeach; ?>
 
-          <div class="selection-hint mt-2">
+          <div class="selection-hint mt-1">
             You may choose fewer than the maximum allowed, but not more.
           </div>
         </div>
       </div>
     <?php endif; ?>
 
-    <!-- If somehow no races at all -->
     <?php if (empty($facultyRepRaces) && empty($campusWideRaces)): ?>
       <div class="alert alert-info">
         There are no races available to vote in this session yet.
@@ -291,11 +428,10 @@ function race_error_text(array $selectionErrors, int $raceId): string
         </button>
       </div>
     </div>
-
   </form>
 </div>
 
-<!-- Simple preview modal -->
+<!-- Preview modal -->
 <div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
@@ -320,27 +456,32 @@ function race_error_text(array $selectionErrors, int $raceId): string
 </div>
 
 <script>
-  // Highlight selected candidate cards
   (function () {
+    // Highlight selected candidate cards + update custom tick
     document.querySelectorAll('.candidate-input').forEach(function (input) {
       input.addEventListener('change', function () {
         const label = this.closest('.candidate-card');
 
         if (this.type === 'radio') {
-          // Clear all radios in same group
           document
             .querySelectorAll('input[name="' + this.name + '"]')
             .forEach(function (r) {
-              const l = r.closest('.candidate-card');
-              if (l) l.classList.remove('candidate-selected');
+              const card = r.closest('.candidate-card');
+              if (!card) return;
+              card.classList.remove('candidate-selected');
+              const check = card.querySelector('.candidate-check');
+              if (check) check.textContent = '';
             });
         }
 
         if (label) {
+          const check = label.querySelector('.candidate-check');
           if (this.checked) {
             label.classList.add('candidate-selected');
+            if (check) check.textContent = '✓';
           } else if (this.type === 'checkbox') {
             label.classList.remove('candidate-selected');
+            if (check) check.textContent = '';
           }
         }
       });
@@ -357,21 +498,24 @@ function race_error_text(array $selectionErrors, int $raceId): string
         const checked = Array.from(checkboxes).filter(function (c) { return c.checked; });
 
         if (checked.length > maxSel) {
-          // Undo and warn
           this.checked = false;
           const label = this.closest('.candidate-card');
-          if (label) label.classList.remove('candidate-selected');
+          if (label) {
+            label.classList.remove('candidate-selected');
+            const check = label.querySelector('.candidate-check');
+            if (check) check.textContent = '';
+          }
           alert('You can select up to ' + maxSel + ' candidates for this race.');
         }
       });
     });
 
     // Preview modal
-    const previewBtn = document.getElementById('previewBtn');
+    const previewBtn   = document.getElementById('previewBtn');
     const previewModal = document.getElementById('previewModal');
-    const previewBody = document.getElementById('previewContent');
-    const confirmBtn = document.getElementById('confirmSubmitBtn');
-    const form = document.getElementById('castVoteForm');
+    const previewBody  = document.getElementById('previewContent');
+    const confirmBtn   = document.getElementById('confirmSubmitBtn');
+    const form         = document.getElementById('castVoteForm');
 
     if (previewBtn && previewModal && previewBody && confirmBtn && form) {
       const bsModal = new bootstrap.Modal(previewModal);
@@ -384,14 +528,14 @@ function race_error_text(array $selectionErrors, int $raceId): string
           return;
         }
 
+        // Group selections by seatType + raceTitle
         const groups = {};
-
         selected.forEach(function (input) {
-          const seatType = input.dataset.seatType || 'Other';
-          const raceTitle = input.dataset.raceTitle || 'Race';
+          const seatType      = input.dataset.seatType || 'OTHER';
+          const raceTitle     = input.dataset.raceTitle || 'Race';
           const candidateName = input.dataset.candidateName || 'Candidate';
+          const key           = seatType + '|' + raceTitle;
 
-          const key = seatType + '|' + raceTitle;
           if (!groups[key]) {
             groups[key] = {
               seatType: seatType,
@@ -402,22 +546,50 @@ function race_error_text(array $selectionErrors, int $raceId): string
           groups[key].candidates.push(candidateName);
         });
 
+        function formatSeatType(seatType) {
+          switch (seatType) {
+            case 'FACULTY_REP':
+              return 'Faculty Representative';
+            case 'CAMPUS_WIDE':
+              return 'Campus Wide Representative';
+            default:
+              return 'Other';
+          }
+        }
+
+        function seatTypeClass(seatType) {
+          if (seatType === 'FACULTY_REP') return 'faculty';
+          if (seatType === 'CAMPUS_WIDE') return 'campus';
+          return '';
+        }
+
         let html = '';
         Object.keys(groups).forEach(function (key) {
           const g = groups[key];
-          html += '<div class="mb-3">';
-          html += '<div class="fw-semibold">' + g.raceTitle + '</div>';
-          html += '<ul class="mb-0">';
+          const count = g.candidates.length;
+          const seatLabel = formatSeatType(g.seatType);
+          const pillClass = seatTypeClass(g.seatType);
+
+          html += '<div class="preview-race-card">';
+          html += '  <div class="preview-race-header">';
+          html += '    <div class="preview-race-title">' + g.raceTitle + '</div>';
+          html += '    <span class="preview-seat-pill ' + pillClass + '">' + seatLabel + '</span>';
+          html += '  </div>';
+          html += '  <ul class="mb-0 ps-3">';
           g.candidates.forEach(function (c) {
-            html += '<li>' + c + '</li>';
+            html += '    <li>' + c + '</li>';
           });
-          html += '</ul>';
+          html += '  </ul>';
+          html += '  <div class="preview-race-footer">';
+          html += '    You selected ' + count + ' candidate' + (count > 1 ? 's' : '') + ' for this race.';
+          html += '  </div>';
           html += '</div>';
         });
 
         previewBody.innerHTML = html;
         bsModal.show();
       });
+
 
       confirmBtn.addEventListener('click', function () {
         bsModal.hide();
@@ -427,4 +599,12 @@ function race_error_text(array $selectionErrors, int $raceId): string
   })();
 </script>
 
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+  require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
+?>

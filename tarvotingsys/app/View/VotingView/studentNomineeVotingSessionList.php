@@ -4,15 +4,17 @@ $roleUpper = strtoupper($_SESSION['role'] ?? '');
 
 // Header / footer includes based on role
 if ($roleUpper === 'NOMINEE') {
-    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+  require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 } elseif ($roleUpper === 'STUDENT') {
-    require_once __DIR__ . '/../StudentView/studentHeader.php';
+  require_once __DIR__ . '/../StudentView/studentHeader.php';
 }
 
 // safety guard
 if (!isset($voteSessions) || !is_array($voteSessions)) {
   $voteSessions = [];
 }
+
+$search = $search ?? '';
 
 function badge_class(string $status): string
 {
@@ -29,18 +31,45 @@ function badge_class(string $status): string
 ?>
 
 <div class="container-fluid mt-4 mb-5">
-  <div class="container-fluid d-flex justify-content-between align-items-center mb-4">
-    <div class="row w-100">
-      <div class="col-sm-6">
-        <h2>Voting Sessions</h2>
-      </div>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-2">
+    <div>
+      <h2 class="mb-0">Voting Sessions</h2>
+      <p class="text-muted small mb-0">
+        View available voting sessions and cast your vote.
+      </p>
     </div>
   </div>
 
-  <div class="container-fluid mb-5">
-    <div class="bg-light">
+  <!-- Search Bar -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form class="row g-2 align-items-end" method="get" action="">
+        <div class="col-md-6">
+          <label for="q" class="form-label mb-1">Search by Session Name</label>
+          <input type="text" id="q" name="q" class="form-control" placeholder="Search voting sessions"
+            value="<?= htmlspecialchars($search) ?>">
+        </div>
+
+        <div class="col-md-6 text-md-end">
+          <button type="submit" class="btn btn-outline-primary me-2">
+            Search
+          </button>
+
+          <?php if ($search !== ''): ?>
+            <a href="<?= strtok($_SERVER['REQUEST_URI'], '?') ?>" class="btn btn-link text-decoration-none">
+              Reset
+            </a>
+          <?php endif; ?>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="card mb-4" style="box-shadow:0 0.1rem 1rem rgba(0,0,0,.15);">
+    <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
+        <table class="table table-bordered table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
               <th scope="col-sm-1">No.</th>
@@ -54,10 +83,14 @@ function badge_class(string $status): string
           </thead>
           <tbody>
             <?php
-            $no = 1;
-            foreach ($voteSessions as $s):
+            $startNumber = isset($pager)
+              ? (($pager->page - 1) * $pager->limit) + 1
+              : 1;
 
-              // If model added flags (from listForStudentNominee), hide sessions not visible to voters
+            $printed = 0;
+
+            foreach ($voteSessions as $index => $s):
+              // hide sessions that model marks as not visible
               $visibleToVoters = $s['VisibleToVoters'] ?? null;
               if ($visibleToVoters === false) {
                 continue;
@@ -69,26 +102,21 @@ function badge_class(string $status): string
               $status = strtoupper($s['VoteSessionStatus'] ?? $s['voteSessionStatus'] ?? '');
 
               $startAt = $s['StartAt'] ?? $s['startAt'] ?? $s['VoteSessionStartAt'] ?? null;
-              $start = $startAt ? date('Y.m.d H:i', strtotime($startAt)) : '';
+              $start = $startAt ? date('Y-m-d H:i:s', strtotime($startAt)) : '';
 
               $endAt = $s['EndAt'] ?? $s['endAt'] ?? $s['VoteSessionEndAt'] ?? null;
-              $end = $endAt ? date('Y.m.d H:i', strtotime($endAt)) : '';
+              $end = $endAt ? date('Y-m-d H:i:s', strtotime($endAt)) : '';
 
               $hasVoted = !empty($s['HasVoted']);
-              // For students/nominees: only OPEN can vote
               $canVote = ($status === 'OPEN');
+              $printed++;
               ?>
               <tr>
-                <td><?= $no++ ?></td>
-
+                <td><?= $startNumber + $index ?></td>
                 <td><?= htmlspecialchars($name) ?></td>
-
                 <td><?= htmlspecialchars($eTitle) ?></td>
-
                 <td><?= htmlspecialchars($start) ?></td>
-
                 <td><?= htmlspecialchars($end) ?></td>
-
                 <td>
                   <?php if ($status): ?>
                     <span class="badge <?= badge_class($status) ?>">
@@ -105,7 +133,7 @@ function badge_class(string $status): string
                           Vote
                         </a>
                       <?php else: ?>
-                        <button class="btn btn-sm btn-outline-secondary" disabled>
+                        <button class="btn btn-sm btn-danger" disabled>
                           Voted
                         </button>
                       <?php endif; ?>
@@ -121,25 +149,46 @@ function badge_class(string $status): string
               </tr>
             <?php endforeach; ?>
 
-            <?php if ($no === 1): // nothing printed ?>
+            <?php if ($printed === 0): ?>
               <tr>
                 <td colspan="7" class="text-center text-muted">
                   No voting sessions available.
                 </td>
               </tr>
             <?php endif; ?>
-
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Pager row  -->
+    <?php if (isset($pager) && $pager->page_count > 1): ?>
+      <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <div class="text-muted small">
+          <?php
+          $from = ($pager->item_count === 0)
+            ? 0
+            : (($pager->page - 1) * $pager->limit) + 1;
+          $to = ($pager->page - 1) * $pager->limit + $pager->count;
+          ?>
+          Showing <strong><?= $from ?></strong> to <strong><?= $to ?></strong>
+          of <strong><?= $pager->item_count ?></strong> voting sessions
+        </div>
+        <div>
+          <?php
+          $href = http_build_query(['q' => $search]);
+          $pager->html($href, "class='pagination-wrapper'");
+          ?>
+        </div>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 
 <?php
 if ($roleUpper === 'NOMINEE') {
-    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
 } elseif ($roleUpper === 'STUDENT') {
-    require_once __DIR__ . '/../StudentView/studentFooter.php';
+  require_once __DIR__ . '/../StudentView/studentFooter.php';
 }
 ?>

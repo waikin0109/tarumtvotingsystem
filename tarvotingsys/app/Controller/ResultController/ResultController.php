@@ -16,7 +16,7 @@ class ResultController
     {
         $this->resultModel = new ResultModel();
         $this->voteSessionModel = new VoteSessionModel();
-        $this->fileHelper = new FileHelper('result'); // views in /View/ResultView
+        $this->fileHelper = new FileHelper('result');
     }
 
     public function viewStatisticalData(): void
@@ -141,7 +141,7 @@ class ResultController
                 }
             } else {
                 // Campus-wide or other seatType – show all faculties.
-                $faculties = $this->voteSessionModel->listFaculties(); // facultyID, facultyName
+                $faculties = $this->voteSessionModel->listFaculties();
 
                 foreach ($faculties as $fac) {
                     $fid = (int) $fac['facultyID'];
@@ -177,19 +177,6 @@ class ResultController
         include $this->fileHelper->getFilePath('ViewStatisticalData');
     }
 
-    /**
-     * GET /results
-     * Official Final Results (Admin + Public)
-     *
-     * - Only for CLOSED vote sessions (official, non-live).
-     * - Admin view: exports + audit section.
-     * - Public view: read-only, simpler layout.
-     *
-     * Now includes real-world tie handling:
-     * - Uses race.seatCount from DB.
-     * - Detects tie at last seat and marks raceStatus = 'TIE_BREAK_REQUIRED'.
-     * - Marks guaranteed winners and tie-group candidates separately.
-     */
     public function viewFinalResults(): void
     {
         $role = strtoupper($_SESSION['role'] ?? '');
@@ -249,8 +236,7 @@ class ResultController
         }
 
         $isClosed = ($selectedSessionStatus === 'CLOSED');
-        $isCertified = $isClosed; // if you add a real certification flag later, replace this
-        // $lastUpdated = null;
+        $isCertified = $isClosed;
 
         /* ---------------------------------------------------------------------
          * 3) RESULTS DATA (only when session is CLOSED and selected)
@@ -341,8 +327,6 @@ class ResultController
                         ),
                     ];
                 }
-                // -------------------------------------------------------------
-
 
                 // Get vote breakdown for each candidate in this race
                 $candidates = $this->resultModel->getRaceVoteBreakdown($selectedSessionID, $raceID);
@@ -451,21 +435,9 @@ class ResultController
             if (!empty($campusWideTurnoutByRace)) {
                 $campusWideTurnout = $overallTurnout;
             }
-
-            // Last ballot submission time for reference (fixed; no auto-refresh)
-            // $lastUpdated = $this->resultModel->getLastBallotSubmittedAt($selectedSessionID);
         }
 
-        // if (!$lastUpdated) {
-        //     $lastUpdated = date('Y-m-d H:i:s');
-        // }
-
-        // Choose view by role
-        $viewName = ($role === 'ADMIN')
-            ? 'ViewFinalResultsAdmin'
-            : 'ViewFinalResultsPublic';
-
-        include $this->fileHelper->getFilePath($viewName);
+        include $this->fileHelper->getFilePath("ViewFinalResults");
     }
 
 }

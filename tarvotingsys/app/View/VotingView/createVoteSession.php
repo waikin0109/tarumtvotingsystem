@@ -123,7 +123,14 @@ function race_err_msgs(array $errs, int $idx, string $field): string
     <fieldset class="fieldset mb-4" id="racesFieldset">
       <legend>Races Included</legend>
 
-      <div id="raceList" class="d-flex flex-column gap-3">
+  <p class="muted-help">
+    Note: Races are defined at the election level. If this election already has a
+    <strong>Faculty Representative</strong> race for a faculty or a
+    <strong>Campus Wide</strong> race, the existing seat will be reused for this
+    session even if you rename it here. This form only links races to this session.
+  </p>
+
+  <div id="raceList" class="d-flex flex-column gap-3">
         <?php if (empty($old['races'])): ?>
           <?php $old['races'] = [['title' => '', 'seatType' => '', 'facultyID' => '', 'seatCount' => 0, 'maxSelectable' => 0]]; ?>
         <?php endif; ?>

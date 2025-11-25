@@ -1,53 +1,72 @@
 <?php
-// Title + header according to role
-$_title    = 'View Statistical Data';
+$_title = 'View Statistical Data';
 $roleUpper = strtoupper($_SESSION['role'] ?? '');
 
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+  require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
 
-/* ---------------- Safe totals from controller-provided $turnout ------------ */
 // Totals for this race (all faculties combined)
-$eligibleTotal  = isset($turnout['eligible']) ? (int)$turnout['eligible'] : 0;
-$ballotsCast    = isset($turnout['ballotsSubmitted']) ? (int)$turnout['ballotsSubmitted'] : 0;
+$eligibleTotal = isset($turnout['eligible']) ? (int) $turnout['eligible'] : 0;
+$ballotsCast = isset($turnout['ballotsSubmitted']) ? (int) $turnout['ballotsSubmitted'] : 0;
 $currentTurnout = isset($turnout['turnoutPercent'])
-    ? (float)$turnout['turnoutPercent']
-    : ($eligibleTotal > 0 ? round(($ballotsCast / $eligibleTotal) * 100, 2) : 0.0);
+  ? (float) $turnout['turnoutPercent']
+  : ($eligibleTotal > 0 ? round(($ballotsCast / $eligibleTotal) * 100, 2) : 0.0);
 
-/* --------------- Chart arrays: faculty % of TOTAL eligible ----------------- */
-$facultyChartLabels   = [];
+$facultyChartLabels = [];
 $facultyChartPercents = [];
 
 if (!empty($turnoutByFaculty)) {
-    foreach ($turnoutByFaculty as $row) {
-        $facultyChartLabels[] = $row['facultyName'];
+  foreach ($turnoutByFaculty as $row) {
+    $facultyChartLabels[] = $row['facultyName'];
 
-        $votes = (int)($row['voted'] ?? 0);
-        // percentage of *total eligible for this race* (same denominator as KPI 16.67%)
-        $facultyChartPercents[] = ($eligibleTotal > 0)
-            ? round(($votes / $eligibleTotal) * 100, 2)
-            : 0.0;
-    }
+    $votes = (int) ($row['voted'] ?? 0);
+    // percentage of *total eligible for this race* (same denominator as KPI 16.67%)
+    $facultyChartPercents[] = ($eligibleTotal > 0)
+      ? round(($votes / $eligibleTotal) * 100, 2)
+      : 0.0;
+  }
 }
 
 // Session / selection flags
 $sessionStatus = $selectedSessionStatus ?? '';
-$isLive        = !empty($isLive);
-$isFinal       = !empty($isFinal);
+$isLive = !empty($isLive);
+$isFinal = !empty($isFinal);
 
 $hasElection = !empty($selectedElectionID);
-$hasSession  = !empty($selectedSessionID);
-$hasRace     = !empty($selectedRaceID);
+$hasSession = !empty($selectedSessionID);
+$hasRace = !empty($selectedRaceID);
 
-// For field-level messages (optional; controller can also set $fieldErrors)
 $fieldErrors = $fieldErrors ?? [];
 
 // Derived “no data” flags for dropdowns
 $noSessionAvailable = $hasElection && empty($voteSessions);
-$noRaceAvailable    = $hasSession && empty($races);
+$noRaceAvailable = $hasSession && empty($races);
 
 // Disable logic for dropdowns
 $disableSessionSelect = !$hasElection || $noSessionAvailable;
-$disableRaceSelect    = !$hasSession || $noRaceAvailable;
+$disableRaceSelect = !$hasSession || $noRaceAvailable;
+
+// --- NEW: detect selected race seat type + faculty (for chart behaviour) ---
+$selectedSeatType = '';
+$selectedFacultyName = '';
+
+if ($hasSession && $hasRace && !empty($races)) {
+  foreach ($races as $r) {
+    if ((int) $r['raceID'] === (int) $selectedRaceID) {
+      $selectedSeatType = strtoupper($r['seatType'] ?? '');
+      $selectedFacultyName = $r['facultyName'] ?? '';
+      break;
+    }
+  }
+}
+
+// For donut chart (faculty rep)
+$notVoted = max($eligibleTotal - $ballotsCast, 0);
 ?>
 
 <?php if ($isLive): ?>
@@ -180,7 +199,7 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
             <option value="">-- Select Election Event --</option>
             <?php if (!empty($elections)): ?>
               <?php foreach ($elections as $e): ?>
-                <option value="<?= (int)$e['electionID'] ?>" <?= $hasElection && (int)$selectedElectionID === (int)$e['electionID'] ? 'selected' : '' ?>>
+                <option value="<?= (int) $e['electionID'] ?>" <?= $hasElection && (int) $selectedElectionID === (int) $e['electionID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($e['title']) ?>
                 </option>
               <?php endforeach; ?>
@@ -197,7 +216,7 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
             <?php if ($hasElection && !empty($voteSessions)): ?>
               <?php foreach ($voteSessions as $vs): ?>
                 <?php $label = $vs['voteSessionName'] . ' (' . $vs['voteSessionType'] . ')'; ?>
-                <option value="<?= (int)$vs['voteSessionID'] ?>" <?= $hasSession && (int)$selectedSessionID === (int)$vs['voteSessionID'] ? 'selected' : '' ?>>
+                <option value="<?= (int) $vs['voteSessionID'] ?>" <?= $hasSession && (int) $selectedSessionID === (int) $vs['voteSessionID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($label) ?>
                 </option>
               <?php endforeach; ?>
@@ -214,12 +233,12 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
             <?php if ($hasSession && !empty($races)): ?>
               <?php foreach ($races as $r): ?>
                 <?php
-                  $raceLabel = $r['raceTitle'];
-                  if (!empty($r['facultyName'])) {
-                      $raceLabel .= ' - ' . $r['facultyName'];
-                  }
+                $raceLabel = $r['raceTitle'];
+                if (!empty($r['facultyName'])) {
+                  $raceLabel .= ' - ' . $r['facultyName'];
+                }
                 ?>
-                <option value="<?= (int)$r['raceID'] ?>" <?= $hasRace && (int)$selectedRaceID === (int)$r['raceID'] ? 'selected' : '' ?>>
+                <option value="<?= (int) $r['raceID'] ?>" <?= $hasRace && (int) $selectedRaceID === (int) $r['raceID'] ? 'selected' : '' ?>>
                   <?= htmlspecialchars($raceLabel) ?>
                 </option>
               <?php endforeach; ?>
@@ -305,23 +324,42 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
     <!-- Main rows: chart on top, breakdown below -->
     <div class="row g-4">
 
-      <!-- Turnout by Faculty (Chart) -->
+      <!-- Turnout chart -->
       <div class="col-12">
         <div class="card stats-card">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
-              <div class="stats-panel-title">Turnout by Faculty</div>
+              <div class="stats-panel-title">
+                <?php if ($selectedSeatType === 'FACULTY_REP'): ?>
+                  Turnout – <?= htmlspecialchars($selectedFacultyName ?: 'Faculty Representative', ENT_QUOTES, 'UTF-8') ?>
+                <?php else: ?>
+                  Turnout by Faculty
+                <?php endif; ?>
+              </div>
               <?php if ($isLive): ?>
                 <span class="badge bg-light text-muted border">Real-time</span>
               <?php endif; ?>
             </div>
 
-            <?php if (empty($turnoutByFaculty)): ?>
-              <p class="text-muted mb-0">No turnout data is available for this vote session yet.</p>
+            <?php if ($selectedSeatType === 'FACULTY_REP'): ?>
+              <?php if ($eligibleTotal <= 0): ?>
+                <p class="text-muted mb-0">No turnout data is available for this race yet.</p>
+              <?php else: ?>
+                <p class="text-muted small mb-2">
+                  Voted vs not voted for this faculty representative race.
+                </p>
+                <div style="height: 280px;">
+                  <canvas id="turnoutDonutChart"></canvas>
+                </div>
+              <?php endif; ?>
             <?php else: ?>
-              <div style="height: 320px;">
-                <canvas id="turnoutByFacultyChart"></canvas>
-              </div>
+              <?php if (empty($turnoutByFaculty)): ?>
+                <p class="text-muted mb-0">No turnout data is available for this vote session yet.</p>
+              <?php else: ?>
+                <div style="height: 320px;">
+                  <canvas id="turnoutByFacultyChart"></canvas>
+                </div>
+              <?php endif; ?>
             <?php endif; ?>
           </div>
         </div>
@@ -348,10 +386,10 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
                   <tbody>
                     <?php foreach ($turnoutByFaculty as $row): ?>
                       <?php
-                        $voted      = (int)$row['voted'];
-                        $pctOfTotal = ($eligibleTotal > 0)
-                            ? round(($voted / $eligibleTotal) * 100, 2)
-                            : 0.0;
+                      $voted = (int) $row['voted'];
+                      $pctOfTotal = ($eligibleTotal > 0)
+                        ? round(($voted / $eligibleTotal) * 100, 2)
+                        : 0.0;
                       ?>
                       <tr>
                         <td><?= htmlspecialchars($row['facultyName']) ?></td>
@@ -366,7 +404,6 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
           </div>
         </div>
       </div>
-
     </div>
 
   <?php else: ?>
@@ -388,52 +425,97 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
 
 </div>
 
-<?php if (!empty($turnoutByFaculty) && $hasElection && $hasSession && $hasRace): ?>
+<?php if ($hasElection && $hasSession && $hasRace): ?>
   <script>
     (function () {
-      const labels = <?= json_encode($facultyChartLabels, JSON_UNESCAPED_UNICODE) ?>;
-      const values = <?= json_encode($facultyChartPercents) ?>;
+      <?php if ($selectedSeatType === 'FACULTY_REP'): ?>
+        // Donut: Voted vs Not voted (faculty rep)
+        const donutEl = document.getElementById('turnoutDonutChart');
+        if (!donutEl) return;
 
-      if (!labels.length) return;
+        const donutCtx = donutEl.getContext('2d');
+        const donutLabels = ['Voted', 'Not voted'];
+        const donutData = [<?= (int) $ballotsCast ?>, <?= (int) $notVoted ?>];
+        const donutTotal = donutData.reduce((a, b) => a + b, 0);
 
-      const ctx = document.getElementById('turnoutByFacultyChart').getContext('2d');
-
-      const baseColors = [
-        '#4f46e5', '#0ea5e9', '#22c55e', '#f97316',
-        '#e11d48', '#a855f7', '#14b8a6', '#facc15'
-      ];
-      const backgroundColors = labels.map((_, idx) => baseColors[idx % baseColors.length]);
-
-      new Chart(ctx, {
-        type: 'pie',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: values,
-            backgroundColor: backgroundColors,
-            borderColor: '#ffffff',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right'
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  const label = context.label || '';
-                  const value = context.parsed !== undefined ? context.parsed : 0;
-                  return label + ': ' + value.toFixed(2) + '% of total eligible';
+        new Chart(donutCtx, {
+          type: 'doughnut',
+          data: {
+            labels: donutLabels,
+            datasets: [{
+              data: donutData,
+              backgroundColor: ['#4f46e5', '#e5e7eb'],
+              borderColor: '#ffffff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+              legend: {
+                position: 'bottom'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || '';
+                    const value = context.parsed !== undefined ? context.parsed : 0;
+                    const pct = donutTotal > 0 ? (value / donutTotal * 100) : 0;
+                    return label + ': ' + value + ' (' + pct.toFixed(2) + '%)';
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      <?php elseif (!empty($turnoutByFaculty)): ?>
+        // Original: Turnout by Faculty (pie)
+        const labels = <?= json_encode($facultyChartLabels, JSON_UNESCAPED_UNICODE) ?>;
+        const values = <?= json_encode($facultyChartPercents) ?>;
+
+        if (!labels.length) return;
+
+        const ctx = document.getElementById('turnoutByFacultyChart').getContext('2d');
+
+        const baseColors = [
+          '#4f46e5', '#0ea5e9', '#22c55e', '#f97316',
+          '#e11d48', '#a855f7', '#14b8a6', '#facc15'
+        ];
+        const backgroundColors = labels.map((_, idx) => baseColors[idx % baseColors.length]);
+
+        new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: labels,
+            datasets: [{
+              data: values,
+              backgroundColor: backgroundColors,
+              borderColor: '#ffffff',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right'
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    const label = context.label || '';
+                    const value = context.parsed !== undefined ? context.parsed : 0;
+                    return label + ': ' + value.toFixed(2) + '% of total eligible';
+                  }
+                }
+              }
+            }
+          }
+        });
+      <?php endif; ?>
     })();
   </script>
 <?php endif; ?>
@@ -441,10 +523,10 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
 <!-- JS to reset dropdowns when changing election / session / race -->
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const form          = document.getElementById('filterForm');
+    const form = document.getElementById('filterForm');
     const electionInput = document.getElementById('electionID');
-    const sessionInput  = document.getElementById('voteSessionID');
-    const raceInput     = document.getElementById('raceID');
+    const sessionInput = document.getElementById('voteSessionID');
+    const raceInput = document.getElementById('raceID');
 
     if (!form) return;
 
@@ -472,5 +554,11 @@ $disableRaceSelect    = !$hasSession || $noRaceAvailable;
 </script>
 
 <?php
-require_once __DIR__ . '/../AdminView/adminFooter.php';
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+  require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
 ?>

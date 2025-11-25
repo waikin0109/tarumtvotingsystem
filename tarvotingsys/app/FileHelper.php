@@ -34,7 +34,7 @@ class FileHelper
     {
         // IMPORTANT: make this relative to /app (where FileHelper.php sits)
         // So View/VotingView/election-event.php resolves to .../app/View/VotingView/election-event.php
-        
+
         $electionEventPaths = $this->prefixWithBase([
             'ElectionEventList' => 'View/VotingView/electionEvent.php',
             'CreateElectionEvent' => 'View/VotingView/createElectionEvent.php',
@@ -59,7 +59,7 @@ class FileHelper
             'ViewElectionRegistrationForm' => 'View/NomineeHandlingView/viewRegistrationForm.php',
             'DeleteElectionRegistrationForm' => 'View/NomineeHandlingView/deleteRegistrationForm.php',
             'ElectionRegistrationFormListStudent' => 'View/NomineeHandlingView/registrationFormListStudent.php',
-            
+
         ]);
 
         $nomineeApplicationPaths = $this->prefixWithBase([
@@ -114,6 +114,8 @@ class FileHelper
 
         $nomineePaths = $this->prefixWithBase([
             'NomineeHome' => 'View/NomineeView/nomineeHome.php',
+            'NomineeProfile' => 'View/NomineeView/nomineeProfile.php',
+            'NomineeSelectRace' => 'View/NomineeView/nomineeSelectRace.php',
         ]);
 
         $announcementPaths = $this->prefixWithBase([
@@ -133,7 +135,6 @@ class FileHelper
             'ViewVoteSessionDetails' => 'View/VotingView/viewVoteSessionDetails.php',
             'StudentNomineeVotingSessionList' => 'View/VotingView/studentNomineeVotingSessionList.php',
             'VoteSessionResults' => 'View/VotingView/voteSessionResults.php',
-
         ]);
 
         $ballotPaths = $this->prefixWithBase([
@@ -142,11 +143,9 @@ class FileHelper
         ]);
 
         $resultPaths = $this->prefixWithBase([
-            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',   // Live turnout dashboard
-            'ViewFinalResultsAdmin' => 'View/ResultView/viewFinalResultsAdmin.php',     // Official admin view
-            'ViewFinalResultsPublic' => 'View/ResultView/viewFinalResultsPublic.php',    // Official public view
+            'ViewStatisticalData' => 'View/ResultView/viewStatisticalData.php',
+            'ViewFinalResults' => 'View/ResultView/viewFinalResults.php',
         ]);
-
 
         $reportPaths = $this->prefixWithBase([
             'ReportGenerator' => 'View/ResultView/reportGenerator.php',

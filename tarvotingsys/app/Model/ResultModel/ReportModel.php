@@ -15,10 +15,6 @@ class ReportModel
         $this->db = Database::getConnection();
     }
 
-    /* =========================================================
-     *  DROPDOWN DATA
-     * ======================================================= */
-
     // Completed elections only (status = 'COMPLETED')
     public function getCompletedElections(): array
     {
@@ -66,18 +62,22 @@ class ReportModel
     public function getAllRaces(): array
     {
         $sql = "
-            SELECT
-                r.raceID,
-                r.raceTitle AS raceName,
-                r.seatType,
-                r.seatCount,
-                r.electionID,
-                r.voteSessionID
-            FROM race r
-            INNER JOIN electionevent ee ON ee.electionID = r.electionID
-            WHERE ee.status = 'COMPLETED'
-            ORDER BY r.electionID, r.raceTitle
-        ";
+        SELECT
+            r.raceID,
+            r.raceTitle AS raceName,
+            r.seatType,
+            r.seatCount,
+            r.electionID,
+            vsr.voteSessionID
+        FROM votesession_race vsr
+        INNER JOIN race r
+            ON r.raceID = vsr.raceID
+        INNER JOIN electionevent ee
+            ON ee.electionID = r.electionID
+        WHERE ee.status = 'COMPLETED'
+        ORDER BY r.electionID, r.raceTitle
+    ";
+
         return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -95,27 +95,45 @@ class ReportModel
     // Check that race belongs to election and (optionally) to that session
     public function isRaceInElectionAndSession(int $raceID, int $electionID, ?int $voteSessionID): bool
     {
-        $params = [':race' => $raceID, ':el' => $electionID];
-
-        $sql = "
-            SELECT COUNT(*) FROM race
+        // Case 1: no session specified – just check race belongs to election
+        if (empty($voteSessionID)) {
+            $stmt = $this->db->prepare("
+            SELECT COUNT(*)
+            FROM race
             WHERE raceID = :race
               AND electionID = :el
-        ";
-        if (!empty($voteSessionID)) {
-            $sql .= " AND voteSessionID = :vs";
-            $params[':vs'] = $voteSessionID;
+        ");
+            $stmt->execute([
+                ':race' => $raceID,
+                ':el' => $electionID,
+            ]);
+            return (int) $stmt->fetchColumn() > 0;
         }
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
+        // Case 2: session specified – check via votesession_race + votesession
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*)
+        FROM votesession_race vsr
+        INNER JOIN race r
+            ON r.raceID = vsr.raceID
+        INNER JOIN votesession vs
+            ON vs.voteSessionID = vsr.voteSessionID
+        WHERE r.raceID      = :race
+          AND vs.voteSessionID = :vs
+          AND vs.electionID = :el
+    ");
+        $stmt->execute([
+            ':race' => $raceID,
+            ':vs' => $voteSessionID,
+            ':el' => $electionID,
+        ]);
+
         return (int) $stmt->fetchColumn() > 0;
     }
 
     /* =========================================================
      *  OVERALL TURNOUT SUMMARY
      * ======================================================= */
-
     /**
      * @param int      $electionID
      * @param int|null $voteSessionID specific session or null = all
@@ -203,35 +221,6 @@ class ReportModel
         ];
     }
 
-
-
-
-
-
-
-    /* =========================================================
-     *  TURNOUT BY FACULTY (EARLY vs MAIN) + TIMELINE
-     * ======================================================= */
-
-    /**
-     * Turnout by faculty for an election (optionally limited to one session).
-     * Returns:
-     * [
-     *   [
-     *     'facultyID'      => 1,
-     *     'facultyCode'    => 'FOCS',
-     *     'facultyName'    => 'Faculty of ...',
-     *     'eligible'       => 123,
-     *     'ballotsCast'    => 80,
-     *     'earlyCast'      => 40,
-     *     'mainCast'       => 40,
-     *     'turnoutPercent' => 65.04,
-     *     'earlyPercent'   => 32.52,
-     *     'mainPercent'    => 32.52,
-     *   ],
-     *   ...
-     * ]
-     */
     public function getTurnoutByFaculty(int $electionID, ?int $voteSessionID = null): array
     {
         // 1) Eligible per faculty
@@ -300,18 +289,18 @@ class ReportModel
                 continue;
             }
             $earlyCast = (int) $row['earlyCast'];
-            $mainCast  = (int) $row['mainCast'];
-            $ballots   = (int) $row['ballotsCast'];
-            $eligible  = max(0, (int) $byFaculty[$fid]['eligible']);
+            $mainCast = (int) $row['mainCast'];
+            $ballots = (int) $row['ballotsCast'];
+            $eligible = max(0, (int) $byFaculty[$fid]['eligible']);
 
-            $byFaculty[$fid]['earlyCast']   = $earlyCast;
-            $byFaculty[$fid]['mainCast']    = $mainCast;
+            $byFaculty[$fid]['earlyCast'] = $earlyCast;
+            $byFaculty[$fid]['mainCast'] = $mainCast;
             $byFaculty[$fid]['ballotsCast'] = $ballots;
 
             if ($eligible > 0) {
                 $byFaculty[$fid]['turnoutPercent'] = round(($ballots / $eligible) * 100, 2);
-                $byFaculty[$fid]['earlyPercent']   = round(($earlyCast / $eligible) * 100, 2);
-                $byFaculty[$fid]['mainPercent']    = round(($mainCast / $eligible) * 100, 2);
+                $byFaculty[$fid]['earlyPercent'] = round(($earlyCast / $eligible) * 100, 2);
+                $byFaculty[$fid]['mainPercent'] = round(($mainCast / $eligible) * 100, 2);
             }
         }
 
@@ -321,14 +310,6 @@ class ReportModel
         }));
     }
 
-    /**
-     * Timeline of ballots submitted (per hour) for an election / session.
-     * Returns:
-     * [
-     *   ['timeSlot' => '2025-11-16 03:00', 'ballotsCast' => 2],
-     *   ...
-     * ]
-     */
     public function getTurnoutTimeline(int $electionID, ?int $voteSessionID = null): array
     {
         $params = [':electionID' => $electionID];
@@ -357,42 +338,6 @@ class ReportModel
         $st->execute($params);
         return $st->fetchAll(PDO::FETCH_ASSOC);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /* =========================================================
      *  OFFICIAL RESULTS BY RACE (ALL RACES)
@@ -518,71 +463,6 @@ class ReportModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // /* =========================================================
-    //  *  VOTER PARTICIPATION / NON-VOTER LIST
-    //  * ======================================================= */
-
-    // public function getVoterParticipationList(
-    //     int $electionID,
-    //     ?int $voteSessionID = null,
-    //     bool $onlyVoters = false,
-    //     bool $onlyNonVoters = false
-    // ): array {
-    //     $params = [':electionID' => $electionID];
-
-    //     $subSql = "
-    //         SELECT
-    //             be.accountID,
-    //             MIN(be.ballotEnvelopeSubmittedAt) AS votedAt
-    //         FROM ballotenvelope be
-    //         INNER JOIN votesession vs ON vs.voteSessionID = be.voteSessionID
-    //         WHERE vs.electionID = :electionID
-    //           AND be.ballotEnvelopeStatus = 'SUBMITTED'
-    //     ";
-    //     if (!empty($voteSessionID)) {
-    //         $subSql .= " AND vs.voteSessionID = :voteSessionID";
-    //         $params[':voteSessionID'] = $voteSessionID;
-    //     }
-    //     $subSql .= " GROUP BY be.accountID";
-
-    //     $sql = "
-    //         SELECT
-    //             s.studentID,
-    //             a.loginID,
-    //             a.fullName,
-    //             f.facultyCode,
-    //             f.facultyName,
-    //             s.program,
-    //             s.intakeYear,
-    //             vp.votedAt
-    //         FROM student s
-    //         INNER JOIN account a ON a.accountID = s.accountID
-    //         INNER JOIN faculty f ON f.facultyID = a.facultyID
-    //         LEFT JOIN ($subSql) vp ON vp.accountID = a.accountID
-    //         WHERE a.status = 'ACTIVE'
-    //           AND a.role   = 'STUDENT'
-    //     ";
-
-    //     if ($onlyVoters) {
-    //         $sql .= " AND vp.votedAt IS NOT NULL";
-    //     } elseif ($onlyNonVoters) {
-    //         $sql .= " AND vp.votedAt IS NULL";
-    //     }
-
-    //     $sql .= " ORDER BY f.facultyCode, s.program, a.fullName";
-
-    //     $stmt = $this->db->prepare($sql);
-    //     $stmt->execute($params);
-    //     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    //     foreach ($rows as &$r) {
-    //         $r['hasVoted'] = !empty($r['votedAt']);
-    //     }
-    //     unset($r);
-
-    //     return $rows;
-    // }
-
     /* =========================================================
      *  REPORT LOGGING (table `report`)
      * ======================================================= */
@@ -625,19 +505,7 @@ class ReportModel
         return (int) $this->db->lastInsertId();
     }
 
-
-
-
-
-
-
-
-
-
-
-        /**
-     * List all generated reports with their election titles.
-     */
+    // List all generated reports with their election titles
     public function getAllReports(): array
     {
         try {
@@ -665,9 +533,7 @@ class ReportModel
         }
     }
 
-    /**
-     * Delete a report record (and optionally you can also delete the file on disk in controller).
-     */
+    // Delete a report record (and optionally you can also delete the file on disk in controller).
     public function deleteReportById(int $reportID): bool
     {
         try {

@@ -1,5 +1,4 @@
 <?php
-// app/View/ReportView/reportGenerator.php
 
 $_title = 'Report Generator';
 $roleUpper = strtoupper($_SESSION['role'] ?? '');
@@ -12,16 +11,6 @@ if ($roleUpper !== 'ADMIN') {
 }
 
 require_once __DIR__ . '/../AdminView/adminHeader.php';
-
-/**
- * Expected data (from controller):
- * - $elections:     completed elections
- * - $voteSessions:  closed vote sessions for completed elections
- * - $races:         races for completed elections
- * - $old:           previous form values (optional)
- * - $errors:        global error messages (optional)
- * - $fieldErrors:   per-field errors: ['electionID'=>..., 'voteSessionID'=>..., 'raceID'=>...]
- */
 
 $old = $old ?? [];
 $errors = $errors ?? [];
@@ -46,7 +35,7 @@ function selectedOpt(string $current, string $value): string
     return $current === $value ? 'selected' : '';
 }
 
-/* ---------- availability + disable flags (like viewStatisticalData) -------- */
+/* ---------- availability + disable flags -------- */
 
 $hasElection = !empty($selectedElectionID);
 $hasSession = !empty($selectedSessionID);
@@ -278,7 +267,7 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
 
                     </div>
                 </div>
-            </div><!-- /row report types -->
+            </div>
 
             <hr class="my-4">
 
@@ -298,14 +287,14 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
                 </div>
             </div>
 
-        </div><!-- /card-body -->            <div class="d-flex justify-content-center gap-3 mb-4">
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mb-4">
             <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
                 class="btn btn-outline-secondary px-4">Back</a>
             <button type="submit" class="btn btn-primary px-4">Generate Report</button>
         </div>
     </form>
-
-
 </div>
 
 <script>
@@ -453,6 +442,5 @@ $disableRaceSelect = !$hasSession || $noRaceAvailable;
         updateDisabledStates();
     })();
 </script>
-
 
 <?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>

@@ -15,7 +15,8 @@ class NomineeModel
         $this->db = Database::getConnection();
     }
 
-    public function getNomineeIdByAccId(int $accountID): ?int {
+    public function getNomineeIdByAccId(int $accountID): ?int
+    {
         try {
             $stmt = $this->db->prepare("
                 SELECT n.nomineeID
@@ -27,9 +28,9 @@ class NomineeModel
             ");
             $stmt->execute([$accountID]);
             $id = $stmt->fetchColumn();
-            return $id !== false ? (int)$id : null;
+            return $id !== false ? (int) $id : null;
         } catch (PDOException $e) {
-            error_log('getNomineeIdByAccId error: '.$e->getMessage());
+            error_log('getNomineeIdByAccId error: ' . $e->getMessage());
             return null;
         }
     }
@@ -55,10 +56,151 @@ class NomineeModel
             ";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$electionID]);
-            return (int)$stmt->rowCount();
+            return (int) $stmt->rowCount();
         } catch (PDOException $e) {
-            error_log('resetNomineeRolesToStudentByElection error: '.$e->getMessage());
+            error_log('resetNomineeRolesToStudentByElection error: ' . $e->getMessage());
             return 0;
+        }
+    }
+
+    public function getNomineeProfileByAccountId(int $accountID): ?array
+    {
+        try {
+            $sql = "
+                SELECT
+                    n.nomineeID,
+                    n.manifesto,
+                    n.raceID,
+                    n.electionID,
+
+                    acc.accountID,
+                    acc.role,
+                    acc.loginID,
+                    acc.status,
+                    acc.lastLoginAt,
+                    acc.fullName,
+                    acc.gender,
+                    acc.email,
+                    acc.phoneNumber,
+                    acc.profilePhotoURL,
+                    acc.passwordHash,
+
+                    f.facultyCode,
+                    f.facultyName,
+
+                    s.studentID,
+                    s.program,
+                    s.intakeYear,
+
+                    r.raceTitle,
+                    r.seatType,
+
+                    e.title  AS electionTitle,
+                    e.status AS electionStatus
+                FROM nominee n
+                INNER JOIN account acc ON acc.accountID = n.accountID
+                LEFT JOIN student s      ON s.accountID = acc.accountID
+                LEFT JOIN faculty f      ON acc.facultyID = f.facultyID
+                LEFT JOIN race r         ON r.raceID = n.raceID
+                LEFT JOIN electionevent e ON e.electionID = n.electionID
+                WHERE acc.accountID = ?
+                ORDER BY e.electionStartDate DESC
+                LIMIT 1
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$accountID]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('NomineeModel getNomineeProfileByAccountId error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updatePassword(int $accountID, string $passwordHash): bool
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE account
+                SET passwordHash = ?
+                WHERE accountID = ?
+            ");
+            return $stmt->execute([$passwordHash, $accountID]);
+        } catch (PDOException $e) {
+            error_log('NomineeModel updatePassword error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateProfilePhoto(int $accountID, string $photoUrl): bool
+    {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE account
+                SET profilePhotoURL = ?
+                WHERE accountID = ?
+            ");
+            return $stmt->execute([$photoUrl, $accountID]);
+        } catch (PDOException $e) {
+            error_log('NomineeModel updateProfilePhoto error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getBasicNomineeByAccountId(int $accountID): ?array
+    {
+        try {
+            $sql = "
+            SELECT 
+                n.nomineeID,
+                n.electionID,
+                n.raceID,
+                n.accountID,
+                acc.facultyID
+            FROM nominee n
+            INNER JOIN account acc ON acc.accountID = n.accountID
+            WHERE n.accountID = ?
+            LIMIT 1
+        ";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([$accountID]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('getBasicNomineeByAccountId error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function updateNomineeRace(int $nomineeID, int $raceID): bool
+    {
+        try {
+            $sql = "UPDATE nominee SET raceID = ? WHERE nomineeID = ?";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([$raceID, $nomineeID]);
+        } catch (PDOException $e) {
+            error_log('updateNomineeRace error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateManifesto(int $nomineeID, string $manifesto): bool
+    {
+        try {
+            $stmt = $this->db->prepare("
+            UPDATE nominee
+               SET manifesto = :manifesto
+             WHERE nomineeID = :id
+        ");
+            return $stmt->execute([
+                ':manifesto' => $manifesto,
+                ':id' => $nomineeID,
+            ]);
+        } catch (PDOException $e) {
+            error_log('updateManifesto error: ' . $e->getMessage());
+            return false;
         }
     }
 

@@ -3,6 +3,7 @@ $errors = $errors ?? [];
 $oldData = $oldData ?? [];
 $oldLoginID = htmlspecialchars($oldData['loginID'] ?? '', ENT_QUOTES, 'UTF-8');
 
+
 function invalidClass(array $errors, string $field): string
 {
   return !empty($errors[$field]) ? ' is-invalid' : '';

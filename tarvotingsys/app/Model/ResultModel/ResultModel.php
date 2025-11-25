@@ -15,14 +15,6 @@ class ResultModel
         $this->db = Database::getConnection();
     }
 
-    /* ------------------------ ELECTION / SESSION / RACE ------------------------ */
-
-    /**
-     * Elections that can appear in statistics.
-     * 
-     * - For LIVE turnout page (viewStatisticalData): call with false → only ONGOING.
-     * - For final results page later: call with true → ONGOING + COMPLETED.
-     */
     public function getElectionsForStats(bool $includeCompleted = false): array
     {
         try {
@@ -94,9 +86,12 @@ class ResultModel
                 r.maxSelectable,
                 r.facultyID,
                 f.facultyName
-            FROM race r
-            LEFT JOIN faculty f ON f.facultyID = r.facultyID
-            WHERE r.voteSessionID = :sid
+            FROM votesession_race vsr
+            INNER JOIN race r
+                ON r.raceID = vsr.raceID
+            LEFT JOIN faculty f
+                ON f.facultyID = r.facultyID
+            WHERE vsr.voteSessionID = :sid
             ORDER BY
                 CASE r.seatType WHEN 'FACULTY_REP' THEN 1 ELSE 2 END,
                 r.raceTitle
@@ -110,46 +105,49 @@ class ResultModel
         }
     }
 
-
-    /* ----------------------------- RACE STATISTICS ----------------------------- */
-
-    /**
-     * Votes by nominee for a race in a given vote session.
-     * (Still available for your future final-results page.)
-     */
     public function getRaceVoteBreakdown(int $voteSessionID, int $raceID): array
     {
         try {
             $sql = "
             SELECT
                 n.nomineeID,
-                acc.fullName,
-                f.facultyName,
-                COALESCE(COUNT(bs.selectionID), 0) AS votes
-            FROM race r
-            JOIN nominee n
-              ON n.raceID = r.raceID
-            JOIN account acc
-              ON acc.accountID = n.accountID
-            LEFT JOIN faculty f
-              ON f.facultyID = acc.facultyID
+                a.fullName,
+                n.manifesto,
+                COUNT(bs.selectionID) AS votes
+            FROM votesession vs
+            INNER JOIN votesession_race vsr
+                ON vsr.voteSessionID = vs.voteSessionID
+            INNER JOIN race r
+                ON r.raceID = vsr.raceID
+            INNER JOIN nominee n
+                ON n.raceID     = r.raceID
+               AND n.electionID = vs.electionID
             LEFT JOIN ballotselection bs
-              ON bs.raceID     = r.raceID
-             AND bs.nomineeID = n.nomineeID
-            WHERE r.voteSessionID = :sid
+                ON bs.raceID    = r.raceID
+               AND bs.nomineeID = n.nomineeID
+            LEFT JOIN ballot b
+                ON b.ballotID      = bs.ballotID
+               AND b.voteSessionID = vs.voteSessionID
+            LEFT JOIN account a
+                ON a.accountID = n.accountID
+            WHERE vs.voteSessionID = :sid
               AND r.raceID        = :rid
             GROUP BY
                 n.nomineeID,
-                acc.fullName,
-                f.facultyName
-            ORDER BY votes DESC, acc.fullName ASC
+                a.fullName,
+                n.manifesto
+            ORDER BY
+                votes DESC,
+                a.fullName ASC
         ";
+
             $st = $this->db->prepare($sql);
             $st->execute([
                 ':sid' => $voteSessionID,
                 ':rid' => $raceID,
             ]);
-            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            return $st->fetchAll(\PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
             error_log('ResultModel::getRaceVoteBreakdown error: ' . $e->getMessage());
             return [];
@@ -157,7 +155,6 @@ class ResultModel
     }
 
     /* ------------------------------ TURNOUT STATS ------------------------------ */
-
     /**
      * Turnout statistics for a vote session + race.
      *
@@ -286,30 +283,6 @@ class ResultModel
         }
     }
 
-    /* ----------------------- BALLOTS OVER TIME (TIMELINE) ---------------------- */
-
-    public function getBallotsSubmittedOverTime(int $voteSessionID): array
-    {
-        try {
-            $sql = "
-                SELECT
-                    DATE_FORMAT(ballotCreatedAt, '%Y-%m-%d %H:00:00') AS bucket,
-                    COUNT(*) AS count
-                FROM ballot
-                WHERE voteSessionID = :sid
-                  AND ballotStatus = 'SUBMITTED'
-                GROUP BY bucket
-                ORDER BY bucket ASC
-            ";
-            $st = $this->db->prepare($sql);
-            $st->execute([':sid' => $voteSessionID]);
-            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        } catch (PDOException $e) {
-            error_log('ResultModel::getBallotsSubmittedOverTime error: ' . $e->getMessage());
-            return [];
-        }
-    }
-
     /* ------------------------ LAST UPDATED TIMESTAMP (LIVE) -------------------- */
 
     public function getLastBallotSubmittedAt(int $voteSessionID): ?string
@@ -396,53 +369,55 @@ class ResultModel
         }
     }
 
-    /**
-     * Generate FINAL results snapshot into `result` table for a CLOSED vote session.
-     *
-     * - One row per (race, nominee) in this session.
-     * - countTotal = total votes from ballotselection.
-     * - resultStatus = 'FINAL'.
-     * - If rows already exist for this session, it does nothing (returns 0).
-     *
-     * @return int Number of result rows inserted.
-     */
     public function generateFinalResultsForSession(int $voteSessionID): int
     {
         try {
-            // Do nothing if results already exist (protects from double-run).
+            // Do nothing if results already exist (protect from double-run).
             if ($this->hasResultsForSession($voteSessionID)) {
                 return 0;
             }
 
             $this->db->beginTransaction();
 
-            // Insert aggregated votes into result table.
             $sql = "
-                INSERT INTO result (
-                    countTotal,
-                    resultStatus,
-                    voteSessionID,
-                    raceID,
-                    nomineeID
-                )
-                SELECT
-                    COALESCE(COUNT(bs.selectionID), 0) AS countTotal,
-                    'FINAL'                              AS resultStatus,
-                    r.voteSessionID                      AS voteSessionID,
-                    r.raceID                             AS raceID,
-                    n.nomineeID                          AS nomineeID
-                FROM race r
-                JOIN nominee n
-                  ON n.raceID = r.raceID
-                LEFT JOIN ballotselection bs
-                  ON bs.raceID   = r.raceID
-                 AND bs.nomineeID = n.nomineeID
-                WHERE r.voteSessionID = :sid
-                GROUP BY
-                    r.voteSessionID,
-                    r.raceID,
-                    n.nomineeID
-            ";
+            INSERT INTO result (
+                countTotal,
+                resultStatus,
+                voteSessionID,
+                raceID,
+                nomineeID
+            )
+            SELECT
+                COUNT(bs.selectionID) AS countTotal,
+                'FINAL'               AS resultStatus,
+                vs.voteSessionID      AS voteSessionID,
+                r.raceID              AS raceID,
+                n.nomineeID           AS nomineeID
+            FROM votesession vs
+            JOIN votesession_race vsr
+                ON vsr.voteSessionID = vs.voteSessionID
+            JOIN race r
+                ON r.raceID = vsr.raceID
+            JOIN nominee n
+                ON n.raceID     = r.raceID
+               AND n.electionID = vs.electionID
+
+            -- 1) limit ballots to THIS session
+            LEFT JOIN ballot b
+                ON b.voteSessionID = vs.voteSessionID
+
+            -- 2) then only selections belonging to those ballots
+            LEFT JOIN ballotselection bs
+                ON bs.ballotID  = b.ballotID
+               AND bs.raceID    = r.raceID
+               AND bs.nomineeID = n.nomineeID
+
+            WHERE vs.voteSessionID = :sid
+            GROUP BY
+                vs.voteSessionID,
+                r.raceID,
+                n.nomineeID
+        ";
 
             $st = $this->db->prepare($sql);
             $st->execute([':sid' => $voteSessionID]);

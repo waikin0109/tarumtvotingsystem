@@ -82,7 +82,7 @@ function report_type_badge(string $type): string
               $type      = $r['reportType'] ?? '';
               $url       = $r['reportUrl'] ?? '';
               $generated = $r['reportGeneratedAt'] ?? '';
-              $generatedFmt = $generated ? date('Y.m.d H:i', strtotime($generated)) : '';
+              $generatedFmt = $generated ? date('Y-m-d H:i:s', strtotime($generated)) : '';
 
               // --- derive view URL, download URL, and format from stored reportUrl ---
               $viewUrl      = $url;

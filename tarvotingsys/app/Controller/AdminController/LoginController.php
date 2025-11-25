@@ -10,7 +10,7 @@ use Model\StudentModel\StudentModel;
 
 use Model\VotingModel\ElectionEventModel;
 use Model\NomineeModel\NomineeApplicationModel;
-use Model\CampaignHandlingModel\ScheduleLocationModel; 
+use Model\CampaignHandlingModel\ScheduleLocationModel;
 use Model\CampaignHandlingModel\CampaignMaterialModel;
 
 use FileHelper;
@@ -34,10 +34,10 @@ class LoginController
         $this->adminModel = new AdminModel();
         $this->nomineeModel = new NomineeModel();
         $this->studentModel = new StudentModel();
-        $this->electionEventModel     = new ElectionEventModel();
+        $this->electionEventModel = new ElectionEventModel();
         $this->nomineeApplicationModel = new NomineeApplicationModel();
-        $this->scheduleLocationModel  = new ScheduleLocationModel();
-        $this->campaignMaterialModel  = new CampaignMaterialModel();
+        $this->scheduleLocationModel = new ScheduleLocationModel();
+        $this->campaignMaterialModel = new CampaignMaterialModel();
         $this->fileHelper = new FileHelper("login");
     }
 
@@ -135,10 +135,12 @@ class LoginController
         session_regenerate_id(true);
 
         $_SESSION['accountID'] = (int) $user['accountID'];
-        $_SESSION['loginID']   = (int) $user['loginID'];
-        $_SESSION['role']      = (string) $user['role'];
-        $_SESSION['fullName']  = (string) $user['fullName'];
+        $_SESSION['loginID'] = (int) $user['loginID'];
+        $_SESSION['role'] = (string) $user['role'];
+        $_SESSION['fullName'] = (string) $user['fullName'];
         $_SESSION['profilePhotoURL'] = (string) ($user['profilePhotoURL'] ?? '');
+        $_SESSION['facultyID'] = (int) $user['facultyID'];
+
 
         // admin/student/nominee
         if ($user['role'] === 'ADMIN') {
@@ -186,12 +188,12 @@ class LoginController
 
         // 1) Build dashboard stats here
         $dashboardStats = [
-            'totalElectionEvents'        => $this->electionEventModel->countAll(),
-            'ongoingElectionEvents'      => $this->electionEventModel->countByStatus('ONGOING'),
-            'totalNomineeApplications'   => $this->nomineeApplicationModel->countAll(),
+            'totalElectionEvents' => $this->electionEventModel->countAll(),
+            'ongoingElectionEvents' => $this->electionEventModel->countByStatus('ONGOING'),
+            'totalNomineeApplications' => $this->nomineeApplicationModel->countAll(),
             'pendingNomineeApplications' => $this->nomineeApplicationModel->countByStatus('PENDING'),
-            'pendingScheduleLocations'   => $this->scheduleLocationModel->countByStatus('PENDING'),
-            'pendingCampaignMaterials'   => $this->campaignMaterialModel->countByStatus('PENDING'),
+            'pendingScheduleLocations' => $this->scheduleLocationModel->countByStatus('PENDING'),
+            'pendingCampaignMaterials' => $this->campaignMaterialModel->countByStatus('PENDING'),
         ];
 
         // 2) Recent elections (for dashboard list/card)
@@ -212,7 +214,7 @@ class LoginController
 
         // Simple stats for student dashboard (campus-wide, not per-student)
         $studentStats = [
-            'ongoingElectionEvents'   => $this->electionEventModel->countByStatus('ONGOING'),
+            'ongoingElectionEvents' => $this->electionEventModel->countByStatus('ONGOING'),
             'completedElectionEvents' => $this->electionEventModel->countByStatus('COMPLETED'),
         ];
 
@@ -232,21 +234,21 @@ class LoginController
     {
         self::requireAuth('NOMINEE');
 
-        $accountID = (int)($_SESSION['accountID'] ?? 0);
+        $accountID = (int) ($_SESSION['accountID'] ?? 0);
 
         // ---------- 1) My nominee applications ----------
         $appsByForm = $this->nomineeApplicationModel->getApplicationsByAccountIndexed($accountID);
         $nomineeApplicationStats = [
-            'total'     => 0,
-            'pending'   => 0,
-            'accepted'  => 0,
-            'rejected'  => 0,
+            'total' => 0,
+            'pending' => 0,
+            'accepted' => 0,
+            'rejected' => 0,
             'published' => 0,
         ];
 
         foreach ($appsByForm as $row) {
             $nomineeApplicationStats['total']++;
-            $status = strtoupper((string)($row['applicationStatus'] ?? ''));
+            $status = strtoupper((string) ($row['applicationStatus'] ?? ''));
             if (isset($nomineeApplicationStats[strtolower($status)])) {
                 $nomineeApplicationStats[strtolower($status)]++;
             }
@@ -256,15 +258,15 @@ class LoginController
         $myCampaignMaterials = $this->campaignMaterialModel->getCampaignMaterialsByAccount($accountID);
 
         $campaignMaterialStats = [
-            'total'   => 0,
+            'total' => 0,
             'pending' => 0,
-            'approved'=> 0,
-            'rejected'=> 0,
+            'approved' => 0,
+            'rejected' => 0,
         ];
 
         foreach ($myCampaignMaterials as $cm) {
             $campaignMaterialStats['total']++;
-            $status = strtoupper((string)($cm['materialsApplicationStatus'] ?? ''));
+            $status = strtoupper((string) ($cm['materialsApplicationStatus'] ?? ''));
             if ($status === 'PENDING') {
                 $campaignMaterialStats['pending']++;
             } elseif ($status === 'APPROVED') {

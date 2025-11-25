@@ -206,8 +206,8 @@ class RuleController
             exit;
         }
 
-        if (strtolower($ruleData['event_status'] ?? '') === 'completed' || strtolower($ruleData['event_status'] ?? '') === 'ongoing') {
-            set_flash('fail','This rule belongs to an ongoing and completed event and cannot be edited.');
+        if (strtolower($ruleData['event_status'] ?? '') === 'completed') {
+            set_flash('fail','This rule belongs to a completed event and cannot be edited.');
             header('Location: /admin/rule'); 
             exit;
         }
@@ -368,10 +368,9 @@ class RuleController
             header('Location: /admin/rule'); 
             exit; 
         }
-        if (strtolower($ruleData['event_status'] ?? '') === 'completed' || strtolower($ruleData['event_status'] ?? '') === 'ongoing') {
-            set_flash('fail','This rule belongs to an ongoing and completed event and cannot be deleted.');
-            header('Location: /admin/rule'); 
-            exit;
+        if (strtolower($ruleData['event_status'] ?? '') === 'completed') {
+            set_flash('fail','This rule belongs to a completed event and cannot be deleted.');
+            header('Location: /admin/rule'); exit;
         }
 
         $this->ruleModel->deleteRule($ruleID);

@@ -5,6 +5,7 @@ namespace Model\VotingModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class VoteSessionModel
 {
@@ -80,6 +81,97 @@ class VoteSessionModel
         } catch (PDOException $e) {
             error_log('listForAdmin (VoteSession) error: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    public function getPagedVoteSessionsForAdmin(int $page, int $limit = 10, string $search = ''): SimplePager
+    {
+        try {
+            // Base list query (same columns as listForAdmin)
+            $sql = "
+            SELECT
+              vs.voteSessionID        AS VoteSessionID,
+              vs.voteSessionName      AS VoteSessionName,
+              vs.voteSessionType      AS VoteSessionType,
+              vs.voteSessionStartAt   AS StartAt,
+              vs.voteSessionEndAt     AS EndAt,
+              vs.voteSessionStatus    AS VoteSessionStatus,
+              vs.electionID           AS ElectionID,
+              COALESCE(e.title, '(Unknown)') AS ElectionTitle
+            FROM votesession vs
+            LEFT JOIN electionevent e ON e.electionID = vs.electionID
+            WHERE 1
+        ";
+
+            $params = [];
+
+            if ($search !== '') {
+                // Search by session name only
+                $sql .= " AND vs.voteSessionName LIKE :q";
+                $params[':q'] = '%' . $search . '%';
+            }
+
+            $sql .= "
+            ORDER BY
+              vs.voteSessionStartAt IS NULL,
+              vs.voteSessionStartAt ASC,
+              vs.voteSessionID DESC
+        ";
+
+            // Fetch current page
+            $pager = new SimplePager($this->db, $sql, $params, $limit, $page);
+
+            $rows = $pager->result ?? [];
+            foreach ($rows as &$r) {
+                $status = strtoupper($r['VoteSessionStatus'] ?? '');
+                $r['VisibleToVoters'] = $this->isVisibleToVoters($status);
+                $r['VotingAllowed'] = $this->isVotingAllowed($status);
+                $r['Editable'] = $this->isEditable($status);
+                $r['Deletable'] = $this->isDeletable($status);
+            }
+            unset($r);
+            $pager->result = $rows;
+
+            $countSql = "
+            SELECT COUNT(*) AS cnt
+            FROM votesession vs
+            LEFT JOIN electionevent e ON e.electionID = vs.electionID
+            WHERE 1
+        ";
+            $countParams = [];
+
+            if ($search !== '') {
+                $countSql .= " AND vs.voteSessionName LIKE :q";
+                $countParams[':q'] = '%' . $search . '%';
+            }
+
+            $stmt = $this->db->prepare($countSql);
+            $stmt->execute($countParams);
+            $total = (int) $stmt->fetchColumn();
+
+            $pager->item_count = $total;
+            $pager->page_count = ($limit > 0) ? (int) ceil($total / $limit) : 1;
+
+            return $pager;
+        } catch (PDOException $e) {
+            error_log('getPagedVoteSessionsForAdmin error: ' . $e->getMessage());
+
+            // Fallback: empty pager
+            $fallbackSql = "
+            SELECT
+              vs.voteSessionID        AS VoteSessionID,
+              vs.voteSessionName      AS VoteSessionName,
+              vs.voteSessionType      AS VoteSessionType,
+              vs.voteSessionStartAt   AS StartAt,
+              vs.voteSessionEndAt     AS EndAt,
+              vs.voteSessionStatus    AS VoteSessionStatus,
+              vs.electionID           AS ElectionID,
+              COALESCE(e.title, '(Unknown)') AS ElectionTitle
+            FROM votesession vs
+            LEFT JOIN electionevent e ON e.electionID = vs.electionID
+            WHERE 1 = 0
+        ";
+            return new SimplePager($this->db, $fallbackSql, [], $limit, $page);
         }
     }
 
@@ -220,8 +312,7 @@ class VoteSessionModel
                 seatCount,
                 maxSelectable,
                 electionID,
-                facultyID,
-                voteSessionID
+                facultyID
             )
             VALUES (
                 :title,
@@ -229,19 +320,16 @@ class VoteSessionModel
                 :seatCount,
                 :maxSelectable,
                 :electionID,
-                :facultyID,
-                :voteSessionID
+                :facultyID
             )
         ");
-
             $stmt->execute([
                 ':title' => $data['title'],
                 ':seatType' => $data['seatType'],
                 ':seatCount' => $data['seatCount'],
                 ':maxSelectable' => $data['maxSelectable'],
                 ':electionID' => $data['electionID'],
-                ':facultyID' => $data['facultyID'],
-                ':voteSessionID' => $data['voteSessionID'],
+                ':facultyID' => $data['facultyID'] ?: null,
             ]);
 
             return (int) $this->db->lastInsertId() ?: null;
@@ -256,20 +344,25 @@ class VoteSessionModel
     {
         try {
             $stmt = $this->db->prepare("
-            SELECT 
+            SELECT
                 r.raceID,
                 r.raceTitle AS title,
-                r.seatType AS seatType,
+                r.seatType  AS seatType,
                 r.facultyID,
                 f.facultyName,
                 r.seatCount AS seatCount,
                 r.maxSelectable AS maxSelectable
-            FROM race r
-            LEFT JOIN faculty f ON r.facultyID = f.facultyID
-            WHERE r.voteSessionID = :sessionId
+            FROM votesession_race vsr
+            INNER JOIN race r
+                ON r.raceID = vsr.raceID
+            LEFT JOIN faculty f
+                ON f.facultyID = r.facultyID
+            WHERE vsr.voteSessionID = :sessionId
+            ORDER BY
+                CASE r.seatType WHEN 'FACULTY_REP' THEN 1 ELSE 2 END,
+                r.raceTitle
         ");
-            $stmt->bindParam(':sessionId', $sessionId, PDO::PARAM_INT);
-            $stmt->execute();
+            $stmt->execute([':sessionId' => $sessionId]);
             $races = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (!$races) {
@@ -278,8 +371,76 @@ class VoteSessionModel
 
             return $races ?: [];
         } catch (PDOException $e) {
-            error_log('Error fetching races for session: ' . $e->getMessage());
+            error_log('Error fetching races for session ID ' . $sessionId . ': ' . $e->getMessage());
             return [];
+        }
+    }
+
+    public function findOrCreateRace(array $data): ?int
+    {
+        try {
+            // Normalise facultyID ('' or 0 => NULL)
+            $facultyID = $data['facultyID'] ?? null;
+            if ($facultyID === '' || $facultyID === 0) {
+                $facultyID = null;
+            }
+
+            // Try to find an existing race in this election with same key fields
+            $stmt = $this->db->prepare("
+            SELECT raceID
+            FROM race
+            WHERE electionID = :electionID
+              AND seatType   = :seatType
+              AND (
+                    (facultyID IS NULL AND :facultyID IS NULL)
+                    OR facultyID = :facultyID
+                  )
+            LIMIT 1
+        ");
+            $stmt->execute([
+                ':electionID' => $data['electionID'],
+                ':seatType' => $data['seatType'],
+                ':facultyID' => $facultyID,
+            ]);
+
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && !empty($row['raceID'])) {
+                // Reuse existing election-level race.
+                // We deliberately do NOT update raceTitle/seatCount/maxSelectable here,
+                // so renaming in one session does not create a new seat.
+                return (int) $row['raceID'];
+            }
+
+            // Not found, insert a new election-level race
+            return $this->insertRace([
+                'title' => $data['title'],
+                'seatType' => $data['seatType'],
+                'seatCount' => $data['seatCount'],
+                'maxSelectable' => $data['maxSelectable'],
+                'electionID' => $data['electionID'],
+                'facultyID' => $facultyID,
+            ]);
+        } catch (PDOException $e) {
+            error_log('findOrCreateRace error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function addRaceToSession(int $voteSessionID, int $raceID): bool
+    {
+        try {
+            $stmt = $this->db->prepare("
+            INSERT IGNORE INTO votesession_race (voteSessionID, raceID)
+            VALUES (:sessionID, :raceID)
+        ");
+
+            return $stmt->execute([
+                ':sessionID' => $voteSessionID,
+                ':raceID' => $raceID,
+            ]);
+        } catch (PDOException $e) {
+            error_log('addRaceToSession error: ' . $e->getMessage());
+            return false;
         }
     }
 
@@ -320,17 +481,33 @@ class VoteSessionModel
     // Delete races for the editing votesession
     public function deleteRacesNotIn(int $voteSessionID, array $keepIds): void
     {
-        // If no keepIds, delete all races of this session
-        if (empty($keepIds)) {
-            $stmt = $this->db->prepare("DELETE FROM race WHERE voteSessionID = :sid");
-            $stmt->execute([':sid' => $voteSessionID]);
-            return;
-        }
+        try {
+            // If no keepIds, remove all links for this session
+            if (empty($keepIds)) {
+                $stmt = $this->db->prepare("
+                DELETE FROM votesession_race
+                WHERE voteSessionID = :sid
+            ");
+                $stmt->execute([':sid' => $voteSessionID]);
+                return;
+            }
 
-        $in = implode(',', array_map('intval', $keepIds));
-        $sql = "DELETE FROM race WHERE voteSessionID = :sid AND raceID NOT IN ($in)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':sid' => $voteSessionID]);
+            // Delete only links whose raceID is NOT in $keepIds
+            $placeholders = implode(',', array_fill(0, count($keepIds), '?'));
+
+            $sql = "
+            DELETE FROM votesession_race
+            WHERE voteSessionID = ?
+              AND raceID NOT IN ($placeholders)
+        ";
+
+            $params = array_merge([$voteSessionID], array_map('intval', $keepIds));
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+        } catch (PDOException $e) {
+            error_log('deleteRacesNotIn error: ' . $e->getMessage());
+        }
     }
 
     // Delete race and votesession securely
@@ -339,17 +516,22 @@ class VoteSessionModel
         try {
             $this->db->beginTransaction();
 
-            // 1) Delete child rows that depend on this session (races)
-            $stR = $this->db->prepare("DELETE FROM race WHERE voteSessionID = ?");
-            $stR->execute([$voteSessionId]);
+            // 1) Delete links from pivot table
+            $stLink = $this->db->prepare("
+            DELETE FROM votesession_race
+            WHERE voteSessionID = ?
+        ");
+            $stLink->execute([$voteSessionId]);
 
-            // 2) Delete the votesession itself
-            $stS = $this->db->prepare("DELETE FROM votesession WHERE voteSessionID = ?");
+            // 2) Delete the vote session itself
+            $stS = $this->db->prepare("
+            DELETE FROM votesession
+            WHERE voteSessionID = ?
+        ");
             $stS->execute([$voteSessionId]);
 
             $this->db->commit();
 
-            // Ensure something was actually deleted
             return $stS->rowCount() > 0;
         } catch (PDOException $e) {
             $this->db->rollBack();
@@ -358,7 +540,7 @@ class VoteSessionModel
         }
     }
 
-    public function listForStudentNominee(): array
+    public function getPagedVoteSessionsForStudentNominee(int $page, int $limit = 10, string $search = ''): SimplePager
     {
         try {
             $sql = "
@@ -377,26 +559,302 @@ class VoteSessionModel
             -- Only sessions relevant to voters
             WHERE vs.voteSessionStatus IN ('OPEN', 'CLOSED')
               AND e.status IN ('ONGOING', 'COMPLETED')
+        ";
+
+            $params = [];
+
+            if ($search !== '') {
+                // Search by session name only
+                $sql .= " AND vs.voteSessionName LIKE :q";
+                $params[':q'] = '%' . $search . '%';
+            }
+
+            $sql .= "
             ORDER BY
               vs.voteSessionStartAt IS NULL,
               vs.voteSessionStartAt ASC,
               vs.voteSessionID DESC
         ";
 
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            // Use SimplePager for this query
+            $pager = new SimplePager($this->db, $sql, $params, $limit, $page);
 
+            $rows = $pager->result ?? [];
             foreach ($rows as &$r) {
                 $status = strtoupper($r['VoteSessionStatus'] ?? '');
                 $r['VisibleToVoters'] = $this->isVisibleToVoters($status); // OPEN/CLOSED = true
                 $r['VotingAllowed'] = $this->isVotingAllowed($status);   // only OPEN = true
             }
+            unset($r);
+            $pager->result = $rows;
 
-            return $rows;
+            // Count for pager footer
+            $countSql = "
+            SELECT COUNT(*) AS cnt
+            FROM votesession vs
+            JOIN electionevent e ON e.electionID = vs.electionID
+            WHERE vs.voteSessionStatus IN ('OPEN', 'CLOSED')
+              AND e.status IN ('ONGOING', 'COMPLETED')
+        ";
+            $countParams = [];
+
+            if ($search !== '') {
+                $countSql .= " AND vs.voteSessionName LIKE :q";
+                $countParams[':q'] = '%' . $search . '%';
+            }
+
+            $stmt = $this->db->prepare($countSql);
+            $stmt->execute($countParams);
+            $total = (int) $stmt->fetchColumn();
+
+            $pager->item_count = $total;
+            $pager->page_count = ($limit > 0) ? (int) ceil($total / $limit) : 1;
+
+            return $pager;
         } catch (PDOException $e) {
-            error_log('listForVoters (VoteSession) error: ' . $e->getMessage());
+            error_log('getPagedVoteSessionsForStudentNominee error: ' . $e->getMessage());
+
+            $fallbackSql = "
+            SELECT
+              vs.voteSessionID        AS VoteSessionID,
+              vs.voteSessionName      AS VoteSessionName,
+              vs.voteSessionType      AS VoteSessionType,
+              vs.voteSessionStartAt   AS StartAt,
+              vs.voteSessionEndAt     AS EndAt,
+              vs.voteSessionStatus    AS VoteSessionStatus,
+              vs.electionID           AS ElectionID,
+              COALESCE(e.title, '(Unknown)') AS ElectionTitle,
+              e.status                AS ElectionStatus
+            FROM votesession vs
+            JOIN electionevent e ON e.electionID = vs.electionID
+            WHERE 1 = 0
+        ";
+
+            return new SimplePager($this->db, $fallbackSql, [], $limit, $page);
+        }
+    }
+
+    public function getAvailableRacesForNominee(int $electionID, int $facultyID): array
+    {
+        try {
+            $sql = "
+            SELECT
+                r.raceID,
+                r.raceTitle,
+                r.seatType,
+                r.seatCount,
+                r.maxSelectable,
+                r.facultyID,
+                f.facultyName,
+                e.electionID,
+                e.title  AS electionTitle,
+                e.status AS electionStatus
+            FROM race r
+            INNER JOIN electionevent e
+                ON e.electionID = r.electionID
+            LEFT JOIN faculty f
+                ON f.facultyID = r.facultyID
+            WHERE r.electionID = :electionID
+              AND e.status = 'ONGOING'
+              AND (
+                    r.seatType = 'CAMPUS_WIDE'
+                    OR (r.seatType = 'FACULTY_REP' AND r.facultyID = :facultyID)
+                  )
+            ORDER BY
+                r.seatType,
+                r.raceID
+        ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                ':electionID' => $electionID,
+                ':facultyID' => $facultyID,
+            ]);
+
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            // --- DEDUPE: only keep one FACULTY_REP and one CAMPUS_WIDE ---
+            $unique = [];
+
+            foreach ($rows as $row) {
+                $seatType = strtoupper($row['seatType'] ?? '');
+
+                if ($seatType === 'FACULTY_REP') {
+                    // one faculty rep per faculty
+                    $key = 'FACULTY_REP_' . (int) ($row['facultyID'] ?? 0);
+                } elseif ($seatType === 'CAMPUS_WIDE') {
+                    // one campus wide for the whole election
+                    $key = 'CAMPUS_WIDE';
+                } else {
+                    // fallback (in case of other seatTypes in future)
+                    $key = $seatType . '_' . (int) ($row['facultyID'] ?? 0);
+                }
+
+                if (!isset($unique[$key])) {
+                    $unique[$key] = $row;   // keep the first one only
+                }
+            }
+
+            return array_values($unique);
+        } catch (PDOException $e) {
+            error_log('getAvailableRacesForNominee error: ' . $e->getMessage());
             return [];
         }
     }
+
+    public function getRaceSetsBySessionTypeForElection(int $electionID): array
+    {
+        try {
+            $sql = "
+            SELECT DISTINCT
+                vs.voteSessionType AS sessionType,
+                r.raceID           AS raceID
+            FROM votesession vs
+            INNER JOIN votesession_race vsr
+                ON vsr.voteSessionID = vs.voteSessionID
+            INNER JOIN race r
+                ON r.raceID = vsr.raceID
+            WHERE vs.electionID = :electionID
+              AND vs.voteSessionStatus IN ('DRAFT','SCHEDULED','OPEN','CLOSED')
+        ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute([':electionID' => $electionID]);
+            $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+            $early = [];
+            $main = [];
+
+            foreach ($rows as $row) {
+                $type = strtoupper($row['sessionType'] ?? '');
+                $raceID = (int) ($row['raceID'] ?? 0);
+                if ($raceID <= 0) {
+                    continue;
+                }
+
+                if ($type === 'EARLY') {
+                    $early[$raceID] = true;
+                } elseif ($type === 'MAIN') {
+                    $main[$raceID] = true;
+                }
+            }
+
+            return [
+                'earlyRaceIDs' => array_keys($early),
+                'mainRaceIDs' => array_keys($main),
+            ];
+        } catch (PDOException $e) {
+            error_log('getRaceSetsBySessionTypeForElection error: ' . $e->getMessage());
+            return [
+                'earlyRaceIDs' => [],
+                'mainRaceIDs' => [],
+            ];
+        }
+    }
+
+    public function isRaceUsedInActiveSession(int $raceID): bool
+    {
+        try {
+            $sql = "
+            SELECT 1
+            FROM votesession_race vsr
+            JOIN votesession vs 
+              ON vs.voteSessionID = vsr.voteSessionID
+            WHERE vsr.raceID = :rid
+              AND vs.voteSessionStatus IN ('SCHEDULED','OPEN','CLOSED')
+            LIMIT 1
+        ";
+            $st = $this->db->prepare($sql);
+            $st->execute([':rid' => $raceID]);
+            return (bool) $st->fetchColumn();
+        } catch (PDOException $e) {
+            error_log('isRaceUsedInActiveSession error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getRaceById(int $raceID): ?array
+    {
+        try {
+            $st = $this->db->prepare("
+            SELECT raceID, raceTitle, seatType, facultyID, seatCount, maxSelectable
+            FROM race
+            WHERE raceID = :id
+            LIMIT 1
+        ");
+            $st->execute([':id' => $raceID]);
+            $row = $st->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (PDOException $e) {
+            error_log('getRaceById error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function isRaceLocked(int $raceID): bool
+    {
+        try {
+            $stmt = $this->db->prepare("
+            SELECT 1
+            FROM votesession_race vsr
+            JOIN votesession vs ON vsr.voteSessionID = vs.voteSessionID
+            WHERE vsr.raceID = ?
+              AND vs.voteSessionStatus IN ('SCHEDULED','OPEN','CLOSED')
+            LIMIT 1
+        ");
+            $stmt->execute([$raceID]);
+            return (bool) $stmt->fetchColumn();
+        } catch (PDOException $e) {
+            error_log('isRaceLocked error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getExistingRaceMeta(int $electionID, string $seatType, ?int $facultyID): ?array
+    {
+        try {
+            $sql = "
+            SELECT
+                r.raceID,
+                r.raceTitle,
+                EXISTS (
+                    SELECT 1
+                    FROM votesession_race vsr
+                    INNER JOIN votesession vs
+                        ON vs.voteSessionID = vsr.voteSessionID
+                    WHERE vsr.raceID = r.raceID
+                      AND vs.voteSessionStatus IN ('SCHEDULED','OPEN','CLOSED')
+                ) AS inUse
+            FROM race r
+            WHERE r.electionID = :electionID
+              AND r.seatType   = :seatType
+              AND (
+                    (r.facultyID IS NULL AND :facultyID IS NULL)
+                    OR r.facultyID = :facultyID
+                  )
+            LIMIT 1
+        ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute([
+                ':electionID' => $electionID,
+                ':seatType' => $seatType,
+                ':facultyID' => $facultyID,
+            ]);
+
+            $row = $st->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                return null;
+            }
+
+            $row['raceID'] = (int) $row['raceID'];
+            $row['inUse'] = (bool) $row['inUse'];
+
+            return $row;
+        } catch (PDOException $e) {
+            error_log('getExistingRaceMeta error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
 }

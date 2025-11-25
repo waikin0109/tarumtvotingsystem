@@ -6,7 +6,6 @@ use Model\ResultModel\ReportModel;
 use FileHelper;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Writer\Pdf\Mpdf as PdfWriter;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
@@ -19,7 +18,7 @@ class ReportController
     public function __construct()
     {
         $this->reportModel = new ReportModel();
-        $this->fileHelper  = new FileHelper('report'); // View/ReportView
+        $this->fileHelper = new FileHelper('report'); // View/ReportView
     }
 
     private function requireAdmin(): void
@@ -38,13 +37,13 @@ class ReportController
         $this->requireAdmin();
 
         // Only COMPLETED elections
-        $elections    = $this->reportModel->getCompletedElections();
+        $elections = $this->reportModel->getCompletedElections();
         // All CLOSED sessions that belong to COMPLETED elections
         $voteSessions = $this->reportModel->getClosedVoteSessionsForCompletedElections();
         // All races for COMPLETED elections (each knows its electionID + voteSessionID)
-        $races        = $this->reportModel->getAllRaces();
+        $races = $this->reportModel->getAllRaces();
 
-        $old    = [];
+        $old = [];
         $errors = [];
 
         $view = $this->fileHelper->getFilePath('ReportGenerator');
@@ -61,10 +60,10 @@ class ReportController
     {
         $this->requireAdmin();
 
-        $electionID   = isset($_POST['electionID']) ? (int) $_POST['electionID'] : 0;
+        $electionID = isset($_POST['electionID']) ? (int) $_POST['electionID'] : 0;
         $voteSessionID = isset($_POST['voteSessionID']) ? (int) $_POST['voteSessionID'] : 0;
-        $raceID       = isset($_POST['raceID']) ? (int) $_POST['raceID'] : 0;
-        $reportType   = trim($_POST['reportType'] ?? '');
+        $raceID = isset($_POST['raceID']) ? (int) $_POST['raceID'] : 0;
+        $reportType = trim($_POST['reportType'] ?? '');
         $outputFormat = strtoupper(trim($_POST['outputFormat'] ?? 'PDF'));
 
         $allowedTypes = [
@@ -119,18 +118,18 @@ class ReportController
         }
 
         $old = [
-            'electionID'    => $electionID,
+            'electionID' => $electionID,
             'voteSessionID' => $voteSessionID,
-            'raceID'        => $raceID,
-            'reportType'    => $reportType,
-            'outputFormat'  => $outputFormat,
+            'raceID' => $raceID,
+            'reportType' => $reportType,
+            'outputFormat' => $outputFormat,
         ];
 
         if (!empty($errors)) {
             // reload generator with errors & old values
-            $elections    = $this->reportModel->getCompletedElections();
+            $elections = $this->reportModel->getCompletedElections();
             $voteSessions = $this->reportModel->getClosedVoteSessionsForCompletedElections();
-            $races        = $this->reportModel->getAllRaces();
+            $races = $this->reportModel->getAllRaces();
 
             $view = $this->fileHelper->getFilePath('ReportGenerator');
             if (!$view) {
@@ -142,9 +141,9 @@ class ReportController
         }
 
         // Map generator type -> `report.reportType` enum
-        $enumType    = $this->reportModel->mapGeneratorTypeToEnum($reportType);
-        $isPdf       = ($outputFormat === 'PDF');
-        $baseFormat  = $outputFormat; // always one of PDF/CSV/XLSX here
+        $enumType = $this->reportModel->mapGeneratorTypeToEnum($reportType);
+        $isPdf = ($outputFormat === 'PDF');
+        $baseFormat = $outputFormat; // always one of PDF/CSV/XLSX here
 
         /* =================== BRANCH BY REPORT TYPE =================== */
 
@@ -152,7 +151,7 @@ class ReportController
         if ($reportType === 'overall_turnout') {
             $viewQuery = [
                 'electionID' => $electionID,
-                'format'     => $baseFormat,
+                'format' => $baseFormat,
             ];
             if ($voteSessionID > 0) {
                 $viewQuery['voteSessionID'] = $voteSessionID;
@@ -160,7 +159,7 @@ class ReportController
 
             // URL saved into report history (ALWAYS on-screen URL, no download flag)
             $viewUrl = '/admin/reports/overall-turnout?' . http_build_query($viewQuery);
-            $name    = 'Overall Turnout – ' . $election['title'];
+            $name = 'Overall Turnout – ' . $election['title'];
 
             $this->reportModel->insertReportRecord($electionID, $name, $enumType, $viewUrl);
 
@@ -168,8 +167,8 @@ class ReportController
             if ($isPdf) {
                 $redirectUrl = $viewUrl;
             } else {
-                $downloadQuery              = $viewQuery;
-                $downloadQuery['download']  = 1;
+                $downloadQuery = $viewQuery;
+                $downloadQuery['download'] = 1;
                 $redirectUrl = '/admin/reports/overall-turnout?' . http_build_query($downloadQuery);
             }
 
@@ -181,21 +180,21 @@ class ReportController
         if ($reportType === 'official_results_all') {
             $viewQuery = [
                 'electionID' => $electionID,
-                'format'     => $baseFormat,
+                'format' => $baseFormat,
             ];
             if ($voteSessionID > 0) {
                 $viewQuery['voteSessionID'] = $voteSessionID;
             }
 
             $viewUrl = '/admin/reports/official-results?' . http_build_query($viewQuery);
-            $name    = 'Official Results by Race – ' . $election['title'];
+            $name = 'Official Results by Race – ' . $election['title'];
 
             $this->reportModel->insertReportRecord($electionID, $name, $enumType, $viewUrl);
 
             if ($isPdf) {
                 $redirectUrl = $viewUrl;
             } else {
-                $downloadQuery             = $viewQuery;
+                $downloadQuery = $viewQuery;
                 $downloadQuery['download'] = 1;
                 $redirectUrl = '/admin/reports/official-results?' . http_build_query($downloadQuery);
             }
@@ -208,22 +207,22 @@ class ReportController
         if ($reportType === 'results_by_faculty') {
             $viewQuery = [
                 'electionID' => $electionID,
-                'raceID'     => $raceID,
-                'format'     => $baseFormat,
+                'raceID' => $raceID,
+                'format' => $baseFormat,
             ];
             if ($voteSessionID > 0) {
                 $viewQuery['voteSessionID'] = $voteSessionID;
             }
 
             $viewUrl = '/admin/reports/results-by-faculty?' . http_build_query($viewQuery);
-            $name    = 'Results by Faculty – ' . $election['title'] . " (Race #{$raceID})";
+            $name = 'Results by Faculty – ' . $election['title'] . " (Race #{$raceID})";
 
             $this->reportModel->insertReportRecord($electionID, $name, $enumType, $viewUrl);
 
             if ($isPdf) {
                 $redirectUrl = $viewUrl;
             } else {
-                $downloadQuery             = $viewQuery;
+                $downloadQuery = $viewQuery;
                 $downloadQuery['download'] = 1;
                 $redirectUrl = '/admin/reports/results-by-faculty?' . http_build_query($downloadQuery);
             }
@@ -236,18 +235,18 @@ class ReportController
         if ($reportType === 'early_vote_status') {
             $viewQuery = [
                 'electionID' => $electionID,
-                'format'     => $baseFormat,
+                'format' => $baseFormat,
             ];
 
             $viewUrl = '/admin/reports/early-vote-status?' . http_build_query($viewQuery);
-            $name    = 'Early Vote Status – ' . $election['title'];
+            $name = 'Early Vote Status – ' . $election['title'];
 
             $this->reportModel->insertReportRecord($electionID, $name, $enumType, $viewUrl);
 
             if ($isPdf) {
                 $redirectUrl = $viewUrl;
             } else {
-                $downloadQuery             = $viewQuery;
+                $downloadQuery = $viewQuery;
                 $downloadQuery['download'] = 1;
                 $redirectUrl = '/admin/reports/early-vote-status?' . http_build_query($downloadQuery);
             }
@@ -262,16 +261,14 @@ class ReportController
     }
 
     /* =================== ON-SCREEN REPORT PAGES =================== */
-
-    // GET /admin/reports/overall-turnout
     public function overallTurnoutPage(): void
     {
         $this->requireAdmin();
 
-        $electionID    = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
+        $electionID = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
         $voteSessionID = isset($_GET['voteSessionID']) ? (int) $_GET['voteSessionID'] : 0;
-        $format        = strtoupper(trim($_GET['format'] ?? ''));
-        $download      = isset($_GET['download']) && $_GET['download'] == '1';
+        $format = strtoupper(trim($_GET['format'] ?? ''));
+        $download = isset($_GET['download']) && $_GET['download'] == '1';
 
         if ($electionID <= 0) {
             set_flash('fail', 'Invalid election selected.');
@@ -303,11 +300,11 @@ class ReportController
         if ($download && in_array($format, ['CSV', 'PDF'], true)) {
             $rows = [
                 [
-                    'Election Title'  => $summary['electionTitle'],
-                    'Session'         => $voteSessionID ? ('Session #' . $voteSessionID) : 'ALL SESSIONS',
+                    'Election Title' => $summary['electionTitle'],
+                    'Session' => $voteSessionID ? ('Session #' . $voteSessionID) : 'ALL SESSIONS',
                     'Eligible Voters' => $summary['eligibleTotal'],
-                    'Ballots Cast'    => $summary['ballotsCast'],
-                    'Turnout %'       => $summary['turnoutPercent'],
+                    'Ballots Cast' => $summary['ballotsCast'],
+                    'Turnout %' => $summary['turnoutPercent'],
                 ]
             ];
             $this->exportTabular('overall_turnout', $rows, $format);
@@ -326,23 +323,23 @@ class ReportController
         }
 
         // make vars visible in view
-        $summaryData       = $summary;
-        $byFaculty         = $turnoutByFaculty;
-        $timeline          = $turnoutTimeline;
+        $summaryData = $summary;
+        $byFaculty = $turnoutByFaculty;
+        $timeline = $turnoutTimeline;
         $selectedSessionID = $voteSessionID ?: null;
 
         // buttons: Back + Download
         $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
-            'format'     => $currentFormat,
-            'download'   => 1,
+            'format' => $currentFormat,
+            'download' => 1,
         ];
         if ($voteSessionID > 0) {
             $downloadParams['voteSessionID'] = $voteSessionID;
         }
         $downloadUrl = '/admin/reports/overall-turnout?' . http_build_query($downloadParams);
-        $backUrl     = '/admin/reports/list';
+        $backUrl = '/admin/reports/list';
 
         require $view;
     }
@@ -352,10 +349,10 @@ class ReportController
     {
         $this->requireAdmin();
 
-        $electionID    = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
+        $electionID = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
         $voteSessionID = isset($_GET['voteSessionID']) ? (int) $_GET['voteSessionID'] : 0;
-        $format        = strtoupper(trim($_GET['format'] ?? ''));
-        $download      = isset($_GET['download']) && $_GET['download'] == '1';
+        $format = strtoupper(trim($_GET['format'] ?? ''));
+        $download = isset($_GET['download']) && $_GET['download'] == '1';
 
         if ($electionID <= 0) {
             set_flash('fail', 'Invalid election selected.');
@@ -380,22 +377,22 @@ class ReportController
             $voteSessionID ?: null
         );
 
-        if ($download && in_array($format, ['CSV','PDF'], true)) {
+        if ($download && in_array($format, ['CSV', 'PDF'], true)) {
             $rows = [];
             foreach ($racesResults as $race) {
                 foreach ($race['candidates'] as $cand) {
                     $rows[] = [
-                        'Race'          => $race['raceTitle'],
-                        'Seat Type'     => $race['seatType'],
-                        'Seats'         => $race['seatCount'],
-                        'Session ID'    => $race['voteSessionID'],
-                        'Session Name'  => $race['voteSessionName'],
-                        'Session Type'  => $race['voteSessionType'],
-                        'Candidate'     => $cand['fullName'],
-                        'Faculty Code'  => $cand['facultyCode'],
-                        'Faculty Name'  => $cand['facultyName'],
-                        'Votes'         => $cand['votes'],
-                        'Winner'        => $cand['isWinner'] ? 'YES' : 'NO',
+                        'Race' => $race['raceTitle'],
+                        'Seat Type' => $race['seatType'],
+                        'Seats' => $race['seatCount'],
+                        'Session ID' => $race['voteSessionID'],
+                        'Session Name' => $race['voteSessionName'],
+                        'Session Type' => $race['voteSessionType'],
+                        'Candidate' => $cand['fullName'],
+                        'Faculty Code' => $cand['facultyCode'],
+                        'Faculty Name' => $cand['facultyName'],
+                        'Votes' => $cand['votes'],
+                        'Winner' => $cand['isWinner'] ? 'YES' : 'NO',
                     ];
                 }
             }
@@ -417,14 +414,14 @@ class ReportController
         $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
-            'format'     => $currentFormat,
-            'download'   => 1,
+            'format' => $currentFormat,
+            'download' => 1,
         ];
         if ($voteSessionID > 0) {
             $downloadParams['voteSessionID'] = $voteSessionID;
         }
         $downloadUrl = '/admin/reports/official-results?' . http_build_query($downloadParams);
-        $backUrl     = '/admin/reports/list';
+        $backUrl = '/admin/reports/list';
 
         require $view;
     }
@@ -435,9 +432,9 @@ class ReportController
         $this->requireAdmin();
 
         $electionID = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
-        $raceID     = isset($_GET['raceID']) ? (int) $_GET['raceID'] : 0;
-        $format     = strtoupper(trim($_GET['format'] ?? ''));
-        $download   = isset($_GET['download']) && $_GET['download'] == '1';
+        $raceID = isset($_GET['raceID']) ? (int) $_GET['raceID'] : 0;
+        $format = strtoupper(trim($_GET['format'] ?? ''));
+        $download = isset($_GET['download']) && $_GET['download'] == '1';
 
         if ($electionID <= 0 || $raceID <= 0) {
             set_flash('fail', 'Please provide both election and race.');
@@ -472,12 +469,12 @@ class ReportController
         $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
-            'raceID'     => $raceID,
-            'format'     => $currentFormat,
-            'download'   => 1,
+            'raceID' => $raceID,
+            'format' => $currentFormat,
+            'download' => 1,
         ];
         $downloadUrl = '/admin/reports/results-by-faculty?' . http_build_query($downloadParams);
-        $backUrl     = '/admin/reports/list';
+        $backUrl = '/admin/reports/list';
 
         require $view;
     }
@@ -488,8 +485,8 @@ class ReportController
         $this->requireAdmin();
 
         $electionID = isset($_GET['electionID']) ? (int) $_GET['electionID'] : 0;
-        $format     = strtoupper(trim($_GET['format'] ?? ''));
-        $download   = isset($_GET['download']) && $_GET['download'] == '1';
+        $format = strtoupper(trim($_GET['format'] ?? ''));
+        $download = isset($_GET['download']) && $_GET['download'] == '1';
 
         if ($electionID <= 0) {
             set_flash('fail', 'Invalid election selected.');
@@ -508,13 +505,13 @@ class ReportController
         $byFaculty = $this->reportModel->getTurnoutByFaculty($electionID, null);
 
         $totalEligible = 0;
-        $totalEarly    = 0;
-        $totalMain     = 0;
+        $totalEarly = 0;
+        $totalMain = 0;
 
         foreach ($byFaculty as $row) {
             $totalEligible += (int) $row['eligible'];
-            $totalEarly    += (int) $row['earlyCast'];
-            $totalMain     += (int) $row['mainCast'];
+            $totalEarly += (int) $row['earlyCast'];
+            $totalMain += (int) $row['mainCast'];
         }
 
         $overallEarlyPercent = $totalEligible > 0
@@ -525,27 +522,27 @@ class ReportController
             ? round(($totalMain / $totalEligible) * 100, 2)
             : 0.0;
 
-        if ($download && in_array($format, ['CSV','PDF'], true)) {
+        if ($download && in_array($format, ['CSV', 'PDF'], true)) {
             $rows = [];
             foreach ($byFaculty as $row) {
-                $eligible     = (int) $row['eligible'];
-                $earlyCast    = (int) $row['earlyCast'];
-                $mainCast     = (int) $row['mainCast'];
-                $totalCast    = $earlyCast + $mainCast;
+                $eligible = (int) $row['eligible'];
+                $earlyCast = (int) $row['earlyCast'];
+                $mainCast = (int) $row['mainCast'];
+                $totalCast = $earlyCast + $mainCast;
 
                 $earlyPercent = $eligible > 0 ? round(($earlyCast / $eligible) * 100, 2) : 0.0;
-                $mainPercent  = $eligible > 0 ? round(($mainCast / $eligible) * 100, 2) : 0.0;
+                $mainPercent = $eligible > 0 ? round(($mainCast / $eligible) * 100, 2) : 0.0;
                 $totalPercent = $eligible > 0 ? round(($totalCast / $eligible) * 100, 2) : 0.0;
 
                 $rows[] = [
-                    'Faculty Code'    => $row['facultyCode'],
-                    'Faculty Name'    => $row['facultyName'],
-                    'Eligible'        => $eligible,
-                    'Early Cast'      => $earlyCast,
-                    'Early %'         => $earlyPercent,
-                    'Main Cast'       => $mainCast,
-                    'Main %'          => $mainPercent,
-                    'Total Cast'      => $totalCast,
+                    'Faculty Code' => $row['facultyCode'],
+                    'Faculty Name' => $row['facultyName'],
+                    'Eligible' => $eligible,
+                    'Early Cast' => $earlyCast,
+                    'Early %' => $earlyPercent,
+                    'Main Cast' => $mainCast,
+                    'Main %' => $mainPercent,
+                    'Total Cast' => $totalCast,
                     'Total Turnout %' => $totalPercent,
                 ];
             }
@@ -555,11 +552,11 @@ class ReportController
         }
 
         $summary = [
-            'totalEligible'       => $totalEligible,
-            'totalEarly'          => $totalEarly,
+            'totalEligible' => $totalEligible,
+            'totalEarly' => $totalEarly,
             'overallEarlyPercent' => $overallEarlyPercent,
-            'totalMain'           => $totalMain,
-            'overallMainPercent'  => $overallMainPercent,
+            'totalMain' => $totalMain,
+            'overallMainPercent' => $overallMainPercent,
         ];
 
         $view = $this->fileHelper->getFilePath('EarlyVoteStatus');
@@ -576,24 +573,16 @@ class ReportController
         $currentFormat = in_array($format, ['CSV', 'PDF'], true) ? $format : 'PDF';
         $downloadParams = [
             'electionID' => $electionID,
-            'format'     => $currentFormat,
-            'download'   => 1,
+            'format' => $currentFormat,
+            'download' => 1,
         ];
         $downloadUrl = '/admin/reports/early-vote-status?' . http_build_query($downloadParams);
-        $backUrl     = '/admin/reports/list';
+        $backUrl = '/admin/reports/list';
 
         require $view;
     }
 
     /* ========================= EXPORT HELPERS ========================= */
-
-    /**
-     * Export an array of associative rows as CSV / XLSX / PDF.
-     *
-     * @param string $baseFilename  e.g. "voter_participation_list"
-     * @param array  $rows          [ ['col1'=>..,'col2'=>..], ... ]
-     * @param string $format        'CSV' | 'XLSX' | 'PDF'
-     */
     private function exportTabular(string $baseFilename, array $rows, string $format): void
     {
         $format = strtoupper($format);
@@ -622,8 +611,8 @@ class ReportController
         }
 
         $timestamp = date('Ymd_His');
-        $fileName  = $baseFilename . '_' . $timestamp . '.' . strtolower($format);
-        $filePath  = $reportsDir . DIRECTORY_SEPARATOR . $fileName;
+        $fileName = $baseFilename . '_' . $timestamp . '.' . strtolower($format);
+        $filePath = $reportsDir . DIRECTORY_SEPARATOR . $fileName;
 
         // ---------- CSV: write to disk, then stream ----------
         if ($format === 'CSV') {
@@ -647,7 +636,7 @@ class ReportController
 
         // ---------- PDF: use Spreadsheet + mPDF, save to disk, then stream ----------
         $spreadsheet = new Spreadsheet();
-        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet = $spreadsheet->getActiveSheet();
 
         // Basic page setup for nicer PDF
         $sheet->getPageSetup()
@@ -676,7 +665,7 @@ class ReportController
             $colIndex = 1;
             foreach ($headers as $head) {
                 $colLetter = Coordinate::stringFromColumnIndex($colIndex);
-                $value     = $row[$head] ?? '';
+                $value = $row[$head] ?? '';
                 $sheet->setCellValue($colLetter . $rowIndex, $value);
                 $colIndex++;
             }

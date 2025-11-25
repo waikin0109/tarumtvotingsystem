@@ -36,6 +36,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
     <!-- Tab Title -->
     <title><?php echo $_title ?? 'TARUMTVS' ?></title>
     <link rel="stylesheet" type="text/css" href="/css/app.css">
+    <link rel="icon" type="image/x-icon" href="/image/tarucLogoSmall.png">
 </head>
 
 <body class="d-flex flex-column min-vh-100">

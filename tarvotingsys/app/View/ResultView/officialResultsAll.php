@@ -6,7 +6,7 @@
 $_title = 'Results Summary';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 
-$totalRaces  = count($racesResults);
+$totalRaces = count($racesResults);
 $seatsFilled = 0;
 
 foreach ($racesResults as $race) {
@@ -18,18 +18,18 @@ $turnoutPercent = $turnoutSummary['turnoutPercent'] ?? null;
 // Prepare chart payload for JS (votes per candidate by race)
 $chartPayload = [];
 foreach ($racesResults as $race) {
-    $raceID   = (int) $race['raceID'];
-    $labels   = [];
-    $votes    = [];
+    $raceID = (int) $race['raceID'];
+    $labels = [];
+    $votes = [];
 
     foreach ($race['candidates'] as $cand) {
         $labels[] = $cand['fullName'] . ' (' . ($cand['facultyCode'] ?? '-') . ')';
-        $votes[]  = (int) $cand['votes'];
+        $votes[] = (int) $cand['votes'];
     }
 
     $chartPayload[$raceID] = [
         'labels' => $labels,
-        'votes'  => $votes,
+        'votes' => $votes,
     ];
 }
 
@@ -37,63 +37,67 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
 ?>
 
 <style>
-@media print {
+    @media print {
 
-  /* Hide admin header stuff */
-  .navbar,
-  #sidebar,
-  #profileToggle,
-  #profileActions {
-    display: none !important;
-  }
+        /* Hide admin header stuff */
+        .navbar,
+        #sidebar,
+        #profileToggle,
+        #profileActions {
+            display: none !important;
+        }
 
-  body {
-    margin: 0;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+        body {
+            margin: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
 
-  /* Remove flex so the main content is not squeezed, but
+        /* Remove flex so the main content is not squeezed, but
      keep a reasonable max width so graphs don't stretch */
-  .d-flex {
-    display: block !important;
-  }
+        .d-flex {
+            display: block !important;
+        }
 
-  #content {
-    margin: 0 auto !important;          /* center on page */
-    max-width: 1200px !important;       /* similar to your screen width */
-    width: auto !important;             /* do NOT force full page width */
-  }
+        #content {
+            margin: 0 auto !important;
+            /* center on page */
+            max-width: 1200px !important;
+            /* similar to your screen width */
+            width: auto !important;
+            /* do NOT force full page width */
+        }
 
-    @page {
-    size: A4 landscape;
-    margin: 10mm;
-  }
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
 
-  .card,
-  .table-responsive {
-    page-break-inside: avoid;
-  }
+        .card,
+        .table-responsive {
+            page-break-inside: avoid;
+        }
 
-  /* Center chart cards and limit width */
-  .chart-card {
-    max-width: 900px;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
+        /* Center chart cards and limit width */
+        .chart-card {
+            max-width: 900px;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
 
-  /* FORCE the chart to stay inside the card when printing */
-  .chart-card canvas,
-  #raceChart {
-    display: block;
-    width: 100% !important;      /* override big inline width from Chart.js */
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: 260px !important;
-    box-sizing: border-box;
-  }
+        /* FORCE the chart to stay inside the card when printing */
+        .chart-card canvas,
+        #raceChart {
+            display: block;
+            width: 100% !important;
+            /* override big inline width from Chart.js */
+            max-width: 100% !important;
+            height: auto !important;
+            max-height: 260px !important;
+            box-sizing: border-box;
+        }
 
-}
+    }
 </style>
 
 <div class="container-fluid mt-4 mb-5">
@@ -140,7 +144,7 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
         </div>
     </div>
 
-       <!-- Main content -->
+    <!-- Main content -->
 
     <!-- Row 1: Race overview table (full width) -->
     <div class="row">
@@ -153,50 +157,50 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
                     <div class="table-responsive">
                         <table class="table table-hover mb-0 align-middle">
                             <thead class="table-light">
-                            <tr>
-                                <th>Race</th>
-                                <th>Seat Type</th>
-                                <th>Seats</th>
-                                <th>Winner(s)</th>
-                                <th>Session</th>
-                            </tr>
+                                <tr>
+                                    <th>Race</th>
+                                    <th>Seat Type</th>
+                                    <th>Seats</th>
+                                    <th>Winner(s)</th>
+                                    <th>Session</th>
+                                </tr>
                             </thead>
                             <tbody>
-                            <?php if (empty($racesResults)): ?>
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
-                                        No results available for this election.
-                                    </td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($racesResults as $race): ?>
-                                    <?php
-                                    $winners = array_filter($race['candidates'], function ($c) {
-                                        return !empty($c['isWinner']);
-                                    });
-                                    $winnerNames = array_map(function ($c) {
-                                        $fac = $c['facultyCode'] ?? '-';
-                                        return $c['fullName'] . ' (' . $fac . ')';
-                                    }, $winners);
-
-                                    $seatType = $race['seatType'] === 'FACULTY_REP'
-                                        ? 'Faculty Representative'
-                                        : 'Campus-wide';
-                                    ?>
-                                    <tr data-race-id="<?= (int) $race['raceID'] ?>" class="race-row">
-                                        <td><?= htmlspecialchars($race['raceTitle']) ?></td>
-                                        <td><?= htmlspecialchars($seatType) ?></td>
-                                        <td><?= (int) $race['seatCount'] ?></td>
-                                        <td><?= htmlspecialchars(implode(', ', $winnerNames) ?: 'N/A') ?></td>
-                                        <td>
-                                            <?= htmlspecialchars($race['voteSessionName'] ?? '') ?>
-                                            <span class="badge bg-light text-secondary border ms-1">
-                                                <?= htmlspecialchars($race['voteSessionType'] ?? '') ?>
-                                            </span>
+                                <?php if (empty($racesResults)): ?>
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">
+                                            No results available for this election.
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                                <?php else: ?>
+                                    <?php foreach ($racesResults as $race): ?>
+                                        <?php
+                                        $winners = array_filter($race['candidates'], function ($c) {
+                                            return !empty($c['isWinner']);
+                                        });
+                                        $winnerNames = array_map(function ($c) {
+                                            $fac = $c['facultyCode'] ?? '-';
+                                            return $c['fullName'] . ' (' . $fac . ')';
+                                        }, $winners);
+
+                                        $seatType = $race['seatType'] === 'FACULTY_REP'
+                                            ? 'Faculty Representative'
+                                            : 'Campus-wide';
+                                        ?>
+                                        <tr data-race-id="<?= (int) $race['raceID'] ?>" class="race-row">
+                                            <td><?= htmlspecialchars($race['raceTitle']) ?></td>
+                                            <td><?= htmlspecialchars($seatType) ?></td>
+                                            <td><?= (int) $race['seatCount'] ?></td>
+                                            <td><?= htmlspecialchars(implode(', ', $winnerNames) ?: 'N/A') ?></td>
+                                            <td>
+                                                <?= htmlspecialchars($race['voteSessionName'] ?? '') ?>
+                                                <span class="badge bg-light text-secondary border ms-1">
+                                                    <?= htmlspecialchars($race['voteSessionType'] ?? '') ?>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -214,8 +218,7 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
                     <div class="ms-2">
                         <select id="raceSelect" class="form-select form-select-sm">
                             <?php foreach ($racesResults as $race): ?>
-                                <option value="<?= (int) $race['raceID'] ?>"
-                                    <?= $race['raceID'] == $initialRaceID ? 'selected' : '' ?>>
+                                <option value="<?= (int) $race['raceID'] ?>" <?= $race['raceID'] == $initialRaceID ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($race['raceTitle']) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -233,11 +236,9 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
     <div class="d-flex justify-content-center gap-3 mt-4">
         <a href="<?= htmlspecialchars($backUrl ?? '/admin/reports/list') ?>"
             class="btn btn-outline-secondary px-4 d-print-none">Back</a>
-    <button type="button"
-            class="btn btn-primary px-4 d-print-none"
-            onclick="window.print()">
-        <i class="bi bi-printer"></i> Print / Save as PDF
-    </button>
+        <button type="button" class="btn btn-primary px-4 d-print-none" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print / Save as PDF
+        </button>
     </div>
 </div>
 
@@ -251,7 +252,7 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
         const ctx = document.getElementById('raceChart').getContext('2d');
 
         function buildDataset(raceId) {
-            const data = chartPayload[raceId] || {labels: [], votes: []};
+            const data = chartPayload[raceId] || { labels: [], votes: [] };
             return {
                 labels: data.labels,
                 datasets: [{
@@ -268,12 +269,12 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {display: false}
+                    legend: { display: false }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {precision: 0}
+                        ticks: { precision: 0 }
                     }
                 }
             }

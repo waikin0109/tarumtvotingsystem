@@ -4,14 +4,11 @@ $roleUpper = strtoupper($_SESSION['role'] ?? '');
 
 // Header / footer includes based on role
 if ($roleUpper === 'NOMINEE') {
-    require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+  require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
 } elseif ($roleUpper === 'STUDENT') {
-    require_once __DIR__ . '/../StudentView/studentHeader.php';
+  require_once __DIR__ . '/../StudentView/studentHeader.php';
 }
 
-/** Expects $announcement:
- * ['id','title','content','senderName','publishedAt','attachments'=>[...]]
- */
 $att = $announcement['attachments'] ?? [];
 $raw = (string) ($announcement['content'] ?? '');
 
@@ -109,8 +106,8 @@ foreach ($att as $f) {
 
 <?php
 if ($roleUpper === 'NOMINEE') {
-    require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
 } elseif ($roleUpper === 'STUDENT') {
-    require_once __DIR__ . '/../StudentView/studentFooter.php';
+  require_once __DIR__ . '/../StudentView/studentFooter.php';
 }
 ?>

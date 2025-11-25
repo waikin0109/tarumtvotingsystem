@@ -19,10 +19,6 @@ class BallotController
         $this->fileHelper = new FileHelper('ballot');
     }
 
-    /**
-     * GET /ballot/start/{id}
-     * Ballot start / info page before voting.
-     */
     public function startBallot(int $id): void
     {
         $role = strtoupper($_SESSION['role'] ?? '');
@@ -42,6 +38,7 @@ class BallotController
             header('Location: ' . $listUrl);
             exit;
         }
+        
 
         // Only allow when OPEN
         $statusRaw = $vs['voteSessionStatus'] ?? $vs['VoteSessionStatus'] ?? '';
@@ -53,8 +50,9 @@ class BallotController
             exit;
         }
 
-        // We can reuse races later for the actual ballot page if needed
-        $races = $this->voteSessionModel->getRacesBySessionId($id);
+// races that **this voter** can actually vote in
+$voterFacultyID = (int) ($_SESSION['facultyID'] ?? 0);
+$races = $this->ballotModel->getRacesWithNomineesForVoter($id, $voterFacultyID);
 
         // Build simple view model
         $sessionName = $vs['voteSessionName'] ?? $vs['VoteSessionName'] ?? '';
@@ -64,8 +62,8 @@ class BallotController
         $startAtRaw = $vs['voteSessionStartAt'] ?? $vs['StartAt'] ?? null;
         $endAtRaw = $vs['voteSessionEndAt'] ?? $vs['EndAt'] ?? null;
 
-        $startFormatted = $startAtRaw ? date('Y.m.d H:i', strtotime($startAtRaw)) : '';
-        $endFormatted = $endAtRaw ? date('Y.m.d H:i', strtotime($endAtRaw)) : '';
+        $startFormatted = $startAtRaw ? date('Y-m-d H:i:s', strtotime($startAtRaw)) : '';
+        $endFormatted = $endAtRaw ? date('Y-m-d H:i:s', strtotime($endAtRaw)) : '';
 
         $electionTitle = $vs['ElectionTitle'] ?? $vs['title'] ?? '(Unknown Election)';
 
@@ -83,19 +81,6 @@ class BallotController
 
         include $this->fileHelper->getFilePath('StartBallot');
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * POST /ballot/start
@@ -355,7 +340,6 @@ class BallotController
                 }
             }
 
-
             if (!empty($selected)) {
                 $cleanSelections[$rid] = $selected;
             }
@@ -375,21 +359,6 @@ class BallotController
             return;
         }
 
-        // // If no selections at all, do not allow empty ballot (you can relax this if wanted)
-        // if (empty($cleanSelections)) {
-        //     set_flash('fail', 'Your ballot is empty. Please choose at least one candidate.');
-        //     // $selectionErrors = $selectionErrors;
-        //     include $this->fileHelper->getFilePath('CastVote');
-        //     return;
-        // }
-
-        // Submit
-        // $ok = $this->ballotModel->submitBallot(
-        //     $id,
-        //     (int) $envelope['ballotEnvelopeID'],
-        //     $cleanSelections
-        // );
-// We now allow a completely empty ballot (blank / undervote).
         $ok = $this->ballotModel->submitBallot(
             $id,
             (int) $envelope['ballotEnvelopeID'],
@@ -405,7 +374,6 @@ class BallotController
         unset($_SESSION['current_ballot_envelope_id'], $_SESSION['current_ballot_session_id']);
 
         if (empty($cleanSelections)) {
-            // Blank / undervote – still SUBMITTED, not VOID
             set_flash('success', 'Your ballot was submitted without any candidate selections (blank ballot).');
         } else {
             set_flash('success', 'Your ballot has been successfully submitted.');
@@ -413,36 +381,5 @@ class BallotController
 
         header('Location: ' . $listUrl);
         exit;
-
     }
-
-
-    /**
-     * GET /ballot/vote/{id}
-     * Temporary placeholder for the actual ballot voting UI.
-     * So the "Start Ballot" button does not hit a 404.
-     */
-    // public function votePage(int $id): void
-    // {
-    //     $role = strtoupper($_SESSION['role'] ?? '');
-
-    //     if (!in_array($role, ['ADMIN', 'STUDENT', 'NOMINEE'], true)) {
-    //         set_flash('fail', 'You must log in to vote.');
-    //         header('Location: /login');
-    //         exit;
-    //     }
-
-    //     // For now, just show a simple placeholder.
-    //     // Later you will replace this with a proper ballot UI.
-    //     header('Content-Type: text/html; charset=utf-8');
-    //     echo '<!DOCTYPE html><html><head><title>Ballot Voting</title></head><body>';
-    //     echo '<h1>Ballot voting page (placeholder)</h1>';
-    //     echo '<p>Voting session ID: ' . htmlspecialchars((string) $id, ENT_QUOTES, 'UTF-8') . '</p>';
-    //     echo '<p>You can now implement the actual ballot form here.</p>';
-    //     echo '<p><a href="/vote-session/public">Back to Voting Sessions</a></p>';
-    //     echo '</body></html>';
-    // }
-
-
-
 }

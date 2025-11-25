@@ -1,8 +1,15 @@
 <?php
 $_title = 'Ballot Start';
-// Currently we reuse the adminHeader for all roles.
-// It already adapts links based on $_SESSION['role'].
-require_once __DIR__ . '/../AdminView/adminHeader.php';
+
+$roleUpper = strtoupper($_SESSION['role'] ?? '');
+
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeHeader.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentHeader.php';
+} elseif ($roleUpper === 'ADMIN') {
+  require_once __DIR__ . '/../AdminView/adminHeader.php';
+}
 ?>
 
 <style>
@@ -43,7 +50,6 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
     border-left: 4px solid #facc15;
   }
 
-  /* Optional: give a bit more breathing room on very small screens */
   @media (max-width: 576px) {
     .ballot-layout {
       padding-left: 0.5rem;
@@ -94,47 +100,45 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
     <div class="card-body">
       <p class="ballot-section-title mb-3">You will vote for</p>
 
-      <?php
-      // Detect what types of races exist in this voting session
-      $hasFacultyRep  = false;
-      $hasCampusWide  = false;
+<?php
+$hasFacultyRep = false;
+$hasCampusWide = false;
 
-      if (isset($races) && is_array($races)) {
-          foreach ($races as $race) {
-              $type = strtoupper($race['seatType'] ?? '');
+if (isset($races) && is_array($races)) {
+  foreach ($races as $race) {
+    $type = strtoupper($race['seatType'] ?? '');
+    if ($type === 'FACULTY_REP') {
+      $hasFacultyRep = true;
+    } elseif ($type === 'CAMPUS_WIDE') {
+      $hasCampusWide = true;
+    }
+  }
+}
+?>
 
-              if ($type === 'FACULTY_REP') {
-                  $hasFacultyRep = true;
-              } elseif ($type === 'CAMPUS_WIDE') {
-                  $hasCampusWide = true;
-              }
-          }
-      }
+<?php if ($hasFacultyRep || $hasCampusWide): ?>
+  <ul class="mb-2">
+    <?php if ($hasFacultyRep): ?>
+      <li>1 Faculty Representative for your faculty.</li>
+    <?php endif; ?>
 
-      // Fallback: if no types detected, show both lines so page is not empty
-      if (!$hasFacultyRep && !$hasCampusWide) {
-          $hasFacultyRep = true;
-          $hasCampusWide = true;
-      }
-      ?>
+    <?php if ($hasCampusWide): ?>
+      <li>Up to 4 Campus-wide Representatives.</li>
+    <?php endif; ?>
+  </ul>
 
-      <ul class="mb-2">
-        <?php if ($hasFacultyRep): ?>
-          <li>1 Faculty Representative for your faculty.</li>
-        <?php endif; ?>
-
-        <?php if ($hasCampusWide): ?>
-          <li>Up to 4 Campus-wide Representatives.</li>
-        <?php endif; ?>
-      </ul>
-
-      <p class="text-muted mb-0">
-        The exact races and candidates will be shown on the next page.
-      </p>
+  <p class="text-muted mb-0">
+    The exact races and candidates will be shown on the next page.
+  </p>
+<?php else: ?>
+  <p class="text-muted mb-0">
+    There are currently no races assigned to you in this voting session.
+  </p>
+<?php endif; ?>
     </div>
   </div>
 
-  <!-- Before you start -->
+  <!-- Before start -->
   <div class="card ballot-card mb-4">
     <div class="card-body">
       <p class="ballot-section-title mb-3">Before you start</p>
@@ -158,9 +162,9 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
       &larr; Back to Voting Sessions
     </a>
 
-    <!-- Start ballot: now posts to /ballot/start -->
+    <!-- Start ballot-->
     <form method="post" action="/ballot/start" id="startBallotForm" class="mb-0">
-      <input type="hidden" name="voteSessionID" value="<?= (int)$sessionId ?>">
+      <input type="hidden" name="voteSessionID" value="<?= (int) $sessionId ?>">
       <button type="submit" class="btn btn-primary" id="startBallotBtn">
         Start Ballot &raquo;
       </button>
@@ -172,7 +176,7 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
 <script>
   // Confirm before starting ballot
   (function () {
-    const btn  = document.getElementById('startBallotBtn');
+    const btn = document.getElementById('startBallotBtn');
     const form = document.getElementById('startBallotForm');
     if (!btn || !form) return;
 
@@ -184,10 +188,16 @@ require_once __DIR__ . '/../AdminView/adminHeader.php';
       if (!ok) {
         e.preventDefault(); // stop submitting form
       }
-      // if ok === true, form submits normally to /ballot/start
     });
   })();
 </script>
 
-
-<?php require_once __DIR__ . '/../AdminView/adminFooter.php'; ?>
+<?php
+if ($roleUpper === 'NOMINEE') {
+  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
+} elseif ($roleUpper === 'STUDENT') {
+  require_once __DIR__ . '/../StudentView/studentFooter.php';
+} else {
+  require_once __DIR__ . '/../AdminView/adminFooter.php';
+}
+?>

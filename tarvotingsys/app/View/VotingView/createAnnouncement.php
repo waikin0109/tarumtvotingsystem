@@ -186,8 +186,8 @@ $fieldErrors = $fieldErrors ?? [];
     const pmDraft = document.getElementById('pmDraft');
     const pmNow = document.getElementById('pmNow');
     const pmSchedule = document.getElementById('pmSchedule');
-    const localInput = document.getElementById('publishAtLocal'); // yyyy-MM-ddTHH:mm
-    const mysqlHidden = document.getElementById('publishAt');      // yyyy-MM-dd HH:mm:ss
+    const localInput = document.getElementById('publishAtLocal');
+    const mysqlHidden = document.getElementById('publishAt');
 
     // helper: to MySQL DATETIME
     function toMysql(dt) { return dt ? dt.replace('T', ' ') + ':00' : ''; }

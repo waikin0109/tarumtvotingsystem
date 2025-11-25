@@ -107,7 +107,7 @@ function race_err_msgs(array $errs, int $idx, string $field): string
             <legend>Races Included</legend>
 
             <div id="raceList" class="d-flex flex-column gap-3">
-                <?php if (empty($old['races'])): // seed one blank row with 0/0 ?>
+                <?php if (empty($old['races'])): ?>
                     <?php $old['races'] = [['title' => '', 'seatType' => '', 'facultyID' => '', 'seatCount' => 0, 'maxSelectable' => 0]]; ?>
                 <?php endif; ?>
 

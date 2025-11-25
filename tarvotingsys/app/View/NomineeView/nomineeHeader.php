@@ -9,6 +9,8 @@ $role                = $_SESSION['role'] ?? 'User';
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+$profilePhotoURL = $_SESSION['profilePhotoURL'] ?? '';
+$profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultUserImage.jpg';
 ?>
 
 <!DOCTYPE html>
@@ -36,6 +38,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
     <!-- Tab Title -->
     <title><?php echo $_title ?? 'TARUMTVS' ?></title>
     <link rel="stylesheet" type="text/css" href="/css/app.css">
+    <link rel="icon" type="image/x-icon" href="/image/tarucLogoSmall.png">
 
     <!-- Override active menu color to yellow only for nominee -->
     <style>
@@ -69,8 +72,6 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                 </ul>
             </div>
             
-            
-
             <!-- Mobile sidebar toggle -->
             <button class="navbar-toggler" type="button" id="btnSidebarToggle">
                 <span class="navbar-toggler-icon"></span>
@@ -182,12 +183,11 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                     </div>
                 </div>
 
-                <!-- Profile area fixed at bottom (same as you had) -->
+                <!-- Profile area fixed at bottom (same style as others) -->
                 <div class="position-absolute bottom-0 start-0 end-0 border-top border-black border-1"
                     style="background:#f8f9fa; padding:10px;">
                     <div id="profileToggle" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <img src="/image/defaultUserImage.jpg" alt="avatar"
-                            style="width:40px;height:40px;border-radius:50%;">
+                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar" style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
@@ -203,12 +203,12 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
             </aside>
         </div>
 
-        <!-- Scripts: sidebar + profile toggle -->
+        <!-- Sidebar + profile script -->
         <script>
             $(function () {
                 // Sidebar toggle for mobile
-                const $sidebar = $('#sidebar');
-                const $backdrop = $('#sidebar-backdrop');
+                const $sidebar   = $('#sidebar');
+                const $backdrop  = $('#sidebar-backdrop');
 
                 $('#btnSidebarToggle').on('click', function () {
                     $sidebar.toggleClass('show');
@@ -229,6 +229,12 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
                     $("#profileCaret").css("transform", profileOpen ? "rotate(180deg)" : "rotate(0deg)");
                 });
 
+                // Profile button => go to profile page
+                $("#btnProfile").on("click", function (e) {
+                    e.preventDefault();
+                    window.location.href = "/nominee/profile";
+                });
+
                 // Close profile actions when clicking outside
                 $(document).on("click", function (e) {
                     if (profileOpen && !$(e.target).closest("#profileToggle, #profileActions").length) {
@@ -242,3 +248,4 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
         <!-- Main content -->
         <main id="content" class="m-3 w-100">
+

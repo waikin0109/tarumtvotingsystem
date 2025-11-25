@@ -18,15 +18,33 @@ class AnnouncementController
 
     public function listAnnouncements(): void
     {
-        if (strtolower($_SESSION['role'] ?? '') !== 'admin') {
+
+        if (empty($_SESSION['role']) || strtoupper($_SESSION['role']) !== 'ADMIN') {
+            set_flash('fail', 'You do not have permission to access!');
             header('Location: /login');
             exit;
         }
 
+        // Auto-publish any due scheduled announcements
         $this->announcementModel->autoPublishDue();
 
-        $announcements = $this->announcementModel->listForAdmin();
-        include $this->fileHelper->getFilePath('AnnouncementList');
+        // --- Paging + search setup ---
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        if ($page < 1) {
+            $page = 1;
+        }
+
+        $search = trim($_GET['q'] ?? '');
+
+        $pager = $this->announcementModel->getPagedAnnouncementsForAdmin($page, 10, $search);
+        $announcements = $pager->result ?? [];
+
+        $filePath = $this->fileHelper->getFilePath('AnnouncementList');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "View file not found.";
+        }
     }
 
     //Create Announcement
@@ -631,18 +649,33 @@ class AnnouncementController
         exit;
     }
 
+
     public function viewAnnouncementForStudentAndNominee(): void
     {
-        $role = strtoupper($_SESSION['role'] ?? '');
-        if (!in_array($role, ['STUDENT', 'NOMINEE'], true)) {
+        $roleUpper = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($roleUpper, ['STUDENT', 'NOMINEE'], true)) {
             set_flash('fail', 'Only students and nominees can view this page.');
             header('Location: /login');
             exit;
         }
 
-        $announcements = $this->announcementModel->listPublishedAnnouncement();
+        // Auto-publish any due scheduled announcements
+        $this->announcementModel->autoPublishDue();
+
+        // --- Paging + search setup
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        if ($page < 1) {
+            $page = 1;
+        }
+
+        $search = trim($_GET['q'] ?? '');
+
+        $pager = $this->announcementModel->getPagedPublishedForPortal($page, 10, $search);
+        $announcements = $pager->result ?? [];
+
         include $this->fileHelper->getFilePath('StudentNomineeAnnouncementList');
     }
+
 
     public function viewAnnouncementDetailsForStudentAndNominee(string $id): void
     {

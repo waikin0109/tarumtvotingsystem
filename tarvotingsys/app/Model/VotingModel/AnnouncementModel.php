@@ -5,6 +5,7 @@ namespace Model\VotingModel;
 use PDO;
 use PDOException;
 use Database;
+use Library\SimplePager;
 
 class AnnouncementModel
 {
@@ -33,8 +34,7 @@ class AnnouncementModel
         }
     }
 
-    // Return admin list of announcements
-    public function listForAdmin(): array
+    public function getPagedAnnouncementsForAdmin(int $page, int $limit = 10, string $search = ''): SimplePager
     {
         try {
             $sql = "
@@ -44,12 +44,23 @@ class AnnouncementModel
                 a.announcementContent     AS content,
                 a.announcementCreatedAt   AS createdAt,
                 a.announcementPublishedAt AS publishedAt,
-                a.announcementStatus,
+                a.announcementStatus      AS announcementStatus,
                 a.accountID,
                 ac.fullName               AS senderName
             FROM announcement a
             LEFT JOIN account ac 
                 ON ac.accountID = a.accountID
+            WHERE 1
+        ";
+
+            $params = [];
+
+            if ($search !== '') {
+                $sql .= " AND a.announcementTitle LIKE :q";
+                $params[':q'] = '%' . $search . '%';
+            }
+
+            $sql .= "
             ORDER BY
                 CASE a.announcementStatus
                     WHEN 'DRAFT'     THEN 1
@@ -60,13 +71,50 @@ class AnnouncementModel
                 COALESCE(a.announcementPublishedAt, a.announcementCreatedAt) DESC
         ";
 
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            // Let SimplePager fetch the current page
+            $pager = new SimplePager($this->db, $sql, $params, $limit, $page);
+
+            $countSql = "
+            SELECT COUNT(*) AS cnt
+            FROM announcement a
+            WHERE 1
+        ";
+            $countParams = [];
+
+            if ($search !== '') {
+                $countSql .= " AND a.announcementTitle LIKE :q";
+                $countParams[':q'] = '%' . $search . '%';
+            }
+
+            $stmt = $this->db->prepare($countSql);
+            $stmt->execute($countParams);
+            $total = (int) $stmt->fetchColumn();
+
+            // Override SimplePager’s wrong total with the real one
+            $pager->item_count = $total;
+            $pager->page_count = (int) ceil($total / $pager->limit);
+
+            return $pager;
 
         } catch (PDOException $e) {
-            error_log("Error in list announcement for admin: " . $e->getMessage());
-            return [];
+            error_log("Error in getPagedAnnouncementsForAdmin: " . $e->getMessage());
+
+            // Fallback: empty pager so controller/view still work
+            $fallbackSql = "
+            SELECT 
+                a.announcementID,
+                a.announcementTitle       AS title,
+                a.announcementContent     AS content,
+                a.announcementCreatedAt   AS createdAt,
+                a.announcementPublishedAt AS publishedAt,
+                a.announcementStatus      AS announcementStatus,
+                a.accountID,
+                '' AS senderName
+            FROM announcement a
+            WHERE 1 = 0
+        ";
+
+            return new SimplePager($this->db, $fallbackSql, [], $limit, $page);
         }
     }
 
@@ -319,24 +367,74 @@ class AnnouncementModel
         }
     }
 
-    public function listPublishedAnnouncement(): array
+    public function getPagedPublishedForPortal(int $page, int $limit = 10, string $search = ''): SimplePager
     {
         try {
-            $sql = "SELECT a.announcementID,
-                       a.announcementTitle       AS title,
-                       a.announcementContent     AS content,
-                       a.announcementPublishedAt AS publishedAt,
-                       ac.fullName               AS senderName
-                  FROM announcement a
-             LEFT JOIN account ac ON ac.accountID = a.accountID
-                 WHERE a.announcementStatus = 'PUBLISHED'
-              ORDER BY a.announcementPublishedAt DESC";
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute();
-            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            // 1) Base list query (what we actually show)
+            $sql = "
+            SELECT 
+                a.announcementID,
+                a.announcementTitle       AS title,
+                a.announcementContent     AS content,
+                a.announcementPublishedAt AS publishedAt,
+                ac.fullName               AS senderName
+            FROM announcement a
+            LEFT JOIN account ac 
+                ON ac.accountID = a.accountID
+            WHERE a.announcementStatus = 'PUBLISHED'
+        ";
+
+            $params = [];
+
+            if ($search !== '') {
+                $sql .= " AND a.announcementTitle LIKE :q";
+                $params[':q'] = '%' . $search . '%';
+            }
+
+            $sql .= "
+            ORDER BY a.announcementPublishedAt DESC
+        ";
+
+            $pager = new SimplePager($this->db, $sql, $params, $limit, $page);
+
+            $countSql = "
+            SELECT COUNT(*) AS cnt
+            FROM announcement a
+            WHERE a.announcementStatus = 'PUBLISHED'
+        ";
+            $countParams = [];
+
+            if ($search !== '') {
+                $countSql .= " AND a.announcementTitle LIKE :q";
+                $countParams[':q'] = '%' . $search . '%';
+            }
+
+            $stmt = $this->db->prepare($countSql);
+            $stmt->execute($countParams);
+            $total = (int) $stmt->fetchColumn();
+
+            // Override SimplePager's total with the correct value
+            $pager->item_count = $total;
+            $pager->page_count = ($limit > 0) ? (int) ceil($total / $limit) : 1;
+
+            return $pager;
+
         } catch (PDOException $e) {
-            error_log("listPublished error: " . $e->getMessage());
-            return [];
+            error_log("getPagedPublishedForPortal error: " . $e->getMessage());
+
+            // Fallback: empty pager so controller/view still work
+            $fallbackSql = "
+            SELECT 
+                a.announcementID,
+                a.announcementTitle       AS title,
+                a.announcementContent     AS content,
+                a.announcementPublishedAt AS publishedAt,
+                '' AS senderName
+            FROM announcement a
+            WHERE 1 = 0
+        ";
+
+            return new SimplePager($this->db, $fallbackSql, [], $limit, $page);
         }
     }
 

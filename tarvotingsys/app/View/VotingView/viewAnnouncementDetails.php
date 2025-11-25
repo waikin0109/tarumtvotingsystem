@@ -2,9 +2,6 @@
 $_title = 'View Announcement Details';
 require_once __DIR__ . '/../AdminView/adminHeader.php';
 
-/** Expects $announcement from controller:
- * ['title','content','status','whenLabel','whenValue','attachments'=>[...]]
- */
 $att = $announcement['attachments'] ?? [];
 $status = $announcement['status'] ?? '';
 $raw = (string) ($announcement['content'] ?? '');

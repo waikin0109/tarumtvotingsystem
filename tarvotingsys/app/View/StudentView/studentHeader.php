@@ -41,6 +41,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
     <!-- Shared app styles (same as admin/nominee) -->
     <link rel="stylesheet" type="text/css" href="/css/app.css">
 
+    <link rel="icon" type="image/x-icon" href="/image/tarucLogoSmall.png">
+
     <!-- Override active menu color to blue for student -->
     <style>
         #sidebar .list-group-item.active-menu {
