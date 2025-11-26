@@ -1,10 +1,10 @@
 ================================================================================
-TARU VOTING SYSTEM - README
+TARUMT VOTING SYSTEM - README
 ================================================================================
 
 PROJECT OVERVIEW
 ----------------
-The TARU Voting System is a comprehensive web-based application designed to manage
+The TARUMT Voting System is a comprehensive web-based application designed to manage
 and conduct student elections. It supports multiple user roles (Admin, Student, Nominee),
 manages voting sessions, candidate applications, campaign materials, and generates
 election results and reports.
@@ -187,7 +187,7 @@ CONFIGURATION
 -------------
 Database Connection: Configure in Database.php
 - Host: localhost (or your DB server)
-- Database: taru_voting_system (or your DB name)
+- Database: tarumtvs
 - Username: root (or your DB user)
 - Password: (your password)
 
