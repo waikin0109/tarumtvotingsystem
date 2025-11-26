@@ -554,11 +554,5 @@ $notVoted = max($eligibleTotal - $ballotsCast, 0);
 </script>
 
 <?php
-if ($roleUpper === 'NOMINEE') {
-  require_once __DIR__ . '/../NomineeView/nomineeFooter.php';
-} elseif ($roleUpper === 'STUDENT') {
-  require_once __DIR__ . '/../StudentView/studentFooter.php';
-} else {
-  require_once __DIR__ . '/../AdminView/adminFooter.php';
-}
+require_once __DIR__ . '/../AdminView/adminFooter.php';
 ?>

@@ -1,11 +1,11 @@
 <?php
 
 // Retrieve session data (set from LoginController)
-$accountLoggedInId  = $_SESSION['accountID'] ?? '';
-$roleId             = $_SESSION['roleID'] ?? null;
-$studentLoggedInId  = is_scalar($roleId) ? (string)$roleId : ''; 
-$fullName           = $_SESSION['fullName'] ?? 'Guest';
-$role               = $_SESSION['role'] ?? 'User';
+$accountLoggedInId = $_SESSION['accountID'] ?? '';
+$roleId = $_SESSION['roleID'] ?? null;
+$studentLoggedInId = is_scalar($roleId) ? (string) $roleId : '';
+$fullName = $_SESSION['fullName'] ?? 'Guest';
+$role = $_SESSION['role'] ?? 'User';
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
@@ -28,8 +28,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <!-- Bootstrap Icons -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
@@ -50,6 +49,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
             color: #fff;
             font-weight: 500;
         }
+
         #sidebar .list-group-item.active-menu i {
             color: #fff;
         }
@@ -61,10 +61,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/student/home">
-                <img src="/image/tarucLogoSmall.png"
-                     alt="TAR UMT logo"
-                     class="d-inline-block align-text-top me-2 img-fluid"
-                     style="width: 30px; height:auto;">
+                <img src="/image/tarucLogoSmall.png" alt="TAR UMT logo"
+                    class="d-inline-block align-text-top me-2 img-fluid" style="width: 30px; height:auto;">
                 <span class="fw-semibold text-light">TARUMT Voting System</span>
             </a>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -85,21 +83,20 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
         <?php if (!empty($_SESSION['flash'])): ?>
             <?php foreach ($_SESSION['flash'] as $type => $message): ?>
                 <?php
-                    // Map flash types to Bootstrap alert classes
-                    $alertClass = match($type) {
-                        'success' => 'alert-success',
-                        'error', 'fail' => 'alert-danger',
-                        'warning' => 'alert-warning',
-                        'info' => 'alert-info',
-                        default => 'alert-secondary'
-                    };
+                // Map flash types to Bootstrap alert classes
+                $alertClass = match ($type) {
+                    'success' => 'alert-success',
+                    'error', 'fail' => 'alert-danger',
+                    'warning' => 'alert-warning',
+                    'info' => 'alert-info',
+                    default => 'alert-secondary'
+                };
                 ?>
                 <!-- Flash message at top-center -->
                 <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100"
-                     style="max-width: 600px; z-index: 2000;">
-                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center" 
-                        id="flash-message-<?= $type ?>" 
-                        role="alert">
+                    style="max-width: 600px; z-index: 2000;">
+                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center"
+                        id="flash-message-<?= $type ?>" role="alert">
                         <?= htmlspecialchars($message) ?>
                     </div>
                 </div>
@@ -133,27 +130,27 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     <div class="menu-title">Election Info</div>
                     <div class="list-group list-group-flush">
                         <a href="/student/election-registration-form"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/student/election-registration-form' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/student/election-registration-form' ? 'active-menu' : '' ?>">
                             <i class="bi bi-ui-checks-grid"></i>
                             <span>Election Registration</span>
                         </a>
                         <a href="/student/rule"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/student/rule' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/student/rule' ? 'active-menu' : '' ?>">
                             <i class="bi bi-card-text"></i>
                             <span>Rules &amp; Regulations</span>
                         </a>
                         <a href="/student/nominee-final-list"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/student/nominee-final-list' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/student/nominee-final-list' ? 'active-menu' : '' ?>">
                             <i class="bi bi-people"></i>
                             <span>Nominees' Final Lists</span>
                         </a>
                         <a href="/student/schedule-location"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/student/schedule-location' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/student/schedule-location' ? 'active-menu' : '' ?>">
                             <i class="bi bi-geo-alt"></i>
                             <span>Schedule &amp; Location</span>
                         </a>
                         <a href="/announcements/public"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/announcements/public' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/announcements/public' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bell"></i>
                             <span>Announcement</span>
                         </a>
@@ -162,17 +159,22 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     <div class="menu-title mt-3">Voting &amp; Results</div>
                     <div class="list-group list-group-flush">
                         <a href="/vote-session/public"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/vote-session/public' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/vote-session/public' ? 'active-menu' : '' ?>">
                             <i class="bi bi-box-arrow-in-right"></i>
                             <span>Voting Session</span>
                         </a>
+                        <a href="/nominee/list"
+                            class="list-group-item list-group-item-action <?= $currentPath === '/nominee/list' ? 'active-menu' : '' ?>">
+                            <i class="bi bi-people"></i>
+                            <span>Nominees List</span>
+                        </a>
                         <a href="/statistics"
-                           class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bar-chart-line"></i>
                             <span>Current Statistics</span>
                         </a>
                         <a href="/results"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bar-chart-line"></i>
                             <span>Official Final Results</span>
                         </a>
@@ -183,7 +185,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                 <div class="position-absolute bottom-0 start-0 end-0 border-top border-black border-1"
                     style="background:#f8f9fa; padding:10px;">
                     <div id="profileToggle" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar" style="width:40px;height:40px;border-radius:50%;">
+                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar"
+                            style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
@@ -203,8 +206,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
         <script>
             $(function () {
                 // Sidebar toggle for mobile
-                const $sidebar   = $('#sidebar');
-                const $backdrop  = $('#sidebar-backdrop');
+                const $sidebar = $('#sidebar');
+                const $backdrop = $('#sidebar-backdrop');
 
                 $('#btnSidebarToggle').on('click', function () {
                     $sidebar.toggleClass('show');

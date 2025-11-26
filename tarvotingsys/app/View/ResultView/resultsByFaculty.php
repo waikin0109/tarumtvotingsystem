@@ -307,3 +307,7 @@ $chartVotes = array_map(function ($c) {
         });
     })();
 </script>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

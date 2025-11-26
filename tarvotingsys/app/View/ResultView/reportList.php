@@ -122,7 +122,7 @@ function report_type_badge(string $type): string
 
               <td>
                 <?php if (!empty($viewUrl)): ?>
-                  <a href="<?= htmlspecialchars($viewUrl) ?>" target="_blank" rel="noopener">
+                  <a href="<?= htmlspecialchars($viewUrl) ?>">
                     <?= htmlspecialchars($name) ?>
                   </a>
                 <?php else: ?>

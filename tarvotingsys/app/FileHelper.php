@@ -116,6 +116,7 @@ class FileHelper
             'NomineeHome' => 'View/NomineeView/nomineeHome.php',
             'NomineeProfile' => 'View/NomineeView/nomineeProfile.php',
             'NomineeSelectRace' => 'View/NomineeView/nomineeSelectRace.php',
+            'NomineePerRaceList' => 'View/NomineeView/nomineePerRaceList.php',
         ]);
 
         $announcementPaths = $this->prefixWithBase([

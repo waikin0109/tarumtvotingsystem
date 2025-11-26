@@ -45,6 +45,9 @@ Route::post('/nominee/profile/update-photo', [NomineeController::class, 'updateP
 Route::get('/nominee/select-race', [NomineeController::class, 'selectRace']);
 Route::post('/nominee/select-race', [NomineeController::class, 'saveRaceSelection']);
 Route::post('/nominee/profile/update-manifesto', [NomineeController::class, 'updateManifesto']);
+// Student – View Nominees
+Route::get('/nominee/list', [NomineeController::class, 'viewNomineePerRace']);
+
 
 
 // Announcement routes
