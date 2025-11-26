@@ -31,6 +31,9 @@ A comprehensive web-based application designed to manage and conduct student ele
 
 1. Clone or extract the project to your web server directory
 2. Navigate to the project root directory
+   ```bash
+   cd tarumtvotingsystem/app
+   ```
 3. Run the following command:
    ```bash
    composer install
@@ -52,8 +55,6 @@ A comprehensive web-based application designed to manage and conduct student ele
 /app/
 ├── Controller/                          # Route handlers and business logic
 │   ├── AdminController/                # Admin-related operations
-│   │   ├── AdminController.php
-│   │   └── LoginController.php
 │   ├── NomineeController/              # Nominee profile and settings
 │   ├── StudentController/              # Student profile and voting
 │   ├── VotingController/               # Election events, voting, results
@@ -400,7 +401,6 @@ For bugs, feature requests, or support, please contact:
 
 **Last Updated**: November 26, 2025  
 **Version**: 1.0  
-**License**: [Your License Here]
 
 ---
 
