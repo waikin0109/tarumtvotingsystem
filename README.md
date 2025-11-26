@@ -252,10 +252,10 @@ A comprehensive web-based application designed to manage and conduct student ele
 ### Database Connection
 Edit `Database.php` with your database credentials:
 ```php
-$host = 'localhost';
+$host = '127.0.0.1';
 $database = 'tarumtvs';
 $username = 'root';
-$password = 'your_password';
+$password = '';
 ```
 
 ### Session Configuration
@@ -263,11 +263,6 @@ Configure in `SessionHelper.php`:
 - Session timeout duration
 - Cookie settings
 - CSRF token handling
-
-### Mail Configuration
-Configure in `library/PHPMailer.php`:
-- SMTP settings for election notifications
-- Email templates
 
 ---
 
@@ -395,7 +390,7 @@ chmod -R 755 public/uploads/
 ## Support & Maintenance
 
 For bugs, feature requests, or support, please contact:  
-[Your support email/contact information]
+Email: waikin0109@gmail.com
 
 ---
 
