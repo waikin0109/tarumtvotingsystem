@@ -380,7 +380,6 @@ chmod -R 755 public/uploads/
 
 ## Dependencies
 
-- **PHPMailer** - Email sending for notifications
 - **SimplePager** - Pagination handling for lists
 - **SimpleImage** - Image processing and manipulation
 - **Composer Autoloader** - PSR-4 class loading
