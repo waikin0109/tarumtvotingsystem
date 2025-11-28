@@ -337,4 +337,38 @@ class NomineeController
         exit;
     }
 
+    public function viewNomineePerRace(): void
+    {
+        // Only allow logged-in Admin, Nominee, or Student
+        $roleUpper = strtoupper($_SESSION['role'] ?? '');
+        if (!in_array($roleUpper, ['ADMIN', 'NOMINEE', 'STUDENT'], true)) {
+            header('Location: /login');
+            exit;
+        }
+
+        // Filters from query string
+        $selectedElectionID = (int) ($_GET['electionID'] ?? 0);
+        $selectedRaceID = (int) ($_GET['raceID'] ?? 0);
+
+        $elections = $this->nomineeModel->getElectionsForBrowse();
+        $races = [];
+        $nominees = [];
+
+        if ($selectedElectionID > 0) {
+            $races = $this->nomineeModel->getRacesByElection($selectedElectionID);
+            $nominees = $this->nomineeModel->getNomineesForBrowse(
+                $selectedElectionID,
+                $selectedRaceID ?: null
+            );
+        }
+
+        // Expose variables to view
+        // (assuming your view file is nomineePerRaceList.php)
+        $filePath = $this->fileHelper->getFilePath('NomineePerRaceList');
+        if ($filePath && file_exists($filePath)) {
+            include $filePath;
+        } else {
+            echo "Nominee per race view not found.";
+        }
+    }
 }

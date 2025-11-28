@@ -277,3 +277,7 @@ $totalTurnoutPct = array_map(fn($r) => (float) $r['turnoutPercent'], $byFaculty)
         });
     })();
 </script>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

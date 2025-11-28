@@ -304,3 +304,7 @@ $initialRaceID = $racesResults[0]['raceID'] ?? null;
         });
     })();
 </script>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

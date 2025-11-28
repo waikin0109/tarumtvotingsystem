@@ -3,7 +3,7 @@
 // Retrieve session data (set from LoginController)
 $accountLoggedInId = $_SESSION['accountID'] ?? '';
 $roleId = $_SESSION['roleID'] ?? null;
-$adminLoggedInId = is_scalar($roleId) ? (string)$roleId : ''; 
+$adminLoggedInId = is_scalar($roleId) ? (string) $roleId : '';
 $fullName = $_SESSION['fullName'] ?? 'Guest';
 $role = $_SESSION['role'] ?? 'User';
 
@@ -44,10 +44,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
     <nav class="navbar navbar-expand-lg navbar-dark bg-danger shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="/admin/home">
-                <img src="/image/tarucLogoSmall.png"
-                     alt="TAR UMT logo"
-                     class="d-inline-block align-text-top me-2 img-fluid"
-                     style="width: 30px; height:auto;">
+                <img src="/image/tarucLogoSmall.png" alt="TAR UMT logo"
+                    class="d-inline-block align-text-top me-2 img-fluid" style="width: 30px; height:auto;">
                 <span class="fw-semibold text-light">TARUMT Voting System</span>
             </a>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -68,20 +66,20 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
         <?php if (!empty($_SESSION['flash'])): ?>
             <?php foreach ($_SESSION['flash'] as $type => $message): ?>
                 <?php
-                    // Map flash types to Bootstrap alert classes
-                    $alertClass = match($type) {
-                        'success' => 'alert-success',
-                        'error', 'fail' => 'alert-danger',
-                        'warning' => 'alert-warning',
-                        'info' => 'alert-info',
-                        default => 'alert-secondary'
-                    };
+                // Map flash types to Bootstrap alert classes
+                $alertClass = match ($type) {
+                    'success' => 'alert-success',
+                    'error', 'fail' => 'alert-danger',
+                    'warning' => 'alert-warning',
+                    'info' => 'alert-info',
+                    default => 'alert-secondary'
+                };
                 ?>
                 <!-- Flash message at top-center -->
-                <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100" style="max-width: 600px; z-index: 2000;">
-                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center" 
-                        id="flash-message-<?= $type ?>" 
-                        role="alert">
+                <div class="position-fixed top-0 start-50 translate-middle-x mt-3 w-100"
+                    style="max-width: 600px; z-index: 2000;">
+                    <div class="alert <?= $alertClass ?> alert-dismissible fade show shadow-lg text-center"
+                        id="flash-message-<?= $type ?>" role="alert">
                         <?= htmlspecialchars($message) ?>
                     </div>
                 </div>
@@ -93,7 +91,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     document.querySelectorAll('[id^="flash-message-"]').forEach(flash => {
                         flash.classList.remove('show');
                         flash.classList.add('fade');
-                        setTimeout(() => flash.remove(), 500); 
+                        setTimeout(() => flash.remove(), 500);
                     });
                 }, 3000);
             </script>
@@ -111,42 +109,42 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
         <!-- Sidebar -->
         <div>
             <aside id="sidebar"
-                    class="bg-light position-relative start-0 overflow-auto border-end border-white border-1 h-100">
+                class="bg-light position-relative start-0 overflow-auto border-end border-white border-1 h-100">
                 <div class="position-sticky pb-5">
                     <div class="menu-title">Election Setup</div>
                     <div class="list-group list-group-flush">
                         <a href="/admin/election-event"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/election-event' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/election-event' ? 'active-menu' : '' ?>">
                             <i class="bi bi-calendar-event"></i>
                             <span>Election Event</span>
                         </a>
                         <a href="/admin/election-registration-form"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/election-registration-form' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/election-registration-form' ? 'active-menu' : '' ?>">
                             <i class="bi bi-ui-checks-grid"></i>
                             <span>Election Registration Form</span>
                         </a>
                         <a href="/admin/rule"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/rule' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/rule' ? 'active-menu' : '' ?>">
                             <i class="bi bi-card-text"></i>
                             <span>Rules &amp; Regulations</span>
                         </a>
                         <a href="/admin/nominee-application"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/nominee-application' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/nominee-application' ? 'active-menu' : '' ?>">
                             <i class="bi bi-people"></i>
                             <span>Nominees' Registration</span>
                         </a>
                         <a href="/admin/schedule-location"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/schedule-location' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/schedule-location' ? 'active-menu' : '' ?>">
                             <i class="bi bi-geo-alt"></i>
                             <span>Schedule &amp; Location</span>
                         </a>
                         <a href="/admin/campaign-material"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/campaign-material' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/campaign-material' ? 'active-menu' : '' ?>">
                             <i class="bi bi-megaphone"></i>
                             <span>Campaign Materials</span>
                         </a>
                         <a href="/announcements"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/announcements' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/announcements' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bell"></i>
                             <span>Announcement</span>
                         </a>
@@ -155,22 +153,27 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     <div class="menu-title mt-3">Voting &amp; Results</div>
                     <div class="list-group list-group-flush">
                         <a href="/vote-session"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/vote-session' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/vote-session' ? 'active-menu' : '' ?>">
                             <i class="bi bi-box-arrow-in-right"></i>
                             <span>Voting Session</span>
                         </a>
+                        <a href="/nominee/list"
+                            class="list-group-item list-group-item-action <?= $currentPath === '/nominee/list' ? 'active-menu' : '' ?>">
+                            <i class="bi bi-people"></i>
+                            <span>Nominees List</span>
+                        </a>
                         <a href="/statistics"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/statistics' ? 'active-menu' : '' ?>">
                             <i class="bi bi-bar-chart-line"></i>
                             <span>Current Statistics</span>
                         </a>
                         <a href="/results"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/results' ? 'active-menu' : '' ?>">
                             <i class="bi bi-trophy"></i>
                             <span>Official Final Results</span>
                         </a>
                         <a href="/admin/reports/list"
-                        class="list-group-item list-group-item-action <?= $currentPath === '/admin/reports/list' ? 'active-menu' : '' ?>">
+                            class="list-group-item list-group-item-action <?= $currentPath === '/admin/reports/list' ? 'active-menu' : '' ?>">
                             <i class="bi bi-file-earmark-text"></i>
                             <span>Report</span>
                         </a>
@@ -182,7 +185,8 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                 <div class="position-absolute bottom-0 start-0 end-0 border-top border-black border-1"
                     style="background:#f8f9fa; padding:10px;">
                     <div id="profileToggle" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar" style="width:40px;height:40px;border-radius:50%;">
+                        <img src="<?= htmlspecialchars($profileImageSrc) ?>" alt="avatar"
+                            style="width:40px;height:40px;border-radius:50%;">
                         <div style="flex:1;">
                             <div style="font-weight:600;"><?= htmlspecialchars($fullName) ?></div>
                             <div style="font-size:12px;color:#6c757d;"><?= htmlspecialchars($role) ?></div>
@@ -215,7 +219,7 @@ $profileImageSrc = $profilePhotoURL !== '' ? $profilePhotoURL : '/image/defaultU
                     $sidebar.removeClass('show');
                     $backdrop.removeClass('show');
                 });
-                
+
                 // Profile toggle
                 let profileOpen = false;
                 $("#profileToggle").on("click", function (e) {

@@ -295,3 +295,7 @@ $timeVotes = array_map(fn($r) => (int) $r['ballotsCast'], $timeline);
         });
     })();
 </script>
+
+<?php
+require_once __DIR__ . '/../AdminView/adminFooter.php';
+?>

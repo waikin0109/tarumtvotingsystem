@@ -703,6 +703,7 @@ class VoteSessionController
         ]);
 
         // ---- Upsert races with "lock if already active" behaviour ----
+
         $keepIds = [];
 
         foreach ($cleanRaces as $r) {
@@ -758,21 +759,20 @@ class VoteSessionController
                             return;
                         }
                     }
-
-                    // No changes -> keep the race as is, do NOT update definition
-                    $keepIds[] = $raceID;
-                    continue;
+                } else {
+                    // Not locked -> safe to update race definition
+                    $this->voteSessionModel->updateRace([
+                        'raceID' => $raceID,
+                        'title' => $r['title'],
+                        'seatType' => $r['seatType'],
+                        'facultyID' => $r['facultyID'],
+                        'seatCount' => $r['seatCount'],
+                        'maxSelectable' => $r['maxSelectable'],
+                    ]);
                 }
 
-                // Not locked -> safe to update race definition
-                $this->voteSessionModel->updateRace([
-                    'raceID' => $raceID,
-                    'title' => $r['title'],
-                    'seatType' => $r['seatType'],
-                    'facultyID' => $r['facultyID'],
-                    'seatCount' => $r['seatCount'],
-                    'maxSelectable' => $r['maxSelectable'],
-                ]);
+                // ✅ Always ensure link between this session and this raceID
+                $this->voteSessionModel->addRaceToSession($voteSessionID, $raceID);
                 $keepIds[] = $raceID;
             } else {
                 // New race: re-use an election-level race if it already exists

@@ -204,4 +204,107 @@ class NomineeModel
         }
     }
 
+    public function getElectionsForBrowse(): array
+    {
+        try {
+            $sql = "
+            SELECT DISTINCT ee.electionID, ee.title
+            FROM electionevent ee
+            INNER JOIN race r 
+                ON r.electionID = ee.electionID
+            INNER JOIN nominee n 
+                ON n.electionID = ee.electionID
+            WHERE ee.status IN ('ONGOING', 'COMPLETED')
+            ORDER BY ee.electionStartDate DESC, ee.electionID DESC
+        ";
+
+            return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('getElectionsForBrowse error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /* ------------------------------------------------------------------
+     * 2. Races dropdown for a selected election
+     * ------------------------------------------------------------------ */
+    public function getRacesByElection(int $electionID): array
+    {
+        try {
+            $sql = "
+        SELECT DISTINCT
+            r.raceID,
+            r.raceTitle
+        FROM race r
+        INNER JOIN electionevent ee
+            ON ee.electionID = r.electionID
+        INNER JOIN nominee n
+            ON n.raceID = r.raceID
+        WHERE ee.electionID = :electionID
+        ORDER BY r.raceTitle
+    ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute(['electionID' => $electionID]);
+
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('getRacesByElection error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /* ------------------------------------------------------------------
+     * 3. Nominees list (filtered by election + optional race)
+     * ------------------------------------------------------------------ */
+    public function getNomineesForBrowse(int $electionID, ?int $raceID = null): array
+    {
+        try {
+            $params = ['electionID' => $electionID];
+            $raceFilter = '';
+
+            if (!empty($raceID)) {
+                $raceFilter = ' AND r.raceID = :raceID ';
+                $params['raceID'] = $raceID;
+            }
+
+            $sql = "
+            SELECT
+                n.nomineeID,
+                a.accountID,
+                a.fullName,
+                a.profilePhotoURL,
+                fac.facultyName,
+                fac.facultyCode,
+                s.program AS programmeName,
+                ''        AS programmeCode,
+                n.manifesto,
+                r.raceTitle,
+                r.seatType
+            FROM nominee n
+            INNER JOIN race r
+                ON r.raceID = n.raceID
+            INNER JOIN electionevent ee
+                ON ee.electionID = r.electionID
+            INNER JOIN account a
+                ON a.accountID = n.accountID
+            LEFT JOIN student s
+                ON s.accountID = a.accountID
+            INNER JOIN faculty fac
+                ON fac.facultyID = a.facultyID
+            WHERE ee.electionID = :electionID
+            $raceFilter
+            ORDER BY r.raceTitle, a.fullName
+        ";
+
+            $st = $this->db->prepare($sql);
+            $st->execute($params);
+
+            return $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (PDOException $e) {
+            error_log('getNomineesForBrowse error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
 }
